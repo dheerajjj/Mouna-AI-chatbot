@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Failed - AI Chatbot Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .failure-container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .failure-icon {
+            width: 80px;
+            height: 80px;
+            background: #dc3545;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            color: white;
+            font-size: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .error-message {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .error-details {
+            background: #fff5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: left;
+            border-left: 4px solid #dc3545;
+        }
+
+        .error-details h3 {
+            color: #dc3545;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .error-details p {
+            color: #721c24;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .common-issues {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .common-issues h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .common-issues ul {
+            color: #666;
+            padding-left: 20px;
+        }
+
+        .common-issues li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .countdown {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #0056b3;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .failure-container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="failure-container">
+        <div class="failure-icon">
+            ✕
+        </div>
+        
+        <h1>Authentication Failed</h1>
+        <p class="error-message">We were unable to authenticate your account. Please try again or use a different login method.</p>
+        
+        <div class="error-details" id="errorDetails" style="display: none;">
+            <h3>Error Details</h3>
+            <p id="errorMessage">Unknown error occurred during authentication.</p>
+        </div>
+
+        <div class="common-issues">
+            <h3>Common Issues & Solutions</h3>
+            <ul>
+                <li><strong>Popup blocked:</strong> Please allow popups for this site and try again</li>
+                <li><strong>Third-party cookies disabled:</strong> Enable third-party cookies in your browser</li>
+                <li><strong>Account access denied:</strong> Make sure you have granted permission to access your profile</li>
+                <li><strong>Network issues:</strong> Check your internet connection and try again</li>
+                <li><strong>Provider temporarily unavailable:</strong> The OAuth provider may be experiencing issues</li>
+            </ul>
+        </div>
+
+        <div class="countdown">
+            <p>You will be redirected to the login page in <span id="countdown">10</span> seconds.</p>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/signup" class="btn btn-primary">
+                Try Again
+            </a>
+            <a href="/email-signup" class="btn btn-secondary">
+                Email Signup
+            </a>
+            <a href="/" class="btn btn-danger">
+                Back to Home
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Extract error information from URL parameters
+        function parseError() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            const provider = urlParams.get('provider');
+            
+            if (error) {
+                document.getElementById('errorDetails').style.display = 'block';
+                
+                let errorMessage = errorDescription || 'Unknown error occurred during authentication.';
+                
+                // Provide user-friendly error messages
+                switch (error) {
+                    case 'access_denied':
+                        errorMessage = 'You denied access to your account. To continue, please allow the application to access your profile information.';
+                        break;
+                    case 'invalid_request':
+                        errorMessage = 'Invalid authentication request. Please try again.';
+                        break;
+                    case 'server_error':
+                        errorMessage = 'Server error occurred during authentication. Please try again later.';
+                        break;
+                    case 'temporarily_unavailable':
+                        errorMessage = 'Authentication service is temporarily unavailable. Please try again in a few minutes.';
+                        break;
+                    case 'invalid_client':
+                        errorMessage = 'Authentication configuration error. Please contact support.';
+                        break;
+                    default:
+                        if (errorDescription) {
+                            errorMessage = errorDescription;
+                        }
+                }
+                
+                if (provider) {
+                    errorMessage += ` (Provider: ${provider})`;
+                }
+                
+                document.getElementById('errorMessage').textContent = errorMessage;
+            }
+        }
+
+        // Setup countdown redirect
+        function setupCountdown() {
+            let timeLeft = 10;
+            const countdownElement = document.getElementById('countdown');
+            
+            const timer = setInterval(() => {
+                timeLeft--;
+                countdownElement.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    window.location.href = '/signup';
+                }
+            }, 1000);
+
+            // Cancel countdown if user clicks any button
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    clearInterval(timer);
+                });
+            });
+        }
+
+        // Log error for debugging
+        function logError() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            const provider = urlParams.get('provider');
+            
+            if (error) {
+                console.error('OAuth Authentication Error:', {
+                    error,
+                    errorDescription,
+                    provider,
+                    timestamp: new Date().toISOString(),
+                    url: window.location.href
+                });
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            parseError();
+            setupCountdown();
+            logError();
+        });
+    </script>
+</body>
+</html>

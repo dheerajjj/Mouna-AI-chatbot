@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Successful - AI Chatbot Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .success-container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #28a745;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            color: white;
+            font-size: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .user-info h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .token-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+
+        .token-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #0056b3;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .success-container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">
+            ✓
+        </div>
+        
+        <h1>Welcome to AI Chatbot Platform!</h1>
+        <p>Your authentication was successful. You're now logged in and ready to start using our AI chatbot service.</p>
+        
+        <div class="user-info" id="userInfo" style="display: none;">
+            <h3>Account Information</h3>
+            <div class="info-item">
+                <span class="info-label">Name:</span>
+                <span class="info-value" id="userName">Loading...</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Email:</span>
+                <span class="info-value" id="userEmail">Loading...</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Provider:</span>
+                <span class="info-value" id="authProvider">OAuth</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">API Key:</span>
+                <span class="info-value" id="apiKey">Generating...</span>
+            </div>
+        </div>
+
+        <div class="token-info">
+            <p>Your JWT token has been set and you're now authenticated. You can proceed to your dashboard.</p>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/dashboard" class="btn btn-primary" id="dashboardBtn">
+                <span>Go to Dashboard</span>
+            </a>
+            <a href="/customize-widget" class="btn btn-secondary">
+                Customize Widget
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Extract user data from URL parameters or localStorage
+        function parseURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return {
+                token: urlParams.get('token'),
+                user: urlParams.get('user') ? JSON.parse(decodeURIComponent(urlParams.get('user'))) : null
+            };
+        }
+
+        // Display user information
+        function displayUserInfo() {
+            const { token, user } = parseURLParams();
+            
+            if (user) {
+                document.getElementById('userName').textContent = user.name || 'N/A';
+                document.getElementById('userEmail').textContent = user.email || 'N/A';
+                document.getElementById('apiKey').textContent = user.apiKey || 'Not available';
+                
+                // Store token in localStorage for future use
+                if (token) {
+                    localStorage.setItem('authToken', token);
+                    localStorage.setItem('user', JSON.stringify(user));
+                }
+                
+                document.getElementById('userInfo').style.display = 'block';
+            } else {
+                // Try to get from localStorage
+                const storedUser = localStorage.getItem('user');
+                if (storedUser) {
+                    const userData = JSON.parse(storedUser);
+                    document.getElementById('userName').textContent = userData.name || 'N/A';
+                    document.getElementById('userEmail').textContent = userData.email || 'N/A';
+                    document.getElementById('apiKey').textContent = userData.apiKey || 'Not available';
+                    document.getElementById('userInfo').style.display = 'block';
+                }
+            }
+        }
+
+        // Auto-redirect after 5 seconds
+        function setupAutoRedirect() {
+            const dashboardBtn = document.getElementById('dashboardBtn');
+            let countdown = 5;
+            
+            const originalText = dashboardBtn.innerHTML;
+            
+            const timer = setInterval(() => {
+                if (countdown > 0) {
+                    dashboardBtn.innerHTML = `<div class="loading"></div> Redirecting in ${countdown}s`;
+                    countdown--;
+                } else {
+                    clearInterval(timer);
+                    window.location.href = '/dashboard';
+                }
+            }, 1000);
+
+            // Cancel auto-redirect if user clicks any button
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    clearInterval(timer);
+                    dashboardBtn.innerHTML = originalText;
+                });
+            });
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            displayUserInfo();
+            setupAutoRedirect();
+        });
+    </script>
+</body>
+</html>

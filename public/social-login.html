@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in to Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 30px rgba(13, 123, 138, 0.3));
+        }
+        
+        .logo-fallback {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            filter: drop-shadow(0 10px 30px rgba(13, 123, 138, 0.3));
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 40px;
+            font-weight: 700;
+            font-size: 1.8rem;
+        }
+
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background: white;
+            font-size: 16px;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .google-btn {
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        .google-btn:hover {
+            background-color: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 30px 0;
+            color: #718096;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #cbd5e0, transparent);
+        }
+
+        .divider span {
+            padding: 0 20px;
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+
+        .email-login {
+            color: #0d7b8a;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 16px 32px;
+            border: 2px solid #0d7b8a;
+            border-radius: 50px;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .email-login:hover {
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(13, 123, 138, 0.3);
+            border-color: transparent;
+        }
+
+        .btn-icon {
+            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .footer-text {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .footer-text a {
+            color: #0d7b8a;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-text a:hover {
+            color: #4a0e6b;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0d7b8a;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 20px;
+                padding: 30px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <img src="/images/logo.png" alt="Mouna Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="logo-fallback">M</div>
+        </div>
+        <h1>Sign in to Mouna AI</h1>
+        
+        <div class="social-buttons">
+            <a href="/auth/google" class="social-btn google-btn" id="googleBtn">
+                <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Continue with Google
+            </a>
+        </div>
+
+        <div class="divider">
+            <span>or</span>
+        </div>
+
+        <a href="/signup" class="email-login">Sign up with Email</a>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Signing you in...</span>
+        </div>
+
+        <div class="footer-text">
+            Already have an account? <a href="/login">Sign in</a><br>
+            <a href="/privacy">Privacy Policy</a> | <a href="/terms">Terms of Service</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socialButtons = document.querySelectorAll('.social-btn');
+            const loading = document.getElementById('loading');
+
+            socialButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    loading.style.display = 'flex';
+                });
+            });
+
+            // Check for authentication status from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const success = urlParams.get('success');
+
+            if (error) {
+                alert('Authentication failed: ' + error);
+            } else if (success) {
+                alert('Successfully authenticated!');
+                // Redirect to dashboard or close popup
+                window.location.href = '/dashboard';
+            }
+        });
+    </script>
+</body>
+</html>

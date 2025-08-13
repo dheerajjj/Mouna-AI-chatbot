@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Widget Customization - Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary { background: #667eea; color: white; }
+        .btn-secondary { background: #e2e8f0; color: #4a5568; }
+        .btn:hover { transform: translateY(-2px); }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+        }
+        
+        .main-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .preview-panel {
+            position: sticky;
+            top: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: fit-content;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .customization-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+        }
+        
+        .color-option {
+            text-align: center;
+        }
+        
+        .color-swatch {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            margin: 0 auto 0.5rem;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .color-swatch:hover,
+        .color-swatch.selected {
+            border-color: #667eea;
+            transform: scale(1.1);
+        }
+        
+        .theme-preset {
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        
+        .theme-preset:hover,
+        .theme-preset.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .theme-preview {
+            width: 100%;
+            height: 80px;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+        
+        .slider-value {
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-switch.active {
+            background: #667eea;
+        }
+        
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-switch.active::before {
+            left: 28px;
+        }
+        
+        .animation-preview {
+            width: 60px;
+            height: 60px;
+            background: #667eea;
+            border-radius: 50%;
+            margin: 1rem auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+        
+        .preview-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 450px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            border: 2px solid #e2e8f0;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 10000;
+            margin: 0;
+        }
+        
+        .widget-header {
+            padding: 1rem;
+            background: var(--widget-primary, #667eea);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .widget-content {
+            padding: 1rem;
+            height: calc(100% - 120px);
+            overflow-y: auto;
+        }
+        
+        .widget-input {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .widget-input input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            outline: none;
+        }
+        
+        .widget-input button {
+            padding: 0.75rem;
+            background: var(--widget-primary, #667eea);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        
+        .message-bot {
+            background: #f1f5f9;
+            color: #334155;
+            margin-right: auto;
+        }
+        
+        .message-user {
+            background: var(--widget-primary, #667eea);
+            color: white;
+            margin-left: auto;
+        }
+        
+        .code-editor {
+            height: 200px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        
+        .gradient-preview {
+            width: 100%;
+            height: 60px;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .sound-test {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .personality-trait {
+            padding: 0.5rem 1rem;
+            background: #f1f5f9;
+            border: 2px solid transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.25rem;
+            display: inline-block;
+        }
+        
+        .personality-trait.selected {
+            background: #667eea;
+            color: white;
+            border-color: #5a67d8;
+        }
+        
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-panel {
+                position: relative;
+                top: auto;
+            }
+            
+            .preview-widget {
+                position: fixed !important;
+                width: 90% !important;
+                max-width: 350px !important;
+                height: 400px !important;
+                z-index: 10000 !important;
+            }
+        }
+        
+        /* Force bottom-right positioning */
+        .preview-widget.fixed-position {
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            top: auto !important;
+            left: auto !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🤖 Mouna AI - Advanced Customization</div>
+            <div class="nav-actions">
+                <button id="save-all" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save All Changes
+                </button>
+                <a href="/dashboard" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="section-header">
+                <i class="fas fa-palette"></i>
+                Advanced Widget Customization
+            </div>
+
+            <div class="customization-tabs">
+                <button class="tab-btn active" data-tab="appearance">🎨 Appearance</button>
+                <button class="tab-btn" data-tab="behavior">⚡ Behavior</button>
+                <button class="tab-btn" data-tab="animations">🎭 Animations</button>
+                <button class="tab-btn" data-tab="sounds">🔊 Sounds</button>
+                <button class="tab-btn" data-tab="ai-personality">🧠 AI Personality</button>
+                <button class="tab-btn" data-tab="advanced">🚀 Advanced</button>
+            </div>
+
+            <!-- Appearance Tab -->
+            <div class="tab-content active" id="appearance">
+                <div class="form-group">
+                    <label><i class="fas fa-swatchbook"></i> Theme Presets</label>
+                    <div id="theme-presets"></div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-paint-brush"></i> Custom Colors</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label>Primary Color</label>
+                            <input type="color" id="primaryColor" value="#667eea">
+                        </div>
+                        <div>
+                            <label>Secondary Color</label>
+                            <input type="color" id="secondaryColor" value="#764ba2">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-fill-drip"></i> Background Style</label>
+                    <select id="backgroundStyle">
+                        <option value="solid">Solid Color</option>
+                        <option value="gradient">Gradient</option>
+                        <option value="pattern">Pattern</option>
+                        <option value="glass">Glass Morphism</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-font"></i> Typography</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label>Font Family</label>
+                            <select id="fontFamily">
+                                <option value="Inter">Inter (Default)</option>
+                                <option value="Roboto">Roboto</option>
+                                <option value="Poppins">Poppins</option>
+                                <option value="Montserrat">Montserrat</option>
+                                <option value="Source Sans Pro">Source Sans Pro</option>
+                                <option value="Open Sans">Open Sans</option>
+                                <option value="JetBrains Mono">JetBrains Mono (Monospace)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Font Size</label>
+                            <div class="slider-container">
+                                <input type="range" id="fontSize" class="slider" min="12" max="18" value="14">
+                                <span class="slider-value" id="fontSizeValue">14px</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-border-style"></i> Border & Shadows</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label>Border Radius</label>
+                            <div class="slider-container">
+                                <input type="range" id="borderRadius" class="slider" min="0" max="30" value="12">
+                                <span class="slider-value" id="borderRadiusValue">12px</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Shadow Intensity</label>
+                            <div class="slider-container">
+                                <input type="range" id="shadowIntensity" class="slider" min="0" max="100" value="50">
+                                <span class="slider-value" id="shadowIntensityValue">50%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Behavior Tab -->
+            <div class="tab-content" id="behavior">
+                <div class="form-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Widget Position</label>
+                    <select id="widgetPosition">
+                        <option value="bottom-right">Bottom Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="top-right">Top Right</option>
+                        <option value="top-left">Top Left</option>
+                        <option value="center">Center</option>
+                        <option value="bottom-center">Bottom Center</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-expand-arrows-alt"></i> Widget Size</label>
+                    <select id="widgetSize">
+                        <option value="compact">Compact (320px)</option>
+                        <option value="medium">Medium (380px)</option>
+                        <option value="large">Large (450px)</option>
+                        <option value="full">Full Screen</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-clock"></i> Auto-Open Delay</label>
+                    <div class="slider-container">
+                        <input type="range" id="autoOpenDelay" class="slider" min="0" max="30" value="0">
+                        <span class="slider-value" id="autoOpenDelayValue">Disabled</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-eye"></i>
+                        Smart Behavior
+                    </label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Auto-minimize when idle</span>
+                        <div class="toggle-switch" id="autoMinimize"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Remember conversation</span>
+                        <div class="toggle-switch active" id="rememberConversation"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Show typing indicator</span>
+                        <div class="toggle-switch active" id="showTyping"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animations Tab -->
+            <div class="tab-content" id="animations">
+                <div class="form-group">
+                    <label><i class="fas fa-magic"></i> Entry Animation</label>
+                    <select id="entryAnimation">
+                        <option value="fadeIn">Fade In</option>
+                        <option value="slideUp">Slide Up</option>
+                        <option value="slideRight">Slide Right</option>
+                        <option value="bounce">Bounce</option>
+                        <option value="flipIn">Flip In</option>
+                        <option value="zoomIn">Zoom In</option>
+                        <option value="rotateIn">Rotate In</option>
+                    </select>
+                    <div class="animation-preview" id="animationPreview">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-tachometer-alt"></i> Animation Speed</label>
+                    <div class="slider-container">
+                        <input type="range" id="animationSpeed" class="slider" min="100" max="2000" value="500">
+                        <span class="slider-value" id="animationSpeedValue">0.5s</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-wave-square"></i> Message Animations</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Bubble animation on new message</span>
+                        <div class="toggle-switch active" id="bubbleAnimation"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Smooth scrolling</span>
+                        <div class="toggle-switch active" id="smoothScrolling"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-heartbeat"></i> Breathing Effect</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Widget button breathing</span>
+                        <div class="toggle-switch" id="breathingEffect"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sounds Tab -->
+            <div class="tab-content" id="sounds">
+                <div class="form-group">
+                    <label><i class="fas fa-volume-up"></i> Sound Effects</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Enable sound effects</span>
+                        <div class="toggle-switch" id="enableSounds"></div>
+                    </div>
+                </div>
+
+                <div id="soundOptions" style="display: none;">
+                    <div class="form-group">
+                        <label>Message Sounds</label>
+                        <div class="sound-test">
+                            <span>New message</span>
+                            <button class="btn btn-secondary" onclick="playSound('message')">🔊 Test</button>
+                        </div>
+                        <div class="sound-test">
+                            <span>Message sent</span>
+                            <button class="btn btn-secondary" onclick="playSound('sent')">🔊 Test</button>
+                        </div>
+                        <div class="sound-test">
+                            <span>Widget open</span>
+                            <button class="btn btn-secondary" onclick="playSound('open')">🔊 Test</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sound Theme</label>
+                        <select id="soundTheme">
+                            <option value="gentle">Gentle</option>
+                            <option value="modern">Modern</option>
+                            <option value="classic">Classic</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Volume</label>
+                        <div class="slider-container">
+                            <input type="range" id="soundVolume" class="slider" min="0" max="100" value="50">
+                            <span class="slider-value" id="soundVolumeValue">50%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Personality Tab -->
+            <div class="tab-content" id="ai-personality">
+                <div class="form-group">
+                    <label><i class="fas fa-brain"></i> AI Personality Traits</label>
+                    <div id="personalityTraits">
+                        <div class="personality-trait" data-trait="friendly">😊 Friendly</div>
+                        <div class="personality-trait" data-trait="professional">💼 Professional</div>
+                        <div class="personality-trait" data-trait="casual">😎 Casual</div>
+                        <div class="personality-trait" data-trait="witty">🤓 Witty</div>
+                        <div class="personality-trait" data-trait="empathetic">❤️ Empathetic</div>
+                        <div class="personality-trait" data-trait="concise">⚡ Concise</div>
+                        <div class="personality-trait" data-trait="detailed">📚 Detailed</div>
+                        <div class="personality-trait" data-trait="creative">🎨 Creative</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-comment-dots"></i> Response Style</label>
+                    <select id="responseStyle">
+                        <option value="balanced">Balanced</option>
+                        <option value="brief">Brief & Direct</option>
+                        <option value="detailed">Detailed & Thorough</option>
+                        <option value="conversational">Conversational</option>
+                        <option value="formal">Formal & Professional</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-user-tie"></i> AI Name & Avatar</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label>AI Name</label>
+                            <input type="text" id="aiName" placeholder="e.g., Alex, Maya, Sam" value="AI Assistant">
+                        </div>
+                        <div>
+                            <label>Avatar Style</label>
+                            <select id="avatarStyle">
+                                <option value="robot">🤖 Robot</option>
+                                <option value="person">👤 Person</option>
+                                <option value="animal">🐱 Animal</option>
+                                <option value="abstract">⭐ Abstract</option>
+                                <option value="custom">🖼️ Custom</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-language"></i> Communication Style</label>
+                    <div>
+                        <label>Use emojis in responses</label>
+                        <div class="toggle-switch active" id="useEmojis"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Tab -->
+            <div class="tab-content" id="advanced">
+                <div class="form-group">
+                    <label><i class="fas fa-code"></i> Custom CSS</label>
+                    <textarea id="customCSS" placeholder="/* Add your custom CSS here */
+.chatbot-widget-container {
+    /* Your custom styles */
+}" class="code-editor"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-mobile-alt"></i> Responsive Behavior</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Auto-hide on mobile</span>
+                        <div class="toggle-switch" id="autoHideMobile"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Full screen on mobile</span>
+                        <div class="toggle-switch active" id="fullScreenMobile"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-cog"></i> Performance</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Lazy loading</span>
+                        <div class="toggle-switch active" id="lazyLoading"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Preload messages</span>
+                        <div class="toggle-switch" id="preloadMessages"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-shield-alt"></i> Privacy & Security</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Remember user preferences</span>
+                        <div class="toggle-switch active" id="rememberPreferences"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <span>Analytics tracking</span>
+                        <div class="toggle-switch active" id="analyticsTracking"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <div class="section-header">
+                <i class="fas fa-eye"></i>
+                Live Preview
+            </div>
+            <div style="text-align: center; margin-bottom: 1rem; color: #64748b;">
+                See your changes in real-time
+            </div>
+            <div style="text-align: center; padding: 2rem; border: 2px dashed #e2e8f0; border-radius: 12px; color: #64748b;">
+                <i class="fas fa-eye" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                <p style="margin-bottom: 0.5rem;">Preview widget is positioned on screen</p>
+                <p style="font-size: 0.9rem;">Change position and size in the Behavior tab to see it move around your browser window</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview widget positioned on viewport -->
+    <div class="preview-widget" id="previewWidget">
+        <div class="widget-header" style="background: var(--widget-primary, #667eea);">
+            <div>
+                <div style="font-weight: 600;" id="previewTitle">AI Assistant</div>
+                <div style="font-size: 0.8rem; opacity: 0.9;">Online • Typing...</div>
+            </div>
+            <button style="background: none; border: none; color: white;">×</button>
+        </div>
+        <div class="widget-content">
+            <div class="message-bubble message-bot">
+                <span id="previewWelcome">👋 Hello! How can I help you today?</span>
+            </div>
+            <div class="message-bubble message-user">
+                Can you help me with pricing?
+            </div>
+            <div class="message-bubble message-bot">
+                Of course! I'd be happy to help you understand our pricing options. We have three main plans...
+            </div>
+        </div>
+        <div class="widget-input">
+            <input type="text" placeholder="Type your message...">
+            <button><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script>
+        // Advanced Widget Customization System
+        class AdvancedWidgetCustomizer {
+            constructor() {
+                this.config = {
+                    // Appearance
+                    primaryColor: '#667eea',
+                    secondaryColor: '#764ba2',
+                    backgroundStyle: 'gradient',
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    borderRadius: 12,
+                    shadowIntensity: 50,
+                    
+                    // Behavior
+                    widgetPosition: 'bottom-right',
+                    widgetSize: 'medium',
+                    autoOpenDelay: 0,
+                    autoMinimize: false,
+                    rememberConversation: true,
+                    showTyping: true,
+                    
+                    // Animations
+                    entryAnimation: 'slideUp',
+                    animationSpeed: 500,
+                    bubbleAnimation: true,
+                    smoothScrolling: true,
+                    breathingEffect: false,
+                    
+                    // Sounds
+                    enableSounds: false,
+                    soundTheme: 'gentle',
+                    soundVolume: 50,
+                    
+                    // AI Personality
+                    personalityTraits: ['friendly'],
+                    responseStyle: 'balanced',
+                    aiName: 'AI Assistant',
+                    avatarStyle: 'robot',
+                    useEmojis: true,
+                    
+                    // Advanced
+                    customCSS: '',
+                    autoHideMobile: false,
+                    fullScreenMobile: true,
+                    lazyLoading: true,
+                    preloadMessages: false,
+                    rememberPreferences: true,
+                    analyticsTracking: true
+                };
+                
+                this.themes = {
+                    ocean: {
+                        name: '🌊 Ocean',
+                        primary: '#0ea5e9',
+                        secondary: '#0284c7',
+                        gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)'
+                    },
+                    sunset: {
+                        name: '🌅 Sunset',
+                        primary: '#f59e0b',
+                        secondary: '#ef4444',
+                        gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)'
+                    },
+                    forest: {
+                        name: '🌲 Forest',
+                        primary: '#059669',
+                        secondary: '#047857',
+                        gradient: 'linear-gradient(135deg, #059669, #047857)'
+                    },
+                    galaxy: {
+                        name: '🌌 Galaxy',
+                        primary: '#7c3aed',
+                        secondary: '#a855f7',
+                        gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)'
+                    },
+                    rose: {
+                        name: '🌹 Rose',
+                        primary: '#e11d48',
+                        secondary: '#f43f5e',
+                        gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)'
+                    },
+                    corporate: {
+                        name: '💼 Corporate',
+                        primary: '#374151',
+                        secondary: '#1f2937',
+                        gradient: 'linear-gradient(135deg, #374151, #1f2937)'
+                    }
+                };
+                
+                this.sounds = {
+                    message: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMdBDWN1fPRfC0FJHbE5+WQQQSIR6bg7K1aG'),
+                    sent: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMdBDWN1fPRfC0FJHbE5+WQQQRIR6bg7K1a'),
+                    open: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMdBDWN1fPRfC0FJHbE5+WQQQIR6bg7K1bGQA==')
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupTabs();
+                this.setupThemes();
+                this.setupEventListeners();
+                this.setupPreview();
+                this.loadUserConfig();
+            }
+            
+            setupTabs() {
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                const tabContents = document.querySelectorAll('.tab-content');
+                
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const tabId = button.dataset.tab;
+                        
+                        // Remove active classes
+                        tabButtons.forEach(btn => btn.classList.remove('active'));
+                        tabContents.forEach(content => content.classList.remove('active'));
+                        
+                        // Add active classes
+                        button.classList.add('active');
+                        document.getElementById(tabId).classList.add('active');
+                    });
+                });
+            }
+            
+            setupThemes() {
+                const themesContainer = document.getElementById('theme-presets');
+                
+                Object.entries(this.themes).forEach(([key, theme]) => {
+                    const themeElement = document.createElement('div');
+                    themeElement.className = 'theme-preset';
+                    themeElement.dataset.theme = key;
+                    
+                    themeElement.innerHTML = `
+                        <div class="theme-preview" style="background: ${theme.gradient}"></div>
+                        <div style="font-weight: 500;">${theme.name}</div>
+                    `;
+                    
+                    themeElement.addEventListener('click', () => {
+                        this.selectTheme(key);
+                        document.querySelectorAll('.theme-preset').forEach(el => el.classList.remove('selected'));
+                        themeElement.classList.add('selected');
+                    });
+                    
+                    themesContainer.appendChild(themeElement);
+                });
+            }
+            
+            setupEventListeners() {
+                // Color inputs
+                document.getElementById('primaryColor').addEventListener('change', (e) => {
+                    this.config.primaryColor = e.target.value;
+                    this.updatePreview();
+                });
+                
+                document.getElementById('secondaryColor').addEventListener('change', (e) => {
+                    this.config.secondaryColor = e.target.value;
+                    this.updatePreview();
+                });
+                
+                // Sliders
+                this.setupSlider('fontSize', (value) => {
+                    this.config.fontSize = parseInt(value);
+                    document.getElementById('fontSizeValue').textContent = value + 'px';
+                    this.updatePreview();
+                });
+                
+                this.setupSlider('borderRadius', (value) => {
+                    this.config.borderRadius = parseInt(value);
+                    document.getElementById('borderRadiusValue').textContent = value + 'px';
+                    this.updatePreview();
+                });
+                
+                this.setupSlider('shadowIntensity', (value) => {
+                    this.config.shadowIntensity = parseInt(value);
+                    document.getElementById('shadowIntensityValue').textContent = value + '%';
+                    this.updatePreview();
+                });
+                
+                this.setupSlider('autoOpenDelay', (value) => {
+                    this.config.autoOpenDelay = parseInt(value);
+                    document.getElementById('autoOpenDelayValue').textContent = value == 0 ? 'Disabled' : value + 's';
+                });
+                
+                this.setupSlider('animationSpeed', (value) => {
+                    this.config.animationSpeed = parseInt(value);
+                    document.getElementById('animationSpeedValue').textContent = (value / 1000).toFixed(1) + 's';
+                    this.updatePreview();
+                });
+                
+                this.setupSlider('soundVolume', (value) => {
+                    this.config.soundVolume = parseInt(value);
+                    document.getElementById('soundVolumeValue').textContent = value + '%';
+                });
+                
+                // Toggle switches
+                this.setupToggle('autoMinimize');
+                this.setupToggle('rememberConversation');
+                this.setupToggle('showTyping');
+                this.setupToggle('bubbleAnimation');
+                this.setupToggle('smoothScrolling');
+                this.setupToggle('breathingEffect');
+                this.setupToggle('enableSounds', (enabled) => {
+                    document.getElementById('soundOptions').style.display = enabled ? 'block' : 'none';
+                });
+                this.setupToggle('useEmojis');
+                this.setupToggle('autoHideMobile');
+                this.setupToggle('fullScreenMobile');
+                this.setupToggle('lazyLoading');
+                this.setupToggle('preloadMessages');
+                this.setupToggle('rememberPreferences');
+                this.setupToggle('analyticsTracking');
+                
+                // Select inputs
+                this.setupSelect('backgroundStyle');
+                this.setupSelect('fontFamily', () => this.updatePreview());
+                this.setupSelect('widgetPosition', (value) => this.updateWidgetPosition(value));
+                this.setupSelect('widgetSize', (value) => this.updateWidgetSize(value));
+                this.setupSelect('entryAnimation', () => this.playAnimation());
+                this.setupSelect('responseStyle');
+                this.setupSelect('avatarStyle');
+                this.setupSelect('soundTheme');
+                
+                // Text inputs
+                this.setupTextInput('aiName', () => {
+                    document.getElementById('previewTitle').textContent = this.config.aiName;
+                });
+                
+                // Personality traits
+                document.querySelectorAll('.personality-trait').forEach(trait => {
+                    trait.addEventListener('click', () => {
+                        const traitValue = trait.dataset.trait;
+                        if (trait.classList.contains('selected')) {
+                            trait.classList.remove('selected');
+                            this.config.personalityTraits = this.config.personalityTraits.filter(t => t !== traitValue);
+                        } else {
+                            trait.classList.add('selected');
+                            this.config.personalityTraits.push(traitValue);
+                        }
+                    });
+                });
+                
+                // Save button
+                document.getElementById('save-all').addEventListener('click', () => {
+                    this.saveConfiguration();
+                });
+            }
+            
+            setupSlider(id, callback) {
+                const slider = document.getElementById(id);
+                slider.addEventListener('input', (e) => {
+                    callback(e.target.value);
+                });
+            }
+            
+            setupToggle(id, callback) {
+                const toggle = document.getElementById(id);
+                toggle.addEventListener('click', () => {
+                    const isActive = toggle.classList.toggle('active');
+                    this.config[id] = isActive;
+                    if (callback) callback(isActive);
+                });
+            }
+            
+            setupSelect(id, callback) {
+                const select = document.getElementById(id);
+                select.addEventListener('change', (e) => {
+                    this.config[id] = e.target.value;
+                    if (callback) callback(e.target.value);
+                });
+            }
+            
+            setupTextInput(id, callback) {
+                const input = document.getElementById(id);
+                input.addEventListener('input', (e) => {
+                    this.config[id] = e.target.value;
+                    if (callback) callback(e.target.value);
+                });
+            }
+            
+            setupPreview() {
+                // Initialize widget position on load
+                this.updateWidgetPosition(this.config.widgetPosition);
+                this.updateWidgetSize(this.config.widgetSize);
+                this.updatePreview();
+            }
+            
+            updatePreview() {
+                const widget = document.getElementById('previewWidget');
+                const root = document.documentElement;
+                
+                // Update CSS custom properties
+                root.style.setProperty('--widget-primary', this.config.primaryColor);
+                root.style.setProperty('--widget-secondary', this.config.secondaryColor);
+                
+                // Update widget styles
+                widget.style.fontFamily = this.config.fontFamily;
+                widget.style.fontSize = this.config.fontSize + 'px';
+                widget.style.borderRadius = this.config.borderRadius + 'px';
+                
+                // Update shadow
+                const shadowOpacity = this.config.shadowIntensity / 100;
+                widget.style.boxShadow = `0 8px 32px rgba(0,0,0,${shadowOpacity * 0.15})`;
+            }
+            
+            updateWidgetPosition(position) {
+                const widget = document.getElementById('previewWidget');
+                
+                // Reset all position styles
+                widget.style.top = 'auto';
+                widget.style.bottom = 'auto';
+                widget.style.left = 'auto';
+                widget.style.right = 'auto';
+                widget.style.transform = 'none';
+                
+                // Apply new position
+                switch(position) {
+                    case 'bottom-right':
+                        widget.style.bottom = '20px';
+                        widget.style.right = '20px';
+                        break;
+                    case 'bottom-left':
+                        widget.style.bottom = '20px';
+                        widget.style.left = '20px';
+                        break;
+                    case 'top-right':
+                        widget.style.top = '100px';
+                        widget.style.right = '20px';
+                        break;
+                    case 'top-left':
+                        widget.style.top = '100px';
+                        widget.style.left = '20px';
+                        break;
+                    case 'center':
+                        widget.style.top = '50%';
+                        widget.style.left = '50%';
+                        widget.style.transform = 'translate(-50%, -50%)';
+                        break;
+                    case 'bottom-center':
+                        widget.style.bottom = '20px';
+                        widget.style.left = '50%';
+                        widget.style.transform = 'translateX(-50%)';
+                        break;
+                }
+                
+                this.config.widgetPosition = position;
+            }
+            
+            updateWidgetSize(size) {
+                const widget = document.getElementById('previewWidget');
+                
+                switch(size) {
+                    case 'compact':
+                        widget.style.width = '320px';
+                        widget.style.height = '400px';
+                        break;
+                    case 'medium':
+                        widget.style.width = '350px';
+                        widget.style.height = '450px';
+                        break;
+                    case 'large':
+                        widget.style.width = '400px';
+                        widget.style.height = '500px';
+                        break;
+                    case 'full':
+                        widget.style.width = '100vw';
+                        widget.style.height = '100vh';
+                        widget.style.top = '0';
+                        widget.style.left = '0';
+                        widget.style.right = '0';
+                        widget.style.bottom = '0';
+                        break;
+                }
+                
+                this.config.widgetSize = size;
+            }
+            
+            selectTheme(themeKey) {
+                const theme = this.themes[themeKey];
+                this.config.primaryColor = theme.primary;
+                this.config.secondaryColor = theme.secondary;
+                
+                document.getElementById('primaryColor').value = theme.primary;
+                document.getElementById('secondaryColor').value = theme.secondary;
+                
+                this.updatePreview();
+            }
+            
+            playAnimation() {
+                const preview = document.getElementById('animationPreview');
+                const animationClass = 'animate-' + this.config.entryAnimation;
+                
+                preview.style.animation = 'none';
+                preview.offsetHeight; // Trigger reflow
+                preview.style.animation = `${animationClass} ${this.config.animationSpeed}ms ease-in-out`;
+            }
+            
+            async loadUserConfig() {
+                try {
+                    // For demo purposes, we'll use test API key if no auth token exists
+                    let token = localStorage.getItem('authToken');
+                    let headers = { 'Content-Type': 'application/json' };
+                    
+                    if (!token) {
+                        // Try to get the test API key for demo purposes
+                        const testResponse = await fetch('/test-api-key');
+                        if (testResponse.ok) {
+                            const testData = await testResponse.json();
+                            // Use X-API-Key header instead of Authorization for test API key
+                            this.useTestApiKey = testData.apiKey;
+                            headers['X-API-Key'] = this.useTestApiKey;
+                        } else {
+                            console.log('No test API key available, skipping config load');
+                            return;
+                        }
+                    } else {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    
+                    const response = await fetch('/api/widget/config', {
+                        headers: headers
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.config) {
+                            this.applyConfig(data.config);
+                        }
+                    } else {
+                        console.log('Failed to load config:', response.status);
+                    }
+                } catch (error) {
+                    console.error('Failed to load user config:', error);
+                }
+            }
+            
+            applyConfig(config) {
+                // Apply loaded configuration to UI elements
+                Object.keys(config).forEach(key => {
+                    if (this.config.hasOwnProperty(key)) {
+                        this.config[key] = config[key];
+                        
+                        const element = document.getElementById(key);
+                        if (element) {
+                            if (element.type === 'color' || element.type === 'text' || element.type === 'range') {
+                                element.value = config[key];
+                            } else if (element.type === 'select-one') {
+                                element.value = config[key];
+                            } else if (element.classList.contains('toggle-switch')) {
+                                element.classList.toggle('active', config[key]);
+                            }
+                        }
+                    }
+                });
+                
+                // Apply position and size changes after config is loaded
+                this.updateWidgetPosition(this.config.widgetPosition);
+                this.updateWidgetSize(this.config.widgetSize);
+                this.updatePreview();
+            }
+            
+            async saveConfiguration() {
+                const saveButton = document.getElementById('save-all');
+                const originalText = saveButton.innerHTML;
+                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                saveButton.disabled = true;
+
+                try {
+                    let headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    const token = localStorage.getItem('authToken');
+
+                    // Determine authentication method
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    } else if (this.useTestApiKey) {
+                        headers['X-API-Key'] = this.useTestApiKey;
+                    } else {
+                        // No auth method, show an alert and stop
+                        alert('Authentication token or API key is missing. Please log in.');
+                        saveButton.innerHTML = originalText; // Restore button text
+                        saveButton.disabled = false;
+                        return;
+                    }
+                    
+                    console.log('Saving configuration with headers:', headers);
+
+                    const response = await fetch('/api/widget/customize-advanced', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(this.config)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP ${response.status}`);
+                    }
+
+                    // Success
+                    saveButton.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                    saveButton.style.background = '#10b981';
+
+                } catch (error) {
+                    console.error('Save error:', error);
+                    alert(`Failed to save configuration: ${error.message}`);
+                } finally {
+                    // Restore button after a delay
+                    setTimeout(() => {
+                        saveButton.innerHTML = originalText;
+                        saveButton.style.background = '';
+                        saveButton.disabled = false;
+                    }, 2000);
+                }
+            }
+        }
+        
+        // Sound functions
+        window.playSound = function(soundType) {
+            const customizer = window.widgetCustomizer;
+            if (customizer && customizer.sounds[soundType]) {
+                const sound = customizer.sounds[soundType];
+                sound.volume = customizer.config.soundVolume / 100;
+                sound.play().catch(e => console.log('Sound play failed:', e));
+            }
+        };
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.widgetCustomizer = new AdvancedWidgetCustomizer();
+        });
+        
+        // Add CSS animations
+        const animationCSS = `
+            @keyframes animate-fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes animate-slideUp {
+                from { transform: translateY(20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            @keyframes animate-slideRight {
+                from { transform: translateX(-20px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes animate-bounce {
+                0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+                40%, 43% { transform: translate3d(0,-15px,0); }
+                70% { transform: translate3d(0,-7px,0); }
+                90% { transform: translate3d(0,-2px,0); }
+            }
+            @keyframes animate-flipIn {
+                from { transform: perspective(400px) rotateY(90deg); opacity: 0; }
+                to { transform: perspective(400px) rotateY(0deg); opacity: 1; }
+            }
+            @keyframes animate-zoomIn {
+                from { transform: scale(0.5); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+            }
+            @keyframes animate-rotateIn {
+                from { transform: rotate(-360deg) scale(0.5); opacity: 0; }
+                to { transform: rotate(0deg) scale(1); opacity: 1; }
+            }
+        `;
+        
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = animationCSS;
+        document.head.appendChild(styleSheet);
+    </script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #2d3748;
+            background: #f8fafc;
+        }
+
+        .navbar {
+            background: #ffffff;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .logo-fallback {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            font-weight: 800;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #0d7b8a;
+            border: 2px solid #0d7b8a;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+
+        .content {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0d7b8a;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .content h2:first-child {
+            margin-top: 0;
+        }
+
+        .content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .content p {
+            margin-bottom: 1rem;
+            color: #4a5568;
+        }
+
+        .content ul {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        .content li {
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #e6fffa, #f0fdfa);
+            padding: 1rem;
+            border-left: 4px solid #0d7b8a;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+        }
+
+        .contact-info {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .footer {
+            background: #2d3748;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #0d7b8a;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: #4a0e6b;
+        }
+
+        @media (max-width: 768px) {
+            .nav-buttons {
+                display: none;
+            }
+            
+            .container {
+                padding: 2rem 1rem;
+            }
+            
+            .content {
+                padding: 2rem 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="/images/logo.png" alt="Mouna Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fallback">M</div>
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">Voice of Thoughtful Silence</div>
+                </div>
+            </a>
+            <div class="nav-buttons">
+                <a href="/login" class="btn btn-secondary">Sign In</a>
+                <a href="/signup" class="btn btn-primary">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <a href="/signup" class="back-btn">← Back to Sign Up</a>
+        
+        <div class="header">
+            <h1>Privacy Policy</h1>
+            <p>Last updated: January 2024</p>
+        </div>
+
+        <div class="content">
+            <div class="highlight">
+                <p><strong>Your privacy is important to us.</strong> This Privacy Policy explains how Mouna AI collects, uses, and protects your information when you use our AI chatbot widget service.</p>
+            </div>
+
+            <h2>1. Information We Collect</h2>
+            <h3>Personal Information</h3>
+            <ul>
+                <li>Name and email address when you create an account</li>
+                <li>Payment information for subscription services</li>
+                <li>Communication preferences and settings</li>
+            </ul>
+
+            <h3>Usage Information</h3>
+            <ul>
+                <li>Chat conversations and messages processed by our AI</li>
+                <li>Website analytics and usage patterns</li>
+                <li>Technical information such as IP addresses and browser data</li>
+                <li>Performance metrics and error logs</li>
+            </ul>
+
+            <h2>2. How We Use Your Information</h2>
+            <p>We use your information to:</p>
+            <ul>
+                <li>Provide and improve our AI chatbot services</li>
+                <li>Process payments and manage subscriptions</li>
+                <li>Send important service updates and notifications</li>
+                <li>Analyze usage patterns to enhance user experience</li>
+                <li>Ensure security and prevent fraud</li>
+                <li>Provide customer support</li>
+            </ul>
+
+            <h2>3. Information Sharing</h2>
+            <p>We do not sell your personal information. We may share information only in these situations:</p>
+            <ul>
+                <li><strong>Service Providers:</strong> Trusted third parties who help us operate our service</li>
+                <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
+                <li><strong>Business Transfers:</strong> In case of merger, acquisition, or sale of assets</li>
+            </ul>
+
+            <h2>4. AI and Machine Learning</h2>
+            <p>Our AI chatbot processes conversations to provide intelligent responses. We:</p>
+            <ul>
+                <li>Use OpenAI's GPT models to process and respond to messages</li>
+                <li>May analyze conversations to improve AI accuracy and performance</li>
+                <li>Do not use your conversations to train third-party AI models</li>
+                <li>Implement measures to protect sensitive information in conversations</li>
+            </ul>
+
+            <h2>5. Data Security</h2>
+            <p>We implement industry-standard security measures:</p>
+            <ul>
+                <li>Encryption of data in transit and at rest</li>
+                <li>Regular security audits and updates</li>
+                <li>Access controls and authentication systems</li>
+                <li>Secure cloud infrastructure with reputable providers</li>
+            </ul>
+
+            <h2>6. Your Rights</h2>
+            <p>You have the right to:</p>
+            <ul>
+                <li>Access and review your personal information</li>
+                <li>Update or correct your data</li>
+                <li>Delete your account and associated data</li>
+                <li>Export your data in a portable format</li>
+                <li>Opt-out of non-essential communications</li>
+            </ul>
+
+            <h2>7. Cookies and Tracking</h2>
+            <p>We use cookies and similar technologies to:</p>
+            <ul>
+                <li>Remember your preferences and settings</li>
+                <li>Analyze website performance and usage</li>
+                <li>Provide personalized experiences</li>
+                <li>Ensure security and prevent fraud</li>
+            </ul>
+
+            <h2>8. Children's Privacy</h2>
+            <p>Our service is not intended for children under 13. We do not knowingly collect personal information from children under 13. If you believe we have collected such information, please contact us immediately.</p>
+
+            <h2>9. International Users</h2>
+            <p>If you are located outside of India, please note that your information may be transferred to and processed in India, where our servers are located. We ensure appropriate safeguards are in place for such transfers.</p>
+
+            <h2>10. Changes to Privacy Policy</h2>
+            <p>We may update this Privacy Policy periodically. We will notify you of any material changes by:</p>
+            <ul>
+                <li>Posting the updated policy on our website</li>
+                <li>Sending email notifications for significant changes</li>
+                <li>Updating the "Last updated" date at the top of this policy</li>
+            </ul>
+
+            <div class="contact-info">
+                <h3>Contact Information</h3>
+                <p>If you have questions about this Privacy Policy or our privacy practices, please contact us:</p>
+                <p><strong>Email:</strong> privacy@mouna.ai<br>
+                <strong>Support:</strong> support@mouna.ai</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 Mouna AI. All rights reserved.</p>
+    </footer>
+</body>
+</html>

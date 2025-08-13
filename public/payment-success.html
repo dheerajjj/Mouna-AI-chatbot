@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - AI Chatbot Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f9ff;
+            margin: 0;
+        }
+        .success-container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+            animation: checkmark 0.5s ease-in-out;
+        }
+        @keyframes checkmark {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        h1 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        .success-message {
+            color: #64748b;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .payment-details {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding: 0.25rem 0;
+        }
+        .detail-row:last-child {
+            margin-bottom: 0;
+            font-weight: 600;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+        }
+        .detail-label {
+            color: #64748b;
+        }
+        .detail-value {
+            color: #1e293b;
+            font-weight: 500;
+        }
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .btn {
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+        .btn-secondary {
+            background: transparent;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .features-preview {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .features-title {
+            color: #1e40af;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .features-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+        .features-list li:last-child {
+            margin-bottom: 0;
+        }
+        .checkmark {
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">✓</div>
+        <h1>Payment Successful!</h1>
+        <p class="success-message">
+            Thank you for your purchase! Your subscription has been activated and you now have access to all the features of your selected plan.
+        </p>
+
+        <div class="payment-details">
+            <div class="detail-row">
+                <span class="detail-label">Transaction ID:</span>
+                <span class="detail-value" id="transaction-id">Loading...</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Plan:</span>
+                <span class="detail-value" id="plan-name">Loading...</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Amount:</span>
+                <span class="detail-value" id="amount">Loading...</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Date:</span>
+                <span class="detail-value" id="payment-date">Loading...</span>
+            </div>
+        </div>
+
+        <div class="features-preview">
+            <div class="features-title">What's Next?</div>
+            <ul class="features-list">
+                <li><span class="checkmark">✓</span> Customize your chatbot widget</li>
+                <li><span class="checkmark">✓</span> Configure AI responses</li>
+                <li><span class="checkmark">✓</span> Get integration code</li>
+                <li><span class="checkmark">✓</span> Start engaging with your customers</li>
+            </ul>
+        </div>
+
+        <div class="action-buttons">
+            <a href="/dashboard" class="btn btn-primary">
+                <span>Go to Dashboard</span>
+                <span>→</span>
+            </a>
+            <a href="/customize-widget-advanced" class="btn btn-secondary">
+                Start Customizing Widget
+            </a>
+        </div>
+
+        <p style="color: #64748b; font-size: 0.9rem; margin-top: 2rem;">
+            A confirmation email has been sent to your registered email address.
+        </p>
+    </div>
+
+    <script>
+        // Get payment details from URL parameters or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentDetails = {
+            transactionId: urlParams.get('transaction_id') || localStorage.getItem('transactionId') || '#TX' + Date.now(),
+            planName: urlParams.get('plan') || localStorage.getItem('selectedPlan') || 'Basic Plan',
+            amount: urlParams.get('amount') || localStorage.getItem('paymentAmount') || '₹499',
+            paymentId: urlParams.get('razorpay_payment_id') || 'N/A'
+        };
+
+        // Update payment details in the UI
+        document.getElementById('transaction-id').textContent = paymentDetails.transactionId;
+        document.getElementById('plan-name').textContent = paymentDetails.planName;
+        document.getElementById('amount').textContent = paymentDetails.amount;
+        document.getElementById('payment-date').textContent = new Date().toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // Clear temporary storage
+        localStorage.removeItem('transactionId');
+        localStorage.removeItem('selectedPlan');
+        localStorage.removeItem('paymentAmount');
+
+        // Optional: Send analytics or update user subscription status
+        fetch('/api/payments/success-callback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify(paymentDetails)
+        }).catch(error => {
+            console.log('Analytics callback failed:', error);
+        });
+
+        // Auto-redirect to dashboard after 10 seconds
+        setTimeout(() => {
+            if (confirm('Would you like to go to your dashboard now?')) {
+                window.location.href = '/dashboard';
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

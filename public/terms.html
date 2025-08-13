@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #2d3748;
+            background: #f8fafc;
+        }
+
+        .navbar {
+            background: #ffffff;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .logo-fallback {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            font-weight: 800;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #0d7b8a;
+            border: 2px solid #0d7b8a;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+
+        .content {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0d7b8a;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .content h2:first-child {
+            margin-top: 0;
+        }
+
+        .content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .content p {
+            margin-bottom: 1rem;
+            color: #4a5568;
+        }
+
+        .content ul {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        .content li {
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #e6fffa, #f0fdfa);
+            padding: 1rem;
+            border-left: 4px solid #0d7b8a;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+        }
+
+        .warning {
+            background: linear-gradient(135deg, #fef3cd, #fdf6e3);
+            padding: 1rem;
+            border-left: 4px solid #d97706;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+        }
+
+        .contact-info {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .footer {
+            background: #2d3748;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #0d7b8a;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: #4a0e6b;
+        }
+
+        @media (max-width: 768px) {
+            .nav-buttons {
+                display: none;
+            }
+            
+            .container {
+                padding: 2rem 1rem;
+            }
+            
+            .content {
+                padding: 2rem 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="/images/logo.png" alt="Mouna Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fallback">M</div>
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">Voice of Thoughtful Silence</div>
+                </div>
+            </a>
+            <div class="nav-buttons">
+                <a href="/login" class="btn btn-secondary">Sign In</a>
+                <a href="/signup" class="btn btn-primary">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <a href="/signup" class="back-btn">← Back to Sign Up</a>
+        
+        <div class="header">
+            <h1>Terms of Service</h1>
+            <p>Last updated: January 2024</p>
+        </div>
+
+        <div class="content">
+            <div class="highlight">
+                <p><strong>Welcome to Mouna AI!</strong> By using our AI chatbot widget service, you agree to these Terms of Service. Please read them carefully.</p>
+            </div>
+
+            <h2>1. Acceptance of Terms</h2>
+            <p>By accessing or using Mouna AI's services, you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree to these terms, please do not use our services.</p>
+
+            <h2>2. Description of Service</h2>
+            <p>Mouna AI provides an AI-powered chatbot widget that can be embedded on websites to provide automated customer support and engagement. Our service includes:</p>
+            <ul>
+                <li>AI chatbot widget for websites</li>
+                <li>Customizable chat interfaces and responses</li>
+                <li>Analytics and conversation insights</li>
+                <li>Integration with various platforms and services</li>
+                <li>Customer support and documentation</li>
+            </ul>
+
+            <h2>3. Account Registration</h2>
+            <p>To use our services, you must:</p>
+            <ul>
+                <li>Create an account with accurate and complete information</li>
+                <li>Be at least 18 years old or have parental consent</li>
+                <li>Maintain the security and confidentiality of your account credentials</li>
+                <li>Notify us immediately of any unauthorized use of your account</li>
+            </ul>
+
+            <h2>4. Subscription Plans and Billing</h2>
+            <h3>Payment Terms</h3>
+            <ul>
+                <li>Subscription fees are billed in advance on a monthly or annual basis</li>
+                <li>All payments are processed in Indian Rupees (INR)</li>
+                <li>Price changes will be communicated 30 days in advance</li>
+                <li>No refunds are provided for partial months of service</li>
+            </ul>
+
+            <h3>Free Trial</h3>
+            <p>We may offer free trials for new users. Trial limitations and duration will be clearly specified during signup.</p>
+
+            <h2>5. Acceptable Use Policy</h2>
+            <div class="warning">
+                <p><strong>You must not use our service to:</strong></p>
+            </div>
+            <ul>
+                <li>Violate any applicable laws or regulations</li>
+                <li>Infringe on intellectual property rights</li>
+                <li>Transmit harmful, offensive, or inappropriate content</li>
+                <li>Attempt to reverse engineer or hack our systems</li>
+                <li>Use the service for spam or unsolicited communications</li>
+                <li>Impersonate others or provide false information</li>
+                <li>Interfere with the proper functioning of our service</li>
+            </ul>
+
+            <h2>6. AI and Content Responsibility</h2>
+            <h3>AI-Generated Responses</h3>
+            <p>Our AI chatbot generates responses based on training data and algorithms. Please note:</p>
+            <ul>
+                <li>AI responses may not always be accurate or appropriate</li>
+                <li>You are responsible for reviewing and moderating AI interactions</li>
+                <li>We do not guarantee the accuracy of AI-generated content</li>
+                <li>You should not rely solely on AI responses for critical decisions</li>
+            </ul>
+
+            <h3>Content Monitoring</h3>
+            <p>While we strive to maintain quality, you are responsible for:</p>
+            <ul>
+                <li>Monitoring conversations on your website</li>
+                <li>Ensuring compliance with applicable laws and regulations</li>
+                <li>Implementing appropriate content filters if necessary</li>
+            </ul>
+
+            <h2>7. Intellectual Property</h2>
+            <h3>Our Rights</h3>
+            <p>Mouna AI retains all rights to our technology, software, and related intellectual property.</p>
+
+            <h3>Your Rights</h3>
+            <p>You retain ownership of your data and content. However, you grant us a license to use, process, and analyze this data to provide our services.</p>
+
+            <h2>8. Privacy and Data Protection</h2>
+            <p>Your privacy is important to us. Please review our Privacy Policy to understand how we collect, use, and protect your information. By using our service, you consent to our data practices as described in the Privacy Policy.</p>
+
+            <h2>9. Service Availability</h2>
+            <p>We strive to maintain high service availability, but we cannot guarantee:</p>
+            <ul>
+                <li>100% uptime or uninterrupted service</li>
+                <li>Compatibility with all website platforms</li>
+                <li>Performance during high-traffic periods</li>
+                <li>Availability during maintenance or updates</li>
+            </ul>
+
+            <h2>10. Limitation of Liability</h2>
+            <div class="warning">
+                <p><strong>Important Legal Notice:</strong> Our liability is limited to the maximum extent permitted by law.</p>
+            </div>
+            <p>Mouna AI shall not be liable for:</p>
+            <ul>
+                <li>Indirect, incidental, or consequential damages</li>
+                <li>Loss of profits, data, or business opportunities</li>
+                <li>Service interruptions or technical difficulties</li>
+                <li>Third-party actions or content</li>
+                <li>AI-generated responses or their consequences</li>
+            </ul>
+
+            <h2>11. Termination</h2>
+            <h3>Termination by You</h3>
+            <p>You may cancel your account at any time through your account settings or by contacting support.</p>
+
+            <h3>Termination by Us</h3>
+            <p>We may suspend or terminate your account if you:</p>
+            <ul>
+                <li>Violate these Terms of Service</li>
+                <li>Engage in fraudulent or abusive behavior</li>
+                <li>Fail to pay subscription fees</li>
+                <li>Use the service in ways that harm our platform or users</li>
+            </ul>
+
+            <h2>12. Changes to Terms</h2>
+            <p>We may modify these Terms of Service from time to time. We will:</p>
+            <ul>
+                <li>Notify you of material changes via email or service notifications</li>
+                <li>Post updated terms on our website</li>
+                <li>Allow reasonable time for you to review changes</li>
+                <li>Consider continued use as acceptance of updated terms</li>
+            </ul>
+
+            <h2>13. Governing Law</h2>
+            <p>These Terms of Service are governed by the laws of India. Any disputes will be resolved in the courts of India.</p>
+
+            <h2>14. Contact Information</h2>
+            <div class="contact-info">
+                <h3>Questions or Concerns?</h3>
+                <p>If you have questions about these Terms of Service, please contact us:</p>
+                <p><strong>Email:</strong> legal@mouna.ai<br>
+                <strong>Support:</strong> support@mouna.ai<br>
+                <strong>Business Hours:</strong> Monday - Friday, 9 AM - 6 PM IST</p>
+            </div>
+
+            <div class="highlight">
+                <p><strong>Thank you for choosing Mouna AI!</strong> We're committed to providing you with excellent service while maintaining transparency and protecting your rights.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 Mouna AI. All rights reserved.</p>
+    </footer>
+</body>
+</html>

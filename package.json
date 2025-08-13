@@ -1,0 +1,72 @@
+{
+  "name": "ai-chatbot-widget",
+  "version": "1.0.0",
+  "description": "A production-ready, embeddable AI chatbot widget powered by OpenAI GPT models with user management, subscription billing, and analytics",
+  "main": "server-mongo.js",
+  "scripts": {
+    "start": "node server-mongo.js",
+    "dev": "nodemon server-mongo.js",
+    "server": "node server-mongo.js",
+    "dev:watch": "nodemon server-mongo.js",
+    "setup": "node setup.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "status": "node -e \"console.log('MongoDB:', require('child_process').execSync('sc query MongoDB', {encoding: 'utf8'}).includes('RUNNING') ? 'Running' : 'Stopped'); console.log('Node.js:', process.version);\"",
+    "mongo:start": "net start MongoDB",
+    "mongo:stop": "net stop MongoDB",
+    "mongo:status": "sc query MongoDB",
+    "deploy:heroku": "git push heroku main",
+    "deploy:railway": "railway up",
+    "deploy:render": "echo 'Push to GitHub to trigger Render deployment'",
+    "build": "echo 'No build step required'"
+  },
+  "keywords": [
+    "ai",
+    "chatbot",
+    "widget",
+    "openai",
+    "gpt-4"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@indic-transliteration/sanscript": "^1.3.3",
+    "axios": "^1.11.0",
+    "bcryptjs": "^3.0.2",
+    "chart.js": "^4.5.0",
+    "cheerio": "^1.1.2",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^8.0.1",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.16.5",
+    "morgan": "^1.10.1",
+    "nodemailer": "^7.0.5",
+    "openai": "^5.10.2",
+    "passport": "^0.7.0",
+    "passport-apple": "^2.0.2",
+    "passport-google-oauth20": "^2.0.0",
+    "rate-limiter-flexible": "^2.4.2",
+    "razorpay": "^2.9.6",
+    "stripe": "^18.3.0",
+    "transliteration": "^2.3.5",
+    "twilio": "^5.8.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^30.0.5",
+    "nodemon": "^3.0.2",
+    "supertest": "^7.1.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

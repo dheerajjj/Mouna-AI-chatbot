@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouna - AI Chatbot Widget for Your Website</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #1a202c;
+            background: #ffffff;
+        }
+        
+        .navbar {
+            background: #ffffff;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+        
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: color 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            color: #1e293b;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: #0d7b8a;
+            border: 2px solid #0d7b8a;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .hero {
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            padding: 8rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.05"><circle cx="30" cy="30" r="2"/></g></g></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6rem;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+            color: white;
+            letter-spacing: -0.02em;
+        }
+        
+        .hero-content p {
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .btn-hero-primary {
+            background: linear-gradient(135deg, #0f8b92, #2d1440);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(15, 139, 146, 0.4);
+        }
+        
+        .btn-hero-primary:hover {
+            background: linear-gradient(135deg, #0d7b8a, #1f0a29);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(15, 139, 146, 0.5);
+        }
+        
+        .hero-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chatbot-mockup {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            padding: 2rem;
+            max-width: 400px;
+            width: 100%;
+            position: relative;
+        }
+        
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .mockup-info h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+        
+        .mockup-info p {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin: 0;
+        }
+        
+        .chat-message {
+            background: #f1f5f9;
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #334155;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        
+        .dots {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .dot {
+            width: 4px;
+            height: 4px;
+            background: #94a3b8;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Person Illustration Styles */
+        .person-illustration {
+            position: absolute;
+            right: -50px;
+            bottom: -30px;
+            width: 300px;
+            height: 350px;
+        }
+        
+        .laptop {
+            position: absolute;
+            bottom: 80px;
+            left: 50px;
+            width: 120px;
+            height: 80px;
+        }
+        
+        .laptop-screen {
+            width: 120px;
+            height: 70px;
+            background: #f8fafc;
+            border-radius: 8px 8px 0 0;
+            border: 3px solid #64748b;
+            padding: 8px;
+        }
+        
+        .laptop-base {
+            width: 130px;
+            height: 8px;
+            background: #64748b;
+            border-radius: 0 0 4px 4px;
+            margin-left: -5px;
+        }
+        
+        .website-mockup {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        
+        .website-header {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin-bottom: 4px;
+        }
+        
+        .website-content {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        
+        .content-line {
+            height: 4px;
+            background: #cbd5e0;
+            border-radius: 2px;
+            width: 100%;
+        }
+        
+        .content-line.short {
+            width: 60%;
+        }
+        
+        .person {
+            position: absolute;
+            bottom: 0;
+            left: 100px;
+            width: 80px;
+            height: 180px;
+        }
+        
+        .person-head {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 10px;
+            position: relative;
+        }
+        
+        .person-hair {
+            width: 50px;
+            height: 30px;
+            background: #1e293b;
+            border-radius: 25px 25px 15px 15px;
+            position: absolute;
+            top: 0;
+        }
+        
+        .person-face {
+            width: 40px;
+            height: 40px;
+            background: #fbbf24;
+            border-radius: 50%;
+            position: absolute;
+            top: 10px;
+            left: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .eye {
+            width: 3px;
+            height: 3px;
+            background: #1e293b;
+            border-radius: 50%;
+            margin: 1px 2px;
+            display: inline-block;
+        }
+        
+        .smile {
+            width: 8px;
+            height: 4px;
+            border: 1px solid #1e293b;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            margin-top: 2px;
+        }
+        
+        .person-body {
+            width: 60px;
+            height: 120px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .person-shirt {
+            width: 50px;
+            height: 80px;
+            background: #3b82f6;
+            border-radius: 25px 25px 0 0;
+            margin: 0 auto;
+        }
+        
+        .person-arms {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            height: 40px;
+        }
+        
+        .arm {
+            width: 15px;
+            height: 40px;
+            background: #fbbf24;
+            border-radius: 8px;
+            position: absolute;
+        }
+        
+        .arm.left {
+            left: -5px;
+            transform: rotate(-10deg);
+        }
+        
+        .arm.right {
+            right: -5px;
+            transform: rotate(10deg);
+        }
+        
+        /* Floating Bubbles */
+        .floating-bubble {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .bubble-1 {
+            top: 50px;
+            left: 20px;
+            animation-delay: 0s;
+        }
+        
+        .bubble-2 {
+            top: 120px;
+            right: 20px;
+            animation-delay: 1s;
+        }
+        
+        .bubble-3 {
+            top: 200px;
+            left: 80px;
+            animation-delay: 2s;
+        }
+        
+        .bubble-icon {
+            font-size: 1.2rem;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .demo-section {
+            padding: 4rem 0;
+            background: #f8fafc;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            color: #2d3748;
+        }
+        
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+        
+        .demo-content h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+        
+        .demo-content p {
+            font-size: 1.1rem;
+            color: #718096;
+            margin-bottom: 1.5rem;
+        }
+        
+        .features-list {
+            list-style: none;
+        }
+        
+        .features-list li {
+            margin: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #4a5568;
+        }
+        
+        .features-list i {
+            color: #48bb78;
+        }
+        
+        .demo-preview {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .pricing-section {
+            padding: 4rem 0;
+            background: white;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .pricing-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .pricing-card.popular {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+        
+        .popular-badge {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        
+        .pricing-card .price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .pricing-card .price span {
+            font-size: 1rem;
+            color: #718096;
+        }
+        
+        .pricing-features {
+            list-style: none;
+            margin: 1.5rem 0;
+        }
+        
+        .pricing-features li {
+            margin: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #4a5568;
+        }
+        
+        .pricing-features i {
+            color: #48bb78;
+        }
+        
+        .plan-icon {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .plan-subtitle {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .footer {
+            background: #2d3748;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .demo-container { grid-template-columns: 1fr; }
+            .nav-buttons { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/images/logo.png" alt="Mouna Logo" style="height: 50px; width: auto; margin-right: 12px;">
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">Voice of Thoughtful Silence</div>
+                </div>
+            </div>
+            <div class="nav-buttons">
+                <a href="/login" class="btn btn-secondary">Sign In</a>
+                <a href="/signup" class="btn btn-primary">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1>Transform Your Website with<br><span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Intelligent AI Conversations</span></h1>
+                <p>Add a smart chatbot that understands your customers, answers questions naturally, and converts visitors into customers 24/7. No coding required.</p>
+                <div class="hero-buttons">
+                    <a href="/signup" class="btn-hero-primary">Start Free Trial</a>
+                    <button onclick="startDemo()" style="background: transparent; color: white; border: 2px solid rgba(255,255,255,0.3); padding: 1rem 2rem; border-radius: 8px; margin-left: 1rem; cursor: pointer; font-weight: 600;">See Live Demo</button>
+                </div>
+                <div style="margin-top: 2rem; color: rgba(255,255,255,0.8); font-size: 0.9rem;">
+                    <i class="fas fa-check" style="color: #10b981; margin-right: 0.5rem;"></i>Setup in under 2 minutes
+                    <span style="margin: 0 1rem;">•</span>
+                    <i class="fas fa-check" style="color: #10b981; margin-right: 0.5rem;"></i>No technical skills needed
+                    <span style="margin: 0 1rem;">•</span>
+                    <i class="fas fa-check" style="color: #10b981; margin-right: 0.5rem;"></i>Cancel anytime
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="chatbot-mockup" id="interactive-chat">
+                    <div class="mockup-header">
+                        <div class="avatar" style="background: linear-gradient(135deg, #667eea, #764ba2);">🤖</div>
+                        <div class="mockup-info">
+                            <h4>Mouna AI Assistant</h4>
+                            <p>Online • Responds in seconds</p>
+                        </div>
+                        <div style="margin-left: auto; color: #10b981; font-size: 0.8rem;">✓ Verified</div>
+                    </div>
+                    <div class="chat-conversation" id="chat-messages">
+                        <div class="chat-message ai-message" style="background: linear-gradient(135deg, #e6fffa, #f0fdfa); border-left: 3px solid #10b981; animation: slideIn 0.5s ease-out;">
+                            👋 Hi there! I'm Mouna, your AI assistant. I can help you with:
+                            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #0d9488;">
+                                • Product inquiries & recommendations<br>
+                                • Booking appointments & consultations<br>
+                                • Technical support & troubleshooting<br>
+                                • Order status & shipping information
+                            </div>
+                        </div>
+                        <div class="chat-message user-message" style="background: #f1f5f9; margin-left: 2rem; animation: slideIn 0.5s ease-out 1s both;">
+                            Hi! I'm interested in your premium plan. Can you tell me more about the features?
+                        </div>
+                        <div class="chat-message ai-message" style="background: linear-gradient(135deg, #e6fffa, #f0fdfa); border-left: 3px solid #10b981; animation: slideIn 0.5s ease-out 2s both;">
+                            Great choice! 🎉 Our Premium Plan includes:
+                            <div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(16,185,129,0.1); border-radius: 8px; font-size: 0.85rem;">
+                                ✅ 5,000 AI conversations/month<br>
+                                ✅ Advanced analytics dashboard<br>
+                                ✅ Custom branding (remove watermark)<br>
+                                ✅ WhatsApp & email integration<br>
+                                ✅ Priority 24/7 support
+                            </div>
+                            Would you like me to set up a free trial for you?
+                        </div>
+                    </div>
+                    <div class="typing-indicator" id="typing" style="display: none;">
+                        <div class="dots">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        <span>Mouna is typing...</span>
+                    </div>
+                    <div class="chat-input-demo" style="margin-top: 1rem; padding: 0.75rem; background: #f8fafc; border-radius: 12px; border: 2px solid #e2e8f0; font-size: 0.9rem; color: #64748b; cursor: pointer;" onclick="showTyping()">
+                        💬 Click to see more conversation...
+                    </div>
+                </div>
+                <!-- Person illustration -->
+                <div class="person-illustration">
+                    <div class="laptop">
+                        <div class="laptop-screen">
+                            <div class="website-mockup">
+                                <div class="website-header"></div>
+                                <div class="website-content">
+                                    <div class="content-line"></div>
+                                    <div class="content-line short"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="laptop-base"></div>
+                    </div>
+                    <div class="person">
+                        <div class="person-head">
+                            <div class="person-hair"></div>
+                            <div class="person-face">
+                                <div class="eye"></div>
+                                <div class="eye"></div>
+                                <div class="smile"></div>
+                            </div>
+                        </div>
+                        <div class="person-body">
+                            <div class="person-shirt"></div>
+                            <div class="person-arms">
+                                <div class="arm left"></div>
+                                <div class="arm right"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Chat bubbles floating around -->
+                    <div class="floating-bubble bubble-1">
+                        <div class="bubble-icon">💬</div>
+                    </div>
+                    <div class="floating-bubble bubble-2">
+                        <div class="bubble-icon">🤖</div>
+                    </div>
+                    <div class="floating-bubble bubble-3">
+                        <div class="bubble-icon">✨</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="demo-section">
+        <div class="container">
+            <h2 class="section-title">See It In Action</h2>
+            <div class="demo-container">
+                <div class="demo-content">
+                    <h3>Mouna - Your Thoughtful Assistant</h3>
+                    <p>Mouna provides intelligent, context-aware responses that feel natural and helpful, creating meaningful conversations with your visitors.</p>
+                    <ul class="features-list">
+                        <li><i class="fas fa-check"></i> 24/7 Availability</li>
+                        <li><i class="fas fa-check"></i> Multi-language Support</li>
+                        <li><i class="fas fa-check"></i> Smart Context Understanding</li>
+                        <li><i class="fas fa-check"></i> Seamless Human Handoff</li>
+                        <li><i class="fas fa-check"></i> Analytics & Insights</li>
+                    </ul>
+                    <button class="btn btn-primary" onclick="startDemo()">Try Live Demo</button>
+                </div>
+                <div class="demo-preview">
+                    <div style="background: #f7fafc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                        <p><strong>Visitor:</strong> Hi, I'm looking for information about your restaurant's menu.</p>
+                    </div>
+                    <div style="background: #e6fffa; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                        <p><strong>AI Bot:</strong> Hello! I'd be happy to help you with our menu. We offer a variety of cuisines including Italian, Mexican, and Asian dishes. Would you like to know about any specific category or dietary preferences?</p>
+                    </div>
+                    <div style="background: #f7fafc; border-radius: 8px; padding: 1rem;">
+                        <p><strong>Visitor:</strong> Do you have vegan options?</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing-section">
+        <div class="container">
+            <h2 class="section-title">Simple, Transparent Pricing</h2>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="plan-icon">💡</div>
+                    <h3>Free Tier</h3>
+                    <div class="plan-subtitle">For trial/demo purposes</div>
+                    <div class="price">₹0<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> 100 messages/month</li>
+                        <li><i class="fas fa-check"></i> Basic UI customization</li>
+                        <li><i class="fas fa-times" style="color: #e53e3e;"></i> "Powered by" watermark</li>
+                        <li><i class="fas fa-times" style="color: #e53e3e;"></i> No analytics/dashboard</li>
+                    </ul>
+                    <a href="/signup?plan=free" class="btn btn-secondary" style="width: 100%; text-align: center;">Start Free</a>
+                </div>
+
+                <div class="pricing-card popular">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="plan-icon">✅</div>
+                    <h3>Basic Plan</h3>
+                    <div class="plan-subtitle">For small businesses</div>
+                    <div class="price">₹499<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> 1,000 messages/month</li>
+                        <li><i class="fas fa-check"></i> Basic dashboard (chat history, visitor logs)</li>
+                        <li><i class="fas fa-check"></i> API key integration</li>
+                        <li><i class="fas fa-check"></i> Email alerts for inquiries</li>
+                        <li><i class="fas fa-check"></i> Standard customization</li>
+                    </ul>
+                    <a href="/signup?plan=basic" class="btn btn-primary" style="width: 100%; text-align: center;">Choose Plan</a>
+                </div>
+
+                <div class="pricing-card">
+                    <div class="plan-icon">🏢</div>
+                    <h3>Pro Plan</h3>
+                    <div class="plan-subtitle">For growing businesses</div>
+                    <div class="price">₹1,499<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> 5,000 messages/month</li>
+                        <li><i class="fas fa-check"></i> Custom branding (remove watermark)</li>
+                        <li><i class="fas fa-check"></i> Dashboard + analytics</li>
+                        <li><i class="fas fa-check"></i> WhatsApp/email integration</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                        <li><i class="fas fa-check"></i> Advanced customization</li>
+                    </ul>
+                    <a href="/signup?plan=pro" class="btn btn-primary" style="width: 100%; text-align: center;">Choose Plan</a>
+                </div>
+
+                <div class="pricing-card">
+                    <div class="plan-icon">🧑‍💼</div>
+                    <h3>Enterprise Plan</h3>
+                    <div class="plan-subtitle">For large organizations</div>
+                    <div class="price">₹4,999<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Unlimited messages</li>
+                        <li><i class="fas fa-check"></i> Full white-labeling</li>
+                        <li><i class="fas fa-check"></i> Custom API & backend logic</li>
+                        <li><i class="fas fa-check"></i> Team access with roles</li>
+                        <li><i class="fas fa-check"></i> Dedicated success manager</li>
+                        <li><i class="fas fa-check"></i> Custom deployment options</li>
+                    </ul>
+                    <a href="/signup?plan=enterprise" class="btn btn-primary" style="width: 100%; text-align: center;">Choose Plan</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <h2 style="margin-bottom: 1rem;">Ready to Transform Your Website?</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 2rem;">Join thousands of businesses using our AI chatbot to boost conversions</p>
+            <a href="/signup" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2rem;">Start Your Free Trial</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 AI Chatbot Widget. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function startDemo() {
+            // This will load the actual chatbot widget for demo
+            if (!document.getElementById('chatbot-widget')) {
+                const script = document.createElement('script');
+                script.id = 'chatbot-widget';
+                script.src = '/widget-fixed.js?demo=true';
+                document.body.appendChild(script);
+            }
+        }
+        
+        let conversationStep = 0;
+        const additionalMessages = [
+            {
+                type: 'user',
+                text: 'Sounds great! What payment methods do you accept?'
+            },
+            {
+                type: 'ai',
+                text: '💳 We accept all major payment methods:\n\n• Credit/Debit Cards (Visa, MasterCard, Amex)\n• UPI (GPay, PhonePe, Paytm)\n• Net Banking\n• Digital Wallets\n\nAll payments are secured with 256-bit SSL encryption. Would you like me to help you get started with the free trial?'
+            },
+            {
+                type: 'user',
+                text: 'Yes! How do I begin?'
+            },
+            {
+                type: 'ai',
+                text: '🚀 Perfect! Here\'s how to get started:\n\n1️⃣ Click "Start Free Trial" above\n2️⃣ Create your account (30 seconds)\n3️⃣ Customize your chatbot\n4️⃣ Copy-paste one line of code\n\nThat\'s it! Your AI assistant will be live on your website. Need any help along the way?'
+            }
+        ];
+        
+        function showTyping() {
+            if (conversationStep >= additionalMessages.length) {
+                // Reset conversation
+                const chatMessages = document.getElementById('chat-messages');
+                const originalMessages = chatMessages.querySelectorAll('.chat-message');
+                // Keep only the first 3 original messages
+                for (let i = 3; i < chatMessages.children.length; i++) {
+                    chatMessages.children[i].remove();
+                }
+                conversationStep = 0;
+                document.querySelector('.chat-input-demo').innerHTML = '💬 Click to see more conversation...';
+                return;
+            }
+            
+            const typing = document.getElementById('typing');
+            const chatMessages = document.getElementById('chat-messages');
+            
+            // Show typing indicator
+            typing.style.display = 'flex';
+            document.querySelector('.chat-input-demo').style.display = 'none';
+            
+            setTimeout(() => {
+                // Hide typing indicator
+                typing.style.display = 'none';
+                
+                // Add new message
+                const message = additionalMessages[conversationStep];
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${message.type}-message`;
+                
+                if (message.type === 'user') {
+                    messageDiv.style.cssText = 'background: #f1f5f9; margin-left: 2rem; animation: slideIn 0.5s ease-out;';
+                } else {
+                    messageDiv.style.cssText = 'background: linear-gradient(135deg, #e6fffa, #f0fdfa); border-left: 3px solid #10b981; animation: slideIn 0.5s ease-out;';
+                }
+                
+                messageDiv.innerHTML = message.text.replace(/\n/g, '<br>');
+                chatMessages.appendChild(messageDiv);
+                
+                conversationStep++;
+                
+                // Show input again after a short delay
+                setTimeout(() => {
+                    document.querySelector('.chat-input-demo').style.display = 'block';
+                    if (conversationStep >= additionalMessages.length) {
+                        document.querySelector('.chat-input-demo').innerHTML = '🔄 Reset conversation';
+                    } else {
+                        document.querySelector('.chat-input-demo').innerHTML = '💬 Continue conversation...';
+                    }
+                }, 500);
+                
+            }, Math.random() * 1000 + 1000); // Random delay between 1-2 seconds
+        }
+        
+        // Add some CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .chat-input-demo:hover {
+                background: #e2e8f0 !important;
+                border-color: #10b981 !important;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+                transition: all 0.2s ease;
+            }
+            
+            .user-message {
+                margin-right: 0rem !important;
+                margin-left: 2rem !important;
+            }
+            
+            .ai-message {
+                margin-right: 2rem !important;
+                margin-left: 0rem !important;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

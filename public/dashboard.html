@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+        
+        /* Add subtle grain overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.02"><circle cx="30" cy="30" r="1"/></g></g></svg>');
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem 0;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+        
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
+        .logout-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .welcome-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+        
+        .welcome-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1.25rem;
+            color: #64748b;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            margin-bottom: 1rem;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .integration-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            position: relative;
+            overflow-x: auto;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .copy-btn:hover {
+            background: #5a67d8;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 123, 138, 0.4);
+        }
+        
+        .btn:hover {
+            background: linear-gradient(135deg, #0a6b75, #3d0b57);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(13, 123, 138, 0.5);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0d7b8a;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 1);
+            border-color: #0d7b8a;
+            box-shadow: 0 4px 15px rgba(13, 123, 138, 0.3);
+        }
+        
+        .btn-gold {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+        
+        .btn-gold:hover {
+            background: linear-gradient(135deg, #f59e0b, #b45309);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+        }
+        
+        .upgrade-banner {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        /* Usage Statistics Styles */
+        .usage-alert {
+            background: linear-gradient(135deg, #fed7d7, #feb2b2);
+            color: #742a2a;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        .usage-alert.warning {
+            background: linear-gradient(135deg, #faf089, #f6e05e);
+            color: #744210;
+        }
+
+        .usage-alert.critical {
+            background: linear-gradient(135deg, #fc8181, #f56565);
+            color: #742a2a;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .usage-section {
+            background: #f7fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .usage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .usage-title {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .usage-count {
+            font-weight: 700;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+        }
+
+        .progress-fill.critical {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+        }
+
+        .usage-percentage {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        /* Billing Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .billing-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .billing-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .billing-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .billing-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .billing-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .billing-value {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-cancelled {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border: 2px solid #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/images/logo.png" alt="Mouna AI Logo">
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">AI ASSISTANT</div>
+                </div>
+            </div>
+            <div class="user-menu">
+                <span class="user-name" id="user-name">Loading...</span>
+                <a href="/api/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1 class="welcome-title" id="welcome-title">Welcome back!</h1>
+            <p class="welcome-subtitle">Manage your AI chatbot and monitor performance from your personalized dashboard.</p>
+        </div>
+        
+        <!-- Upgrade Banner -->
+        <div class="upgrade-banner" id="upgrade-banner" style="display: none;">
+            <h3>🚀 Upgrade to Professional for More Features!</h3>
+            <p>Get advanced analytics, priority support, and more message allowance.</p>
+            <a href="/pricing.html" class="btn" style="margin-top: 0.5rem;">Upgrade Now</a>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3><i class="fas fa-chart-line"></i> Usage Statistics</h3>
+                
+                <!-- Usage Alert Banner -->
+                <div id="usage-alert" class="usage-alert" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="usage-alert-text">You're approaching your monthly limit!</span>
+                </div>
+                
+                <!-- Monthly Usage with Progress Bar -->
+                <div class="usage-section">
+                    <div class="usage-header">
+                        <span class="usage-title">Monthly Messages</span>
+                        <span class="usage-count" id="usage-display">0 / 100</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="usage-percentage" id="usage-percentage">0% used</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value" id="total-messages">-</div>
+                    <div class="stat-label">Total Messages (All Time)</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3><i class="fas fa-credit-card"></i> Subscription</h3>
+                <div style="padding: 1rem; background: #f7fafc; border-radius: 8px; margin-bottom: 1rem;">
+                    <strong>Current Plan:</strong> <span id="current-plan">Loading...</span><br>
+                    <strong>Status:</strong> <span id="plan-status">Loading...</span><br>
+                    <strong>Next Billing:</strong> <span id="next-billing">Loading...</span>
+                </div>
+                <button onclick="openBillingModal()" class="btn btn-secondary">Manage Billing</button>
+            </div>
+        </div>
+
+        <!-- Integration Section -->
+        <div class="integration-section">
+            <h3><i class="fas fa-code"></i> Widget Integration</h3>
+            <p style="margin-bottom: 1.5rem; color: #718096;">
+                Copy the code below and paste it just before the closing &lt;/body&gt; tag on your website:
+            </p>
+            
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard('integration-code')">Copy</button>
+                <pre id="integration-code">&lt;script src="http://localhost:3000/widget-fixed.js" data-api-key="YOUR_API_KEY_HERE" data-primary-color="#667eea" data-position="bottom-right"&gt;&lt;/script&gt;</pre>
+            </div>
+            
+            <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #3b82f6;">
+                <strong>📝 Integration Example:</strong><br>
+                Here's how your code will look with your actual API key:<br><br>
+                <code style="background: #e5e7eb; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9rem;">
+                &lt;script src="http://localhost:3000/widget-fixed.js" data-api-key="cb_abc123def456ghi789" data-primary-color="#667eea" data-position="bottom-right"&gt;&lt;/script&gt;
+                </code><br><br>
+                <strong>💡 What each part does:</strong><br>
+                • <strong>data-api-key:</strong> Your unique API key (found in "API Configuration" section below)<br>
+                • <strong>data-primary-color:</strong> Widget color theme (#667eea = purple)<br>
+                • <strong>data-position:</strong> Where the widget appears (bottom-right corner)<br><br>
+                <strong>🎨 Customize:</strong> You can change the color (e.g., #ff6b6b for red) or position (bottom-left, top-right, etc.)
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                <button class="btn" onclick="testWidget()">
+                    <i class="fas fa-play"></i> Test Widget
+                </button>
+                <button class="btn btn-secondary" onclick="customizeWidget()">
+                    <i class="fas fa-palette"></i> Customize
+                </button>
+                <a href="/integration" class="btn btn-secondary">
+                    <i class="fas fa-book"></i> Documentation
+                </a>
+            </div>
+        </div>
+
+        <!-- API Key Section -->
+        <div class="card">
+            <h3><i class="fas fa-key"></i> API Configuration</h3>
+            <p style="margin-bottom: 1rem; color: #718096;">Your API key for widget integration:</p>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard('api-key')">Copy</button>
+                <pre id="api-key">cb_loading...</pre>
+            </div>
+            <button class="btn btn-secondary" onclick="regenerateApiKey()" style="margin-top: 1rem;">
+                <i class="fas fa-sync"></i> Regenerate API Key
+            </button>
+        </div>
+    </div>
+
+    <!-- Billing Management Modal -->
+    <div class="modal-overlay" id="billing-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Billing Management</h2>
+                <button class="close-btn" onclick="closeBillingModal()">&times;</button>
+            </div>
+            
+            <div class="billing-section">
+                <div class="section-title">
+                    <i class="fas fa-credit-card"></i>
+                    Current Subscription
+                </div>
+                <div class="billing-card">
+                    <div class="billing-row">
+                        <span class="billing-label">Plan:</span>
+                        <span class="billing-value" id="modal-current-plan">Loading...</span>
+                    </div>
+                    <div class="billing-row">
+                        <span class="billing-label">Status:</span>
+                        <span class="status-badge status-active" id="modal-plan-status">Active</span>
+                    </div>
+                    <div class="billing-row">
+                        <span class="billing-label">Next Billing Date:</span>
+                        <span class="billing-value" id="modal-next-billing">Loading...</span>
+                    </div>
+                    <div class="billing-row">
+                        <span class="billing-label">Amount:</span>
+                        <span class="billing-value" id="modal-amount">₹0/month</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="billing-section">
+                <div class="section-title">
+                    <i class="fas fa-history"></i>
+                    Payment History
+                </div>
+                <div class="billing-card" id="payment-history">
+                    <div class="billing-row">
+                        <span class="billing-label">Dec 15, 2023</span>
+                        <span class="billing-value">₹499 - Starter Plan</span>
+                    </div>
+                    <div class="billing-row">
+                        <span class="billing-label">Nov 15, 2023</span>
+                        <span class="billing-value">₹499 - Starter Plan</span>
+                    </div>
+                    <div class="billing-row">
+                        <span class="billing-label">Oct 15, 2023</span>
+                        <span class="billing-value">₹0 - Free Trial</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="billing-section">
+                <div class="section-title">
+                    <i class="fas fa-cog"></i>
+                    Actions
+                </div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <a href="/pricing.html" class="btn">Change Plan</a>
+                    <button onclick="downloadInvoice()" class="btn btn-secondary">Download Invoice</button>
+                    <button onclick="updatePaymentMethod()" class="btn btn-secondary">Update Payment</button>
+                    <button onclick="cancelSubscription()" class="btn btn-danger">Cancel Subscription</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load user data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            handleUpgradeParameter();
+        });
+        
+        // Handle upgrade URL parameter
+        function handleUpgradeParameter() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const upgradePlan = urlParams.get('upgrade');
+            
+            if (upgradePlan) {
+                // Show upgrade modal or redirect to payment
+                showUpgradeModal(upgradePlan);
+            }
+        }
+        
+        function showUpgradeModal(plan) {
+            const planNames = {
+                starter: 'Starter Plan (₹499/month)',
+                professional: 'Professional Plan (₹1,499/month)',
+                enterprise: 'Enterprise Plan (Contact for pricing)'
+            };
+            
+            const planName = planNames[plan] || 'Selected Plan';
+            
+            if (confirm(`Upgrade to ${planName}?\n\nThis will redirect you to our secure payment page.`)) {
+                // In a real implementation, this would redirect to your payment processor
+                // For now, we'll show a placeholder
+                initiateUpgrade(plan);
+            }
+        }
+        
+        function initiateUpgrade(plan) {
+            // Plan details for Razorpay
+            const planDetails = {
+                starter: { amount: 49900, name: 'Starter Plan' }, // Amount in paise (₹499 = 49900 paise)
+                professional: { amount: 149900, name: 'Professional Plan' }, // ₹1,499 = 149900 paise
+                enterprise: { amount: 299900, name: 'Enterprise Plan' } // ₹2,999 = 299900 paise
+            };
+
+            const selectedPlan = planDetails[plan];
+            if (!selectedPlan) {
+                alert('Invalid plan selected');
+                return;
+            }
+
+            // Initialize Razorpay payment
+            const options = {
+                key: 'rzp_test_1234567890', // Replace with your Razorpay test key
+                amount: selectedPlan.amount,
+                currency: 'INR',
+                name: 'Mouna AI',
+                description: `${selectedPlan.name} Subscription`,
+                image: '/images/logo.png',
+                order_id: '', // Will be generated from backend in production
+                handler: function (response) {
+                    // Payment success callback
+                    handlePaymentSuccess(response, plan);
+                },
+                prefill: {
+                    name: document.getElementById('user-name').textContent || '',
+                    email: 'user@example.com', // Get from user profile
+                    contact: '9999999999' // Get from user profile
+                },
+                notes: {
+                    plan: plan,
+                    upgrade_from: 'dashboard'
+                },
+                theme: {
+                    color: '#667eea'
+                },
+                modal: {
+                    ondismiss: function() {
+                        // Payment cancelled
+                        console.log('Payment cancelled by user');
+                        window.history.replaceState({}, '', '/dashboard');
+                    }
+                }
+            };
+
+            // Check if Razorpay is loaded
+            if (typeof Razorpay !== 'undefined') {
+                try {
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                } catch (error) {
+                    console.error('Razorpay error:', error);
+                    showPaymentFallback(plan, selectedPlan);
+                }
+            } else {
+                // Fallback: Load Razorpay script dynamically
+                loadRazorpayScript().then(() => {
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                }).catch(() => {
+                    console.error('Failed to load Razorpay script');
+                    showPaymentFallback(plan, selectedPlan);
+                });
+            }
+        }
+
+        // Payment fallback when Razorpay fails to load
+        function showPaymentFallback(plan, selectedPlan) {
+            const message = `Payment Gateway Temporarily Unavailable\n\n` +
+                          `Plan: ${selectedPlan.name}\n` +
+                          `Amount: ₹${selectedPlan.amount / 100}\n\n` +
+                          `For now, we'll simulate the upgrade process.\n` +
+                          `In production, you would be redirected to:\n` +
+                          `• Razorpay Checkout\n` +
+                          `• Stripe Payment\n` +
+                          `• Bank Transfer\n\n` +
+                          `Would you like to simulate the upgrade?`;
+            
+            if (confirm(message)) {
+                // Simulate successful payment
+                const fakeResponse = {
+                    razorpay_payment_id: 'pay_demo_' + Math.random().toString(36).substr(2, 9)
+                };
+                handlePaymentSuccess(fakeResponse, plan);
+            } else {
+                // Clean up URL if user cancels
+                window.history.replaceState({}, '', '/dashboard');
+            }
+        }
+
+        // Load Razorpay script dynamically
+        function loadRazorpayScript() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Handle payment success
+        function handlePaymentSuccess(response, plan) {
+            console.log('Payment successful:', response);
+            
+            // In production, you would verify the payment on your backend
+            // and then update the user's subscription
+            
+            // For now, we'll show a success message and simulate the upgrade
+            alert(`Payment successful! \n\nPayment ID: ${response.razorpay_payment_id}\n\nYour account has been upgraded to ${plan} plan.`);
+            
+            // Simulate account upgrade by updating the UI
+            simulateAccountUpgrade(plan);
+            
+            // Clean up URL
+            window.history.replaceState({}, '', '/dashboard');
+            
+            // Reload user data to reflect changes
+            setTimeout(() => {
+                loadUserData();
+            }, 1000);
+        }
+
+        // Simulate account upgrade (in production, this would be done on backend)
+        function simulateAccountUpgrade(plan) {
+            // Update current plan display
+            document.getElementById('current-plan').textContent = plan;
+            document.getElementById('plan-status').textContent = 'Active';
+            
+            // Hide upgrade banner
+            document.getElementById('upgrade-banner').style.display = 'none';
+            
+            // Update usage limits based on new plan
+            const planLimits = {
+                starter: 1000,
+                professional: 5000,
+                enterprise: 'unlimited'
+            };
+            
+            const newLimit = planLimits[plan] || 1000;
+            const currentUsage = parseInt(document.getElementById('usage-display').textContent.split(' / ')[0]) || 0;
+            
+            if (newLimit === 'unlimited') {
+                document.getElementById('usage-display').textContent = `${currentUsage} / Unlimited`;
+                document.getElementById('usage-percentage').textContent = 'Unlimited plan';
+            } else {
+                document.getElementById('usage-display').textContent = `${currentUsage} / ${newLimit}`;
+                const newPercentage = Math.min((currentUsage / newLimit) * 100, 100);
+                document.getElementById('usage-percentage').textContent = `${Math.round(newPercentage)}% used`;
+                document.getElementById('progress-fill').style.width = `${newPercentage}%`;
+            }
+            
+            // Hide usage alerts since limits are now higher
+            document.getElementById('usage-alert').style.display = 'none';
+        }
+
+        async function loadUserData() {
+            try {
+                // Get token from localStorage
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+                
+                // This would typically be a protected route that requires authentication
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+                
+                const data = await response.json();
+                
+                if (data.user) {
+                    document.getElementById('user-name').textContent = data.user.name;
+                    document.getElementById('current-plan').textContent = data.user.subscription.plan;
+                    document.getElementById('plan-status').textContent = data.user.subscription.status;
+                    document.getElementById('total-messages').textContent = data.user.usage.totalMessages;
+                    document.getElementById('api-key').textContent = data.user.apiKey;
+                    document.getElementById('next-billing').textContent = data.user.subscription.nextBilling || 'N/A';
+                    
+                    // Personalize welcome message
+                    const welcomeTitle = document.getElementById('welcome-title');
+                    const firstName = data.user.name.split(' ')[0];
+                    welcomeTitle.textContent = `Welcome back, ${firstName}!`;
+                    
+                    // Update usage statistics with smart alerts
+                    updateUsageStatistics(data.user);
+                    
+                    // Update integration code with actual API key
+                    const integrationCode = document.getElementById('integration-code');
+                    integrationCode.innerHTML = integrationCode.innerHTML.replace('YOUR_API_KEY_HERE', data.user.apiKey);
+                    
+                    // Show upgrade banner for free users
+                    if (data.user.subscription.plan === 'free') {
+                        document.getElementById('upgrade-banner').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                // Redirect to login if not authenticated
+                window.location.href = '/login';
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                // Show temporary success message
+                const btn = element.parentElement.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        async function testWidget() {
+            // Remove existing test widget if any
+            const existingWidget = document.getElementById('test-widget');
+            if (existingWidget) {
+                existingWidget.remove();
+            }
+            
+            // Remove existing widget elements
+            const existingWidgetContainer = document.querySelector('.ai-chatbot-widget');
+            if (existingWidgetContainer) {
+                existingWidgetContainer.remove();
+            }
+            
+            try {
+                // Get test API key from server
+                const response = await fetch('/test-api-key');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Load the widget for testing with the test API key
+                    const script = document.createElement('script');
+                    script.id = 'test-widget';
+                    script.src = '/widget-fixed.js';
+                    script.setAttribute('data-api-key', data.apiKey);
+                    script.setAttribute('data-primary-color', '#667eea');
+                    script.setAttribute('data-position', 'bottom-right');
+                    document.body.appendChild(script);
+                    
+                    // Show success message
+                    alert('Test widget loaded successfully! Check the bottom-right corner.');
+                } else {
+                    alert('Failed to load test API key. Please check server configuration.');
+                }
+            } catch (error) {
+                console.error('Error loading test widget:', error);
+                alert('Error loading test widget. Please try again.');
+            }
+        }
+
+        function customizeWidget() {
+            // This would open a customization modal
+            alert('Widget customization coming soon!');
+        }
+
+        async function regenerateApiKey() {
+            if (confirm('Are you sure? This will invalidate your current API key and you will need to update your website integration.')) {
+                try {
+                    const response = await fetch('/api/user/regenerate-key', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success) {
+                        document.getElementById('api-key').textContent = data.apiKey;
+                        alert('API key regenerated successfully!');
+                    }
+                } catch (error) {
+                    alert('Error regenerating API key. Please try again.');
+                }
+            }
+        }
+
+        // Billing Modal Functions
+        function openBillingModal() {
+            const modal = document.getElementById('billing-modal');
+            modal.style.display = 'flex';
+            
+            // Update modal with current user data
+            updateBillingModal();
+        }
+        
+        function closeBillingModal() {
+            const modal = document.getElementById('billing-modal');
+            modal.style.display = 'none';
+        }
+        
+        function updateBillingModal() {
+            // Get current plan data
+            const currentPlan = document.getElementById('current-plan').textContent;
+            const planStatus = document.getElementById('plan-status').textContent;
+            const nextBilling = document.getElementById('next-billing').textContent;
+            
+            // Update modal fields
+            document.getElementById('modal-current-plan').textContent = currentPlan;
+            document.getElementById('modal-plan-status').textContent = planStatus;
+            document.getElementById('modal-next-billing').textContent = nextBilling;
+            
+            // Calculate amount based on plan
+            const planAmounts = {
+                'free': '₹0/month',
+                'starter': '₹499/month',
+                'professional': '₹1,499/month',
+                'enterprise': 'Contact for pricing'
+            };
+            
+            const amount = planAmounts[currentPlan.toLowerCase()] || '₹0/month';
+            document.getElementById('modal-amount').textContent = amount;
+            
+            // Update status badge class
+            const statusBadge = document.getElementById('modal-plan-status');
+            statusBadge.className = 'status-badge ' + (planStatus.toLowerCase() === 'active' ? 'status-active' : 'status-cancelled');
+        }
+        
+        function downloadInvoice() {
+            alert('Invoice download feature coming soon!\n\nIn production, this would:\n• Generate PDF invoice\n• Email invoice to user\n• Download invoice file');
+        }
+        
+        function updatePaymentMethod() {
+            alert('Payment method update coming soon!\n\nThis would open:\n• Credit/Debit card form\n• UPI payment setup\n• Bank account linking');
+        }
+        
+        function cancelSubscription() {
+            const currentPlan = document.getElementById('current-plan').textContent;
+            
+            if (currentPlan.toLowerCase() === 'free') {
+                alert('You are already on the free plan!');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to cancel your ${currentPlan} subscription?\n\nYour subscription will remain active until the next billing date, after which you'll be moved to the free plan.`)) {
+                // In production, this would call your backend API
+                alert(`Subscription cancelled successfully!\n\nYour ${currentPlan} plan will remain active until your next billing date. You'll then be moved to the free plan with 100 messages per month.`);
+                
+                // Update UI to show cancelled status (simulation)
+                document.getElementById('modal-plan-status').textContent = 'Cancelled';
+                const statusBadge = document.getElementById('modal-plan-status');
+                statusBadge.className = 'status-badge status-cancelled';
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('billing-modal');
+            if (event.target === modal) {
+                closeBillingModal();
+            }
+        }
+
+        // Smart Usage Statistics Function
+        function updateUsageStatistics(user) {
+            const messagesUsed = user.usage.messagesThisMonth || 0;
+            const plan = user.subscription.plan || 'free';
+            
+            // Define plan limits
+            const planLimits = {
+                free: 100,
+                starter: 1000,
+                professional: 5000,
+                enterprise: 'unlimited'
+            };
+            
+            const limit = planLimits[plan] || 100;
+            
+            // Update usage display
+            if (limit === 'unlimited') {
+                document.getElementById('usage-display').textContent = `${messagesUsed} / Unlimited`;
+                document.getElementById('usage-percentage').textContent = 'Unlimited plan';
+                document.getElementById('progress-fill').style.width = '100%';
+                document.getElementById('progress-fill').className = 'progress-fill';
+                return;
+            }
+            
+            const percentage = Math.min((messagesUsed / limit) * 100, 100);
+            
+            // Update UI elements
+            document.getElementById('usage-display').textContent = `${messagesUsed} / ${limit}`;
+            document.getElementById('usage-percentage').textContent = `${Math.round(percentage)}% used`;
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+            
+            // Smart Alerts Logic
+            const alertElement = document.getElementById('usage-alert');
+            const alertText = document.getElementById('usage-alert-text');
+            const progressFill = document.getElementById('progress-fill');
+            
+            // Reset classes
+            alertElement.className = 'usage-alert';
+            progressFill.className = 'progress-fill';
+            
+            if (percentage >= 90) {
+                // Critical: 90% or more
+                alertElement.style.display = 'flex';
+                alertElement.classList.add('critical');
+                progressFill.classList.add('critical');
+                alertText.textContent = `🚨 Critical: You've used ${Math.round(percentage)}% of your monthly limit! Upgrade now to avoid service interruption.`;
+            } else if (percentage >= 75) {
+                // Warning: 75-89%
+                alertElement.style.display = 'flex';
+                alertElement.classList.add('warning');
+                progressFill.classList.add('warning');
+                alertText.textContent = `⚠️ Warning: You've used ${Math.round(percentage)}% of your monthly limit. Consider upgrading soon.`;
+            } else if (percentage >= 50) {
+                // Info: 50-74%
+                alertElement.style.display = 'flex';
+                alertText.textContent = `📊 You've used ${Math.round(percentage)}% of your monthly limit. You're on track!`;
+            } else {
+                // Good: Under 50%
+                alertElement.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

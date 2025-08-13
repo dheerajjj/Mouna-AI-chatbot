@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Failed - AI Chatbot Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #fef2f2;
+            margin: 0;
+        }
+        .failure-container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .failure-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+            animation: shake 0.5s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        h1 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        .failure-message {
+            color: #64748b;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .error-details {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        .error-title {
+            color: #dc2626;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .error-description {
+            color: #7f1d1d;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .common-reasons {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        .reasons-title {
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .reasons-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .reasons-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            color: #4b5563;
+            font-size: 0.95rem;
+        }
+        .reasons-list li:last-child {
+            margin-bottom: 0;
+        }
+        .bullet {
+            color: #ef4444;
+            font-weight: bold;
+            margin-top: 0.1rem;
+        }
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .btn {
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+        .btn-secondary {
+            background: transparent;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+        }
+        .contact-info {
+            background: #f0f9ff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border: 1px solid #dbeafe;
+        }
+        .contact-title {
+            color: #1e40af;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .contact-text {
+            color: #1e3a8a;
+            font-size: 0.95rem;
+        }
+        .payment-id {
+            font-family: 'Courier New', monospace;
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="failure-container">
+        <div class="failure-icon">✗</div>
+        <h1>Payment Failed</h1>
+        <p class="failure-message">
+            We're sorry, but your payment could not be processed at this time. Please try again or use a different payment method.
+        </p>
+
+        <div class="error-details">
+            <div class="error-title">Transaction Details</div>
+            <div class="error-description" id="error-description">
+                Transaction failed due to an unknown error.
+            </div>
+            <div style="margin-top: 1rem; color: #6b7280;">
+                Order ID: <span class="payment-id" id="order-id">N/A</span>
+            </div>
+        </div>
+
+        <div class="common-reasons">
+            <div class="reasons-title">Common Reasons for Payment Failure:</div>
+            <ul class="reasons-list">
+                <li><span class="bullet">•</span> Insufficient funds in your account</li>
+                <li><span class="bullet">•</span> Card expired or blocked</li>
+                <li><span class="bullet">•</span> Incorrect card details entered</li>
+                <li><span class="bullet">•</span> Network connectivity issues</li>
+                <li><span class="bullet">•</span> Bank server temporarily down</li>
+                <li><span class="bullet">•</span> Payment cancelled by user</li>
+            </ul>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-danger" onclick="retryPayment()">
+                <span>Try Again</span>
+                <span>↻</span>
+            </button>
+            <a href="/pricing" class="btn btn-secondary">
+                Choose Different Plan
+            </a>
+            <a href="/dashboard" class="btn btn-secondary">
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="contact-info">
+            <div class="contact-title">Need Help?</div>
+            <div class="contact-text">
+                If you continue to experience issues, please contact our support team. We're here to help you get started with your AI chatbot.
+            </div>
+        </div>
+
+        <p style="color: #64748b; font-size: 0.9rem; margin-top: 2rem;">
+            Don't worry - no charges have been made to your account.
+        </p>
+    </div>
+
+    <script>
+        // Get failure details from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorCode = urlParams.get('error') || 'unknown';
+        const errorDescription = urlParams.get('error_description') || 'Payment failed due to an unknown error.';
+        const orderId = urlParams.get('order_id') || localStorage.getItem('currentOrderId') || 'N/A';
+        const razorpayError = urlParams.get('razorpay_error') || '';
+        
+        // Error code mappings
+        const errorMessages = {
+            'BAD_REQUEST_ERROR': 'Invalid payment request. Please try again.',
+            'GATEWAY_ERROR': 'Payment gateway error. Please try with a different payment method.',
+            'NETWORK_ERROR': 'Network connectivity issue. Please check your internet connection.',
+            'SERVER_ERROR': 'Our payment server is temporarily down. Please try again later.',
+            'payment_failed': 'Your payment was declined by the bank. Please try a different card.',
+            'payment_cancelled': 'Payment was cancelled. You can try again anytime.',
+            'card_declined': 'Your card was declined. Please check your card details or try another card.',
+            'insufficient_funds': 'Insufficient funds in your account.',
+            'expired_card': 'Your card has expired. Please use a different card.',
+            'invalid_card': 'Invalid card details. Please check and try again.',
+            'unknown': 'Payment failed due to an unknown error.'
+        };
+
+        // Update error description
+        const finalErrorMessage = errorMessages[errorCode] || errorDescription || errorMessages['unknown'];
+        document.getElementById('error-description').textContent = finalErrorMessage;
+        document.getElementById('order-id').textContent = orderId;
+
+        // Store current failure details for retry
+        const failureDetails = {
+            errorCode: errorCode,
+            orderId: orderId,
+            planId: urlParams.get('plan_id') || localStorage.getItem('selectedPlanId'),
+            amount: urlParams.get('amount') || localStorage.getItem('paymentAmount')
+        };
+
+        function retryPayment() {
+            // Store failure context
+            localStorage.setItem('retryPayment', 'true');
+            localStorage.setItem('previousError', errorCode);
+            
+            // Redirect back to pricing/payment page
+            if (failureDetails.planId) {
+                window.location.href = `/pricing?plan=${failureDetails.planId}&retry=true`;
+            } else {
+                window.location.href = '/pricing?retry=true';
+            }
+        }
+
+        // Send failure analytics
+        fetch('/api/payments/failure-callback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify({
+                errorCode: errorCode,
+                errorDescription: finalErrorMessage,
+                orderId: orderId,
+                timestamp: new Date().toISOString()
+            })
+        }).catch(error => {
+            console.log('Analytics callback failed:', error);
+        });
+
+        // Auto-redirect to dashboard after 2 minutes if no action
+        setTimeout(() => {
+            if (confirm('Would you like to go back to your dashboard?')) {
+                window.location.href = '/dashboard';
+            }
+        }, 120000); // 2 minutes
+    </script>
+</body>
+</html>
