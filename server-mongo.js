@@ -16,6 +16,9 @@ const { SUPPORTED_LANGUAGES, TRANSLATIONS, LANGUAGE_DETECTION, AI_SYSTEM_PROMPTS
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for Railway deployment
+app.set('trust proxy', 1);
+
 // Initialize OpenAI with error handling
 let openai;
 try {
@@ -42,12 +45,12 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
       scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "http://localhost:3000", "https://localhost:3000"]
+      connectSrc: ["'self'", "http://localhost:3000", "https://localhost:3000", "https://mouna-ai-chatbot-production.up.railway.app"]
     }
   }
 }));
 
-// CORS configuration
+// CORS configuration - Allow GitHub Pages and other legitimate domains
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:3000',
   'http://localhost:8080',
@@ -59,16 +62,35 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
     if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
+    
+    // Allow GitHub Pages domains (*.github.io)
+    if (origin.match(/^https:\/\/[\w-]+\.github\.io$/)) {
+      return callback(null, true);
+    }
+    
+    // Allow any HTTPS domain for widget integration (production chatbot widget use)
+    if (origin.match(/^https:\/\/[\w.-]+\.[a-z]{2,}$/)) {
+      return callback(null, true);
+    }
+    
+    // Allow localhost for development
+    if (origin.match(/^https?:\/\/localhost(:[0-9]+)?$/)) {
+      return callback(null, true);
+    }
+    
+    console.log(`❌ CORS blocked origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Requested-With']
 }));
 
 // Rate limiting

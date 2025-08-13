@@ -500,7 +500,7 @@
             
             <div class="code-container">
                 <div class="code-block" id="widget-snippet">
-<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"http://localhost:3000/widget-fixed.js"</span><br>
+<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js"</span><br>
         <span class="attr">data-api-key</span>=<span class="string">"YOUR_API_KEY"</span><br>
         <span class="attr">data-primary-color</span>=<span class="string">"#667eea"</span><br>
         <span class="attr">data-position</span>=<span class="string">"bottom-right"</span><span class="tag">&gt;&lt;/script&gt;</span>
@@ -557,7 +557,7 @@
     <span class="tag">&lt;p&gt;</span>Your website content goes here...<span class="tag">&lt;/p&gt;</span><br>
     <br>
     <span class="comment">&lt;!-- Add the chatbot widget just before closing body tag --&gt;</span><br>
-    <span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"http://localhost:3000/widget-fixed.js"</span><br>
+    <span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js"</span><br>
             <span class="attr">data-api-key</span>=<span class="string">"YOUR_API_KEY"</span><span class="tag">&gt;&lt;/script&gt;</span><br>
 <span class="tag">&lt;/body&gt;</span><br>
 <span class="tag">&lt;/html&gt;</span>
@@ -633,12 +633,166 @@
         }
         
         function previewWidget() {
-            // Simple preview functionality - you can enhance this
-            alert('Widget preview would open here! This feature simulates how the chatbot appears on your website.');
-            // In a real implementation, this could:
-            // - Open a modal with a live preview
-            // - Navigate to a demo page
-            // - Show an interactive mockup
+            // Create a preview modal with actual widget
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(5px);
+            `;
+            
+            const previewContainer = document.createElement('div');
+            previewContainer.style.cssText = `
+                width: 90%;
+                max-width: 800px;
+                height: 80%;
+                background: #f3f4f6;
+                border-radius: 12px;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            `;
+            
+            const header = document.createElement('div');
+            header.style.cssText = `
+                background: #667eea;
+                color: white;
+                padding: 1rem 2rem;
+                font-family: Inter, sans-serif;
+                font-weight: 600;
+                font-size: 1.1rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            header.innerHTML = `
+                <span>🌐 Your Website Preview</span>
+                <button onclick="this.closest('.preview-modal').remove()" style="
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: background 0.2s;
+                " onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='none'">×</button>
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                padding: 2rem;
+                height: calc(100% - 80px);
+                background: white;
+                position: relative;
+            `;
+            
+            content.innerHTML = `
+                <h1 style="color: #1f2937; margin-bottom: 1rem; font-family: Inter, sans-serif;">Welcome to Your Website</h1>
+                <p style="color: #6b7280; font-family: Inter, sans-serif; line-height: 1.6;">This is a preview of how your chatbot widget will appear on your website. The widget will be positioned in the bottom-right corner and visitors can click it to start a conversation.</p>
+                <br>
+                <p style="color: #6b7280; font-family: Inter, sans-serif; line-height: 1.6;">Try clicking the chat bubble to see the widget in action!</p>
+            `;
+            
+            previewContainer.appendChild(header);
+            previewContainer.appendChild(content);
+            modal.appendChild(previewContainer);
+            modal.className = 'preview-modal';
+            document.body.appendChild(modal);
+            
+            // Load the actual widget with test API key
+            fetch('/test-api-key')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.apiKey) {
+                        // Remove any existing widget first to prevent conflicts
+                        const existingWidget = document.querySelector('.ai-chatbot-widget');
+                        if (existingWidget) {
+                            existingWidget.remove();
+                        }
+                        
+                        // Create and inject the widget script
+                        const script = document.createElement('script');
+                        script.src = '/widget-fixed.js';
+                        script.setAttribute('data-api-key', data.apiKey);
+                        script.setAttribute('data-primary-color', '#667eea');
+                        script.setAttribute('data-position', 'bottom-right');
+                        
+                        // Ensure widget has higher z-index than modal
+                        script.onload = function() {
+                            setTimeout(() => {
+                                const widgetElements = document.querySelectorAll('.ai-chatbot-widget, .ai-chatbot-widget *');
+                                widgetElements.forEach(el => {
+                                    if (el.style) {
+                                        el.style.zIndex = Math.max(parseInt(el.style.zIndex) || 0, 10001);
+                                    }
+                                });
+                                
+                                // Ensure input field is focusable and interactive
+                                const inputField = document.querySelector('#chatbot-input-field');
+                                if (inputField) {
+                                    inputField.style.pointerEvents = 'auto';
+                                    inputField.style.userSelect = 'text';
+                                    inputField.removeAttribute('disabled');
+                                    inputField.removeAttribute('readonly');
+                                    
+                                    // Force focus capability
+                                    inputField.tabIndex = 0;
+                                    
+                                    console.log('Widget input field prepared for interaction');
+                                }
+                                
+                                // Auto-open the widget for preview
+                                if (window.AIChatbotWidget && typeof window.AIChatbotWidget.open === 'function') {
+                                    setTimeout(() => {
+                                        window.AIChatbotWidget.open();
+                                    }, 500);
+                                }
+                            }, 1000);
+                        };
+                        
+                        document.head.appendChild(script);
+                        
+                        // Clean up script when modal is closed
+                        modal.addEventListener('click', function(e) {
+                            if (e.target === modal) {
+                                modal.remove();
+                                // Remove widget if it exists
+                                const existingWidget = document.querySelector('.ai-chatbot-widget');
+                                if (existingWidget) {
+                                    existingWidget.remove();
+                                }
+                                // Clean up global widget object
+                                if (window.AIChatbotWidget) {
+                                    delete window.AIChatbotWidget;
+                                }
+                            }
+                        });
+                        
+                        // Add instructions for better user experience
+                        content.innerHTML += '<div style="background: #e0f2fe; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #0284c7;"><strong>💡 Tip:</strong> The chatbot will automatically open in a few seconds. You can interact with it just like on a real website - click the input field to type your message!</div>';
+                        
+                    } else {
+                        content.innerHTML += '<div style="background: #fef3c7; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #f59e0b;"><strong>Note:</strong> Widget preview requires API configuration. Please set up your API key first.</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading preview:', error);
+                    content.innerHTML += '<div style="background: #fef2f2; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #ef4444;"><strong>Error:</strong> Could not load widget preview. Please try again later.</div>';
+                });
         }
         
         // Add some interactive animations

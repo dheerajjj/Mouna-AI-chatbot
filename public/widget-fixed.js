@@ -136,7 +136,7 @@
     // Configuration
     const WIDGET_CONFIG = {
         // API endpoint (will be set from script tag or defaults)
-        apiEndpoint: window.ChatbotWidgetAPI || 'http://localhost:3000',
+        apiEndpoint: window.ChatbotWidgetAPI || 'https://mouna-ai-chatbot-production.up.railway.app',
         apiKey: null,
         
         // Default widget settings
@@ -909,13 +909,18 @@
             
         } catch (error) {
             hideTyping();
+            console.error('Widget API Error:', error);
             
-            let errorMessage = 'Sorry, I\'m having trouble processing your request right now.';
+            let errorMessage;
             
-            if (error.message.includes('429')) {
-                errorMessage = 'I\'m receiving too many messages. Please wait a moment and try again.';
-            } else if (error.message.includes('401') || error.message.includes('403')) {
+            if (error.message.includes('429') || error.message.includes('Too many')) {
+                errorMessage = getTranslation('errors.rateLimited');
+            } else if (error.message.includes('401') || error.message.includes('403') || error.message.includes('Invalid API key')) {
                 errorMessage = 'Authentication error. Please contact support.';
+            } else if (error.message.includes('Failed to fetch') || error.message.includes('CORS') || error.message.includes('network')) {
+                errorMessage = getTranslation('errors.networkError');
+            } else {
+                errorMessage = getTranslation('errors.generalError');
             }
             
             addMessage(errorMessage, false);
