@@ -200,6 +200,79 @@ class EmailService {
     }
   }
 
+  async sendSignupOTPEmail(userEmail, otp) {
+    const userName = userEmail.split('@')[0]; // Use email prefix as name
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@mounaai.com',
+      to: userEmail,
+      subject: '🚀 Welcome to Mouna AI - Email Verification',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #0d7b8a, #4a0e6b); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .otp-code { background: white; border: 2px solid #0d7b8a; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0; }
+            .otp-number { font-size: 32px; font-weight: bold; color: #0d7b8a; letter-spacing: 8px; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🚀 Welcome to Mouna AI!</h1>
+              <p>Complete Your Registration</p>
+            </div>
+            <div class="content">
+              <h2>Hello there! 👋</h2>
+              <p>Thank you for joining Mouna AI Chatbot Platform. Please use the following verification code to complete your registration:</p>
+              
+              <div class="otp-code">
+                <div class="otp-number">${otp}</div>
+                <p style="margin: 10px 0 0 0; color: #666;">This code expires in 10 minutes</p>
+              </div>
+
+              <p><strong>Important:</strong> Never share this code with anyone. Our team will never ask for your OTP.</p>
+              
+              <p>Once verified, you'll be able to create your personalized AI chatbot and start engaging with your website visitors!</p>
+              
+              <p>If you didn't request this code, please ignore this email.</p>
+            </div>
+            <div class="footer">
+              <p>© 2025 Mouna AI Chatbot Platform. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Welcome to Mouna AI - Email Verification
+        
+        Hello there!
+        
+        Your verification code: ${otp}
+        
+        This code expires in 10 minutes.
+        
+        Never share this code with anyone.
+        
+        © 2025 Mouna AI Chatbot Platform
+      `
+    };
+
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Signup OTP email sent to:', userEmail);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to send signup OTP email:', error);
+      throw error;
+    }
+  }
+
   async sendLoginOTPEmail(userEmail, userName, otp) {
     const mailOptions = {
       from: process.env.EMAIL_USER || 'noreply@mounaai.com',

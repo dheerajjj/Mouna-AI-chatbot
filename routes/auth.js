@@ -117,7 +117,7 @@ router.post('/signup', [
       otpResult = await OTPService.generateAndStoreOTP(email, 'email');
       
       // Send OTP via email
-      EmailService.sendOTPEmail(email, name, otpResult).catch(error => {
+      EmailService.sendSignupOTPEmail(email, otpResult).catch(error => {
         console.error('Failed to send OTP email:', error);
       });
       
@@ -747,7 +747,7 @@ router.post('/resend-signup-otp', [
       const otp = await OTPService.generateAndStoreOTP(email, 'email');
       
       // Send OTP via email
-      EmailService.sendOTPEmail(email, 'User', otp).catch(error => {
+      EmailService.sendSignupOTPEmail(email, otp).catch(error => {
         console.error('Failed to send OTP email:', error);
       });
       

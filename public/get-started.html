@@ -898,7 +898,7 @@
             sendOtpBtn.disabled = true;
         }
 
-        function sendOTP() {
+        async function sendOTP() {
             const email = emailInput.value.trim();
             currentEmail = email;
             
@@ -909,25 +909,47 @@
             // Mask email for display
             maskedEmail.textContent = maskEmail(email);
 
-            // Simulate API call
-            setTimeout(() => {
+            try {
+                // Call real API to initiate signup OTP process
+                const response = await fetch('/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: 'User', // Temporary name, will be collected later
+                        email: email,
+                        password: 'temp-password', // Temporary password, will be set later
+                        company: '',
+                        website: ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.requiresVerification) {
+                    // Successfully sent OTP
+                    showStep('otp-verification');
+                    startResendCooldown();
+                    otpInputs[0].focus();
+                    showSuccess('Verification code sent to your email');
+                    
+                    // Store signup data for later use
+                    window.tempUserData = data.userData;
+                } else {
+                    showError(data.error || 'Failed to send verification code');
+                }
+            } catch (error) {
+                console.error('Send OTP error:', error);
+                showError('Network error. Please try again.');
+            } finally {
                 // Reset button
                 sendOtpBtn.innerHTML = '<span>Send OTP</span>';
-                
-                // Show OTP verification step
-                showStep('otp-verification');
-                
-                // Start resend cooldown
-                startResendCooldown();
-                
-                // Focus first OTP input
-                otpInputs[0].focus();
-                
-                showSuccess('OTP sent to your email address');
-            }, 1000);
+                sendOtpBtn.disabled = false;
+            }
         }
 
-        function verifyOTP() {
+        async function verifyOTP() {
             const otp = getOTPValue();
             
             if (otp.length !== 6) {
@@ -938,60 +960,107 @@
             verifyOtpBtn.innerHTML = '<div class="loading"></div> Verifying...';
             verifyOtpBtn.disabled = true;
 
-            // Simulate API call
-            setTimeout(() => {
-                // For demo, accept any 6-digit code
-                if (otp === '123456' || Math.random() > 0.3) {
-                    // Success - check if user needs to complete account details
-                    if (isNewUser(currentEmail)) {
-                        showStep('account-details');
-                    } else {
-                        showStep('success-screen');
-                    }
-                } else {
-                    otpAttempts++;
-                    
-                    if (otpAttempts >= maxOtpAttempts) {
-                        showError(`Too many incorrect attempts. Please wait 5 minutes before trying again.`);
-                        lockAccount();
-                    } else {
-                        showError(`Incorrect code. ${maxOtpAttempts - otpAttempts} attempts remaining.`);
-                        clearOTPInputs();
-                        otpInputs[0].focus();
-                    }
-                }
-
+            try {
+                // This is email verification only - doesn't create account yet
+                // We'll show account details step for all users to complete signup
+                
+                // Store OTP for account creation later
+                window.tempOTP = otp;
+                
+                // All users need to complete account details for signup
+                showStep('account-details');
+                showSuccess('Email verified! Please complete your account.');
+                
+            } catch (error) {
+                console.error('Verify OTP error:', error);
+                showError('Verification failed. Please try again.');
+            } finally {
                 verifyOtpBtn.innerHTML = '<span>Verify Code</span>';
                 verifyOtpBtn.disabled = false;
-            }, 1000);
+            }
         }
 
-        function resendOTP() {
+        async function resendOTP() {
             resendOtpBtn.innerHTML = '<div class="loading"></div>';
             resendOtpBtn.disabled = true;
 
-            setTimeout(() => {
+            try {
+                const response = await fetch('/auth/resend-signup-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: currentEmail
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    startResendCooldown();
+                    showSuccess('New verification code sent to your email');
+                } else {
+                    showError(data.error || 'Failed to resend code');
+                }
+            } catch (error) {
+                console.error('Resend OTP error:', error);
+                showError('Failed to resend code. Please try again.');
+            } finally {
                 resendOtpBtn.innerHTML = 'Resend code';
-                startResendCooldown();
-                showSuccess('New code sent to your email');
-            }, 1000);
+            }
         }
 
-        function createAccount() {
+        async function createAccount() {
             const formData = {
-                fullName: document.getElementById('fullName').value,
+                name: document.getElementById('fullName').value,
                 company: document.getElementById('company').value,
                 password: document.getElementById('password').value,
-                email: currentEmail
+                website: '',
+                phone: ''
             };
 
-            document.getElementById('create-account').innerHTML = '<div class="loading"></div> Creating account...';
-            document.getElementById('create-account').disabled = true;
+            const createBtn = document.getElementById('create-account');
+            createBtn.innerHTML = '<div class="loading"></div> Creating account...';
+            createBtn.disabled = true;
 
-            // Simulate API call
-            setTimeout(() => {
-                showStep('success-screen');
-            }, 1500);
+            try {
+                // Call the verify-email-and-create-account endpoint with OTP and user data
+                const response = await fetch('/auth/verify-email-and-create-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: currentEmail,
+                        otp: window.tempOTP,
+                        userData: formData
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Store auth token
+                    localStorage.setItem('authToken', data.token);
+                    
+                    showStep('success-screen');
+                    showSuccess('Account created successfully!');
+                    
+                    // Set redirect to dashboard/quick-setup after a delay
+                    setTimeout(() => {
+                        window.location.href = data.redirectTo || '/quick-setup';
+                    }, 2000);
+                } else {
+                    showError(data.error || 'Failed to create account');
+                }
+            } catch (error) {
+                console.error('Create account error:', error);
+                showError('Failed to create account. Please try again.');
+            } finally {
+                createBtn.innerHTML = '<span>Create Account</span>';
+                createBtn.disabled = false;
+            }
         }
 
         function handleGoogleSignIn() {
