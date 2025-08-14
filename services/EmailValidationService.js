@@ -425,62 +425,36 @@ class EmailValidationService {
         const errors = [];
         const localPart = email.split('@')[0].toLowerCase();
         
-        // Pattern 1: Too short local part (likely fake)
-        if (localPart.length < 2) {
-            errors.push('Email local part is too short - likely invalid');
+        // Only flag extremely short local parts (single character)
+        if (localPart.length < 1) {
+            errors.push('Email local part cannot be empty');
         }
         
-        // Pattern 2: Gibberish/Random character detection
-        if (this.isGibberishText(localPart)) {
-            errors.push('Email appears to contain random gibberish characters and is likely fake');
-            return errors; // Return early for obvious gibberish
-        }
+        // Disable gibberish detection - causes too many false positives with real names
+        // like "dheeraj.koduru" which are perfectly valid names
+        // DO NOT check for gibberish
         
-        // Pattern 3: Obviously fake patterns
-        const fakePatterns = [
-            /^(test|fake|dummy|invalid|noreply|no-reply)\d*$/,
-            /^[a-z]{1,3}$/,  // Very short names like 'a', 'ab', 'dhj'
-            /^\d+$/,         // Only numbers
-            /^[a-z]+\d+$/,   // Simple letter+number patterns that are too short
+        // Only check for extremely obvious fake patterns - be very conservative
+        const veryObviousFakePatterns = [
+            /^(test|fake|dummy|invalid|noreply|no-reply)$/,  // Only exact matches, no digits
+            /^[a]$/,         // Single letter 'a' only
+            /^\d{10,}$/,     // Only very long strings of numbers (10+)
         ];
         
-        for (const pattern of fakePatterns) {
+        for (const pattern of veryObviousFakePatterns) {
             if (pattern.test(localPart)) {
-                errors.push('Email appears to follow a fake/test pattern');
+                errors.push('Email appears to be a test/placeholder address');
                 break;
             }
         }
         
-        // Pattern 4: Excessive repetition of characters
-        if (this.hasExcessiveRepetition(localPart)) {
-            errors.push('Email contains suspicious repetitive patterns');
+        // Only check for extreme repetition (5+ consecutive identical characters)
+        if (/(.)\1{4,}/.test(localPart)) {
+            errors.push('Email contains excessive character repetition');
         }
         
-        // Pattern 5: Too many consonants without vowels (gibberish detection)
-        if (this.hasUnusualConsonantPattern(localPart)) {
-            errors.push('Email appears to be random characters rather than a real name');
-        }
-        
-        // Pattern 6: Check for common legitimate patterns (if very short)
-        if (localPart.length <= 3) {
-            // Allow if it has dots, underscores, or is a common short name
-            const legitimateShortPatterns = [
-                /[._-]/, // Contains separators
-                /^(jo|max|sam|jim|tom|bob|dan|ian|lee|ray|roy|guy|lyn|amy|sue|ann|pat|kim|eve|jay|lou)$/ // Common short names
-            ];
-            
-            let isLegitimate = false;
-            for (const pattern of legitimateShortPatterns) {
-                if (pattern.test(localPart)) {
-                    isLegitimate = true;
-                    break;
-                }
-            }
-            
-            if (!isLegitimate && localPart.length <= 3) {
-                errors.push('Email local part is suspiciously short and may not be a real email');
-            }
-        }
+        // DO NOT check for consonant patterns - too many false positives
+        // DO NOT check for short email patterns - many people have short names
         
         // Pattern 7: Common fake email domains (additional check)
         const commonFakeDomains = ['gmail.con', 'gmial.com', 'ymail.com', 'hotmial.com'];

@@ -267,63 +267,41 @@ class RobustEmailValidator {
     }
     
     /**
-     * Advanced gibberish detection - Made more lenient for real names
+     * Advanced gibberish detection - Very conservative to avoid false positives
      */
     detectGibberish(localPart) {
         const text = localPart.toLowerCase();
         
-        // Too short check (but allow 2 characters - some people have short names)
+        // Only flag if completely empty
         if (text.length < 1) {
             return { isGibberish: true, reason: 'Email username is empty' };
         }
         
-        // Only check for extremely obvious patterns
-        // Excessive repetition patterns (6+ same characters)
-        if (/(.)\1{5,}/.test(text)) {
+        // Only check for extreme repetition patterns (8+ same characters)
+        if (/(.)\1{7,}/.test(text)) {
             return { isGibberish: true, reason: 'Email contains excessive character repetition' };
         }
         
-        // Alternating patterns like "abababab" (but be more lenient)
-        if (/(..)\1{4,}/.test(text)) {
+        // Very restrictive alternating patterns (6+ repetitions)
+        if (/(..)\1{5,}/.test(text)) {
             return { isGibberish: true, reason: 'Email contains suspicious repetitive patterns' };
         }
         
-        // Only analyze if very long (10+ characters) and seems random
-        if (text.length >= 10) {
-            // Remove numbers, dots, and special characters for analysis
-            const letters = text.replace(/[^a-z]/g, '');
-            
-            if (letters.length >= 8) {
-                // Very restrictive vowel check - only flag if NO vowels at all
-                const vowels = (letters.match(/[aeiou]/g) || []).length;
-                const vowelRatio = vowels / letters.length;
-                
-                // Only flag if absolutely no vowels and long string
-                if (vowelRatio === 0 && letters.length > 8) {
-                    return { isGibberish: true, reason: 'Email appears to contain only consonants' };
-                }
-                
-                // Very long consonant sequences (8+ consonants in a row)
-                if (/[bcdfghjklmnpqrstvwxyz]{8,}/.test(letters)) {
-                    return { isGibberish: true, reason: 'Email contains extremely long consonant sequences' };
-                }
-            }
-        }
-        
-        // Only flag obviously fake patterns (very restrictive)
-        const fakePatterns = [
-            /^(test|fake|dummy|invalid|noreply|no-reply)$/,  // Removed \d* to be more specific
-            /^\d{12,}$/,  // Only very long strings of numbers (12+)
-            /^[a-z]$/, // Single letter only
-            /^(aa|bb|cc|dd|ee|ff|gg|hh|ii|jj|kk|ll|mm|nn|oo|pp|qq|rr|ss|tt|uu|vv|ww|xx|yy|zz){3,}$/,  // Multiple repetitions
-            /^(abc|xyz|qwe|asd|zxc){2,}$/  // Multiple keyboard patterns, removed 123
+        // Only flag extremely obvious fake patterns (very restrictive)
+        const extremelyObviousFakePatterns = [
+            /^(test|fake|dummy|invalid)$/,  // Only exact matches, no variations
+            /^[a]$/,         // Single letter 'a' only
+            /^\d{15,}$/,     // Only extremely long strings of numbers (15+)
         ];
         
-        for (const pattern of fakePatterns) {
+        for (const pattern of extremelyObviousFakePatterns) {
             if (pattern.test(text)) {
-                return { isGibberish: true, reason: 'Email appears to follow a fake/test pattern' };
+                return { isGibberish: true, reason: 'Email appears to be a test/placeholder address' };
             }
         }
+        
+        // DO NOT check for consonant patterns, vowel ratios, or other heuristics
+        // Real names like "dheeraj.koduru" should NEVER be flagged as gibberish
         
         return { isGibberish: false };
     }
