@@ -25,9 +25,8 @@ class RobustEmailValidator {
             'tempmail.ninja', 'tempmail24.com', 'tempemail.com', 'mailcatch.com', 'tempinbox.com',
             'mohmal.com', 'disposableemailaddresses.com', 'spambog.com', 'tmail.ws', 'tempmailo.com',
             
-            // Test/development domains
-            'test.com', 'example.com', 'example.org', 'example.net', 'invalid.com', 
-            'fake.com', 'notreal.com', 'localhost.com',
+            // Test/development domains (only very obvious test domains)
+            'test.com', 'invalid.com', 'localhost.com',
             
             // Additional known disposable services
             'meltmail.com', 'mytrashmail.com', 'guerrillamailblock.com', 'spam4.me',
