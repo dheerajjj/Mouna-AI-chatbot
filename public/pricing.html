@@ -453,7 +453,30 @@
                     return;
                 }
 
-                // For logged in users, redirect to dashboard to manage subscription
+                // Handle free tier selection - direct upgrade without payment
+                if (planId === 'free') {
+                    const response = await fetch('/api/payments/subscription/create', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ plan: 'free' })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('Successfully switched to Free plan!');
+                        // Redirect to dashboard
+                        window.location.href = '/dashboard';
+                    } else {
+                        alert('Failed to switch plan. Please try again.');
+                    }
+                    return;
+                }
+                
+                // For paid plans, redirect to dashboard to handle payment
                 window.location.href = `/dashboard?upgrade=${planId}`;
                 
             } catch (error) {
