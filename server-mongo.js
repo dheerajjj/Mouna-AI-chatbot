@@ -1090,12 +1090,17 @@ app.get('/email-validation-test', (req, res) => {
       res.sendFile(path.join(__dirname, 'public', 'index.html'));
     });
     
-    // Social login options page (new default signup)
+    // Main signup page (email signup form)
     app.get('/signup', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+    });
+    
+    // Social login options page
+    app.get('/social-signup', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'social-login.html'));
     });
     
-    // Traditional email signup form
+    // Alternative email signup route (for backward compatibility)
     app.get('/email-signup', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'signup.html'));
     });
