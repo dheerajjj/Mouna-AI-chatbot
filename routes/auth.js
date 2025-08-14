@@ -703,7 +703,7 @@ router.post('/verify-email-and-create-account', [
       success: true,
       message: 'Account created successfully! Email verified.',
       token,
-      redirectTo: '/welcome-dashboard',
+      redirectTo: '/dashboard',
       user: {
         id: user._id,
         name: user.name,
