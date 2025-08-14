@@ -225,6 +225,431 @@ async function startServer() {
       });
     });
 
+    // Get Started page
+    app.get('/get-started', (req, res) => {
+      res.sendFile(path.join(__dirname, 'public', 'get-started.html'));
+    });
+
+    // Quick Setup page
+    app.get('/quick-setup', (req, res) => {
+      res.sendFile(path.join(__dirname, 'public', 'quick-setup.html'));
+    });
+
+    // Universal Email Verification endpoint for Get Started page
+    app.post('/api/verify-email', async (req, res) => {
+      try {
+        const { email } = req.body;
+        
+        if (!email) {
+          return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        const EmailValidationService = require('./services/EmailValidationService');
+        const validation = await EmailValidationService.validateEmail(email);
+        
+        if (!validation.isValid) {
+          return res.status(400).json({
+            valid: false,
+            error: validation.errors[0] || 'Invalid email address',
+            suggestions: EmailValidationService.getEmailSuggestions(email)
+          });
+        }
+        
+        // Check if user already exists
+        const existingUser = await DatabaseService.findUserByEmail(email);
+        
+        res.json({
+          valid: true,
+          exists: !!existingUser,
+          message: existingUser 
+            ? 'This email is already registered. You can sign in instead.'
+            : 'Email is valid and available for registration.'
+        });
+        
+      } catch (error) {
+        console.error('Email verification error:', error);
+        res.status(500).json({ error: 'Email verification failed' });
+      }
+    });
+
+    // Send OTP for Get Started signup
+    app.post('/api/send-signup-otp', async (req, res) => {
+      try {
+        const { email } = req.body;
+        
+        if (!email) {
+          return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        // Validate email first
+        const EmailValidationService = require('./services/EmailValidationService');
+        const validation = await EmailValidationService.validateEmail(email);
+        
+        if (!validation.isValid) {
+          return res.status(400).json({
+            error: validation.errors[0] || 'Invalid email address'
+          });
+        }
+        
+        // Check if user already exists
+        const existingUser = await DatabaseService.findUserByEmail(email);
+        if (existingUser) {
+          return res.status(400).json({
+            error: 'Email already registered. Please sign in instead.'
+          });
+        }
+        
+        // Generate and send OTP
+        const OTPService = require('./services/OTPService');
+        const otp = await OTPService.generateAndStoreOTP(email, 'signup');
+        
+        // Send OTP email
+        const EmailService = require('./services/EmailService');
+        await EmailService.sendSignupOTPEmail(email, otp);
+        
+        res.json({
+          success: true,
+          message: 'OTP sent successfully to your email address'
+        });
+        
+      } catch (error) {
+        console.error('Send signup OTP error:', error);
+        res.status(500).json({ error: 'Failed to send OTP' });
+      }
+    });
+
+    // Verify OTP and create account for Get Started
+    app.post('/api/verify-signup-otp', async (req, res) => {
+      try {
+        const { email, otp, name, password } = req.body;
+        
+        if (!email || !otp || !name || !password) {
+          return res.status(400).json({ 
+            error: 'Email, OTP, name, and password are required' 
+          });
+        }
+        
+        // Verify OTP
+        const OTPService = require('./services/OTPService');
+        const isValidOTP = await OTPService.verifyOTP(email, otp, 'signup');
+        
+        if (!isValidOTP) {
+          return res.status(400).json({ error: 'Invalid or expired OTP' });
+        }
+        
+        // Check if user already exists (double-check)
+        const existingUser = await DatabaseService.findUserByEmail(email);
+        if (existingUser) {
+          return res.status(400).json({
+            error: 'Email already registered'
+          });
+        }
+        
+        // Create new user
+        const newUser = await DatabaseService.createUser({
+          name,
+          email,
+          password,
+          emailVerified: true, // Since we verified via OTP
+          registrationSource: 'get-started-page'
+        });
+        
+        // Generate auth token
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign(
+          { userId: newUser._id, email: newUser.email },
+          process.env.JWT_SECRET || 'your-secret-key',
+          { expiresIn: '7d' }
+        );
+        
+        res.json({
+          success: true,
+          message: 'Account created successfully',
+          token,
+          user: {
+            id: newUser._id,
+            name: newUser.name,
+            email: newUser.email,
+            apiKey: newUser.apiKey
+          }
+        });
+        
+      } catch (error) {
+        console.error('Verify signup OTP error:', error);
+        res.status(500).json({ error: 'Account creation failed' });
+      }
+    });
+
+    // Resend OTP for Get Started signup
+    app.post('/api/resend-signup-otp', async (req, res) => {
+      try {
+        const { email } = req.body;
+        
+        if (!email) {
+          return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        // Generate and send new OTP
+        const OTPService = require('./services/OTPService');
+        const otp = await OTPService.generateAndStoreOTP(email, 'signup');
+        
+        // Send OTP email
+        const EmailService = require('./services/EmailService');
+        await EmailService.sendSignupOTPEmail(email, otp);
+        
+        res.json({
+          success: true,
+          message: 'New OTP sent successfully'
+        });
+        
+      } catch (error) {
+        console.error('Resend signup OTP error:', error);
+        res.status(500).json({ error: 'Failed to resend OTP' });
+      }
+    });
+
+    // Save chatbot settings from Quick Setup
+    app.post('/api/chatbot/setup', validateApiKey, async (req, res) => {
+      try {
+        const userId = req.user._id;
+        const { name, goal, customization } = req.body;
+        
+        if (!name) {
+          return res.status(400).json({ error: 'Chatbot name is required' });
+        }
+        
+        // Update user's chatbot configuration
+        const updateData = {
+          'chatbotConfig.name': name,
+          'chatbotConfig.goal': goal || 'general',
+          'chatbotConfig.customization': customization || {},
+          'chatbotConfig.lastUpdated': new Date()
+        };
+        
+        // Set default widget configuration based on goal
+        const goalSettings = {
+          leads: {
+            welcomeMessage: `Hi! I'm ${name}. I can help you learn more about our services. What are you interested in?`,
+            systemPrompt: `You are ${name}, a lead generation assistant. Your goal is to understand visitor needs and capture their interest. Be helpful, ask qualifying questions, and guide conversations toward business opportunities.`,
+            primaryColor: '#10B981',
+            title: name
+          },
+          support: {
+            welcomeMessage: `Hello! I'm ${name}, your support assistant. How can I help you today?`,
+            systemPrompt: `You are ${name}, a customer support assistant. Help users with questions, troubleshoot issues, and provide helpful information. Be patient, thorough, and professional.`,
+            primaryColor: '#3B82F6',
+            title: `${name} - Support`
+          },
+          bookings: {
+            welcomeMessage: `Hi there! I'm ${name}. I can help you schedule an appointment or booking. What service are you interested in?`,
+            systemPrompt: `You are ${name}, a booking assistant. Help users understand available services, check availability, and guide them through the booking process. Be helpful and efficient.`,
+            primaryColor: '#F59E0B',
+            title: `${name} - Bookings`
+          },
+          faq: {
+            welcomeMessage: `Hello! I'm ${name}. I can answer frequently asked questions about our services. What would you like to know?`,
+            systemPrompt: `You are ${name}, an FAQ assistant. Provide clear, accurate answers to common questions. If you don't know something, suggest contacting support for more specific help.`,
+            primaryColor: '#8B5CF6',
+            title: `${name} - FAQ`
+          }
+        };
+        
+        const settings = goalSettings[goal] || goalSettings.general || {
+          welcomeMessage: `Hi! I'm ${name}. How can I help you today?`,
+          systemPrompt: `You are ${name}, a helpful AI assistant. Provide helpful, accurate information and assist users with their questions.`,
+          primaryColor: '#667eea',
+          title: name
+        };
+        
+        // Update widget configuration with goal-based settings
+        updateData['widgetConfig.title'] = settings.title;
+        updateData['widgetConfig.welcomeMessage'] = settings.welcomeMessage;
+        updateData['widgetConfig.systemPrompt'] = settings.systemPrompt;
+        updateData['widgetConfig.primaryColor'] = settings.primaryColor;
+        
+        await DatabaseService.updateUser(userId, updateData);
+        
+        res.json({
+          success: true,
+          message: 'Chatbot setup saved successfully',
+          settings: {
+            name,
+            goal,
+            ...settings
+          }
+        });
+        
+      } catch (error) {
+        console.error('Chatbot setup error:', error);
+        res.status(500).json({ error: 'Failed to save chatbot setup' });
+      }
+    });
+
+    // Get chatbot settings
+    app.get('/api/chatbot/setup', validateApiKey, async (req, res) => {
+      try {
+        const userId = req.user._id;
+        const user = await DatabaseService.findUserById(userId);
+        
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const chatbotConfig = user.chatbotConfig || {};
+        const widgetConfig = user.widgetConfig || {};
+        
+        res.json({
+          success: true,
+          chatbot: {
+            name: chatbotConfig.name || 'AI Assistant',
+            goal: chatbotConfig.goal || 'general',
+            customization: chatbotConfig.customization || {},
+            lastUpdated: chatbotConfig.lastUpdated
+          },
+          widget: {
+            title: widgetConfig.title || 'AI Assistant',
+            welcomeMessage: widgetConfig.welcomeMessage || 'Hello! How can I help you today?',
+            primaryColor: widgetConfig.primaryColor || '#667eea',
+            systemPrompt: widgetConfig.systemPrompt
+          },
+          user: {
+            name: user.name,
+            email: user.email,
+            apiKey: user.apiKey
+          }
+        });
+        
+      } catch (error) {
+        console.error('Get chatbot setup error:', error);
+        res.status(500).json({ error: 'Failed to get chatbot setup' });
+      }
+    });
+
+    // Load sample data for testing
+    app.post('/api/chatbot/load-sample-data', validateApiKey, async (req, res) => {
+      try {
+        const userId = req.user._id;
+        const { dataType } = req.body; // 'restaurant', 'tech', 'healthcare', etc.
+        
+        // Sample data templates
+        const sampleData = {
+          restaurant: {
+            name: 'Bella Vista Restaurant Assistant',
+            goal: 'bookings',
+            systemPrompt: 'You are the Bella Vista Restaurant booking assistant. Help customers make reservations, learn about our menu, and answer questions about our Italian cuisine. Our restaurant is open Tuesday-Sunday, 5pm-10pm.',
+            welcomeMessage: 'Welcome to Bella Vista! I can help you make a reservation or answer questions about our authentic Italian menu. How can I assist you?',
+            sampleKnowledge: {
+              hours: 'Tuesday-Sunday 5pm-10pm, closed Mondays',
+              cuisine: 'Authentic Italian cuisine with fresh pasta made daily',
+              specialties: 'Signature dishes include Osso Buco, Homemade Ravioli, and Tiramisu',
+              reservations: 'Reservations recommended, especially weekends',
+              location: 'Located in the historic downtown district with street parking available'
+            }
+          },
+          tech: {
+            name: 'TechFlow Support Bot',
+            goal: 'support',
+            systemPrompt: 'You are TechFlow\'s technical support assistant. Help users with software issues, account problems, and product questions. Be technical but approachable.',
+            welcomeMessage: 'Hi! I\'m here to help with any TechFlow questions or issues. What can I assist you with today?',
+            sampleKnowledge: {
+              products: 'Cloud management platform, API tools, and developer dashboard',
+              support: '24/7 support available, with priority support for Pro customers',
+              documentation: 'Comprehensive API docs and tutorials available',
+              billing: 'Flexible pricing plans from Starter to Enterprise',
+              status: 'System status page available at status.techflow.com'
+            }
+          },
+          healthcare: {
+            name: 'MedCare Appointment Assistant',
+            goal: 'bookings',
+            systemPrompt: 'You are MedCare\'s appointment scheduling assistant. Help patients book appointments, understand services, and provide general practice information. Never provide medical advice.',
+            welcomeMessage: 'Hello! I can help you schedule an appointment or learn about our medical services. How may I assist you?',
+            sampleKnowledge: {
+              services: 'General medicine, cardiology, dermatology, and pediatrics',
+              hours: 'Monday-Friday 8am-6pm, Saturday 9am-2pm',
+              appointments: 'Online scheduling available, same-day appointments often available',
+              insurance: 'We accept most major insurance plans',
+              location: 'Two convenient locations: Downtown and Westside clinics'
+            }
+          }
+        };
+        
+        const selectedData = sampleData[dataType] || sampleData.tech;
+        
+        // Update user configuration with sample data
+        const updateData = {
+          'chatbotConfig.name': selectedData.name,
+          'chatbotConfig.goal': selectedData.goal,
+          'chatbotConfig.sampleData': selectedData.sampleKnowledge,
+          'chatbotConfig.lastUpdated': new Date(),
+          'widgetConfig.title': selectedData.name,
+          'widgetConfig.welcomeMessage': selectedData.welcomeMessage,
+          'widgetConfig.systemPrompt': selectedData.systemPrompt,
+          'widgetConfig.primaryColor': selectedData.goal === 'bookings' ? '#F59E0B' : 
+                                       selectedData.goal === 'support' ? '#3B82F6' : '#667eea'
+        };
+        
+        await DatabaseService.updateUser(userId, updateData);
+        
+        res.json({
+          success: true,
+          message: `Sample ${dataType} data loaded successfully`,
+          data: selectedData
+        });
+        
+      } catch (error) {
+        console.error('Load sample data error:', error);
+        res.status(500).json({ error: 'Failed to load sample data' });
+      }
+    });
+
+    // Send widget code to developer/email
+    app.post('/api/chatbot/send-to-developer', validateApiKey, async (req, res) => {
+      try {
+        const { email, platform, message, widgetCode } = req.body;
+        const user = req.user;
+        
+        if (!email) {
+          return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        // Prepare email content
+        const emailContent = {
+          to: email,
+          subject: `Widget Integration Code from ${user.name}`,
+          html: `
+            <h2>Chatbot Widget Integration</h2>
+            <p>Hi there!</p>
+            <p>${user.name} has sent you the integration code for their AI chatbot widget.</p>
+            
+            ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
+            
+            <h3>Integration Code (${platform}):</h3>
+            <pre style="background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>${widgetCode}</code></pre>
+            
+            <p><strong>Platform:</strong> ${platform}</p>
+            <p><strong>API Key:</strong> ${user.apiKey}</p>
+            
+            <hr>
+            <p><small>Sent from Mouna AI Chatbot Platform</small></p>
+          `
+        };
+        
+        // Send email using EmailService
+        const EmailService = require('./services/EmailService');
+        await EmailService.sendEmail(emailContent);
+        
+        res.json({
+          success: true,
+          message: 'Widget code sent successfully to developer'
+        });
+        
+      } catch (error) {
+        console.error('Send to developer error:', error);
+        res.status(500).json({ error: 'Failed to send widget code' });
+      }
+    });
+
     // Widget customization -- Save appearance
     app.post('/api/widget/customize', validateApiKey, async (req, res) => {
       try {
