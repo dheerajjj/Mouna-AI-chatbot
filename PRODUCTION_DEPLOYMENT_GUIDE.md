@@ -69,8 +69,8 @@ STRIPE_PUBLISHABLE_KEY=pk_live_your-stripe-publishable-key
 STRIPE_SECRET_KEY=sk_live_your-stripe-secret-key
 STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
 
-RAZORPAY_KEY_ID=rzp_live_your-razorpay-key
-RAZORPAY_SECRET=your-razorpay-secret
+RAZORPAY_KEY_ID=rzp_live_R5KFWsStzaOKbe
+RAZORPAY_KEY_SECRET=52OA5WLCrKnsfftmFSKhY6Kh
 
 # === RATE LIMITING ===
 RATE_LIMIT_WINDOW_MS=900000
