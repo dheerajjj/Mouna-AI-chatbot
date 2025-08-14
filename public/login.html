@@ -83,20 +83,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
         .logo img {
-            height: 64px;
+            height: 72px;
             width: auto;
             max-width: 100%;
             object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
         }
         .logo-text {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #2d3748;
-            margin-top: 0.5rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             text-align: center;
+            margin-top: 0.25rem;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
@@ -106,7 +112,7 @@
             <div class="logo">
                 <img src="/images/logo.png" alt="Logo" onerror="this.style.display='none'">
             </div>
-            <div class="logo-text">Mouna</div>
+            <div class="logo-text">Mouna AI</div>
         </div>
         <h2>Sign In</h2>
         <form id="login-form">
