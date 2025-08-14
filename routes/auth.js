@@ -151,7 +151,7 @@ router.post('/signup', [
         phone
       },
       nextStep: {
-        endpoint: '/auth/verify-email-and-create-account',
+        endpoint: '/api/verify-email-and-create-account',
         method: 'POST',
         requiredFields: ['email', 'otp', 'userData']
       }
@@ -314,7 +314,7 @@ router.post('/login', [
         step: 'login_verification',
         instructions: 'Please verify your email with the OTP sent to your inbox.',
         nextStep: {
-          endpoint: '/auth/verify-login-otp',
+          endpoint: '/api/verify-login-otp',
           method: 'POST',
           requiredFields: ['email', 'otp']
         }
