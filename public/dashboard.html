@@ -1013,14 +1013,43 @@
         async function regenerateApiKey() {
             if (confirm('Are you sure? This will invalidate your current API key and you will need to update your website integration.')) {
                 try {
-                    const response = await fetch('/api/user/regenerate-key', { method: 'POST' });
+                    const token = localStorage.getItem('authToken');
+                    if (!token) {
+                        alert('Authentication required. Please log in again.');
+                        window.location.href = '/get-started';
+                        return;
+                    }
+                    
+                    const response = await fetch('/api/regenerate-api-key', { 
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
                     const data = await response.json();
-                    if (data.success) {
+                    
+                    if (response.ok && data.apiKey) {
+                        // Update the API key display
                         document.getElementById('api-key').textContent = data.apiKey;
-                        alert('API key regenerated successfully!');
+                        
+                        // Update the integration code with the new API key
+                        const integrationCode = document.getElementById('integration-code');
+                        const currentCode = integrationCode.innerHTML;
+                        const oldApiKeyMatch = currentCode.match(/data-api-key="([^"]+)"/);
+                        if (oldApiKeyMatch) {
+                            const newCode = currentCode.replace(oldApiKeyMatch[1], data.apiKey);
+                            integrationCode.innerHTML = newCode;
+                        }
+                        
+                        alert('API key regenerated successfully!\n\nPlease update your website integration with the new API key.');
+                    } else {
+                        throw new Error(data.error || 'Failed to regenerate API key');
                     }
                 } catch (error) {
-                    alert('Error regenerating API key. Please try again.');
+                    console.error('Error regenerating API key:', error);
+                    alert('Error regenerating API key: ' + error.message);
                 }
             }
         }
