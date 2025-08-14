@@ -679,6 +679,55 @@ router.post('/verify-email-and-create-account', [
   }
 });
 
+// Resend OTP for signup verification (without authentication)
+router.post('/resend-signup-otp', [
+  body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid email address', details: errors.array() });
+    }
+
+    const { email } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await DatabaseService.findUserByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists with this email. Please login instead.' });
+    }
+
+    // Resend OTP for signup verification
+    try {
+      const otp = await OTPService.generateAndStoreOTP(email, 'email');
+      
+      // Send OTP via email
+      EmailService.sendOTPEmail(email, 'User', otp).catch(error => {
+        console.error('Failed to send OTP email:', error);
+      });
+      
+      console.log(`🔐 OTP resent for signup verification: ${email}`);
+      
+      res.json({
+        success: true,
+        message: 'Verification code sent successfully. Please check your email.',
+        expiresIn: 600 // 10 minutes
+      });
+      
+    } catch (error) {
+      console.error('Failed to resend OTP:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to send verification code' 
+      });
+    }
+
+  } catch (error) {
+    console.error('Resend signup OTP error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Resend welcome email
 router.post('/resend-welcome-email', authenticateToken, async (req, res) => {
   try {
