@@ -107,7 +107,12 @@ router.post('/signup', [
     // Check if user already exists
     const existingUser = await DatabaseService.findUserByEmail(email);
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists with this email' });
+      return res.status(400).json({ 
+        error: 'Email already registered. Please sign in instead.', 
+        userExists: true,
+        redirectTo: '/login',
+        message: 'This email is already associated with an account. Please use the sign-in option to access your account.'
+      });
     }
 
     // DON'T create user yet - first require OTP verification

@@ -100,6 +100,33 @@
             font-size: 1rem;
         }
 
+        .auth-mode-switch {
+            text-align: center;
+            margin: 20px 0;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .auth-mode-switch p {
+            margin: 0 0 8px 0;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .auth-mode-link {
+            color: #0d7b8a;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .auth-mode-link:hover {
+            color: #4a0e6b;
+            text-decoration: underline;
+        }
+
         .auth-tabs {
             display: flex;
             background: #f3f4f6;
@@ -638,6 +665,12 @@
 
             <!-- Error Messages -->
             <div class="error-message" id="error-message"></div>
+            
+            <!-- Sign-in option for existing users -->
+            <div class="auth-mode-switch">
+                <p>Already have an account?</p>
+                <a href="/login" class="auth-mode-link">Sign in to your account</a>
+            </div>
         </div>
     </div>
 
@@ -911,24 +944,34 @@
 
             try {
                 // Call real API to send signup OTP
-                const response = await fetch('/api/send-signup-otp', {
+                const response = await fetch('/auth/signup', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        email: email
+                        name: 'TempUser',
+                        email: email,
+                        password: 'tempPass123',
+                        company: '',
+                        website: ''
                     })
                 });
 
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.success || data.requiresVerification) {
                     // Successfully sent OTP
                     showStep('otp-verification');
                     startResendCooldown();
                     otpInputs[0].focus();
                     showSuccess('Verification code sent to your email');
+                } else if (data.userExists) {
+                    // User already exists - redirect to login
+                    showError(data.message + ' Redirecting to sign-in page...');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 3000);
                 } else {
                     showError(data.error || 'Failed to send verification code');
                 }
@@ -978,7 +1021,7 @@
             resendOtpBtn.disabled = true;
 
             try {
-                const response = await fetch('/api/resend-signup-otp', {
+                const response = await fetch('/auth/resend-signup-otp', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1018,8 +1061,8 @@
             createBtn.disabled = true;
 
             try {
-                // Call the verify-signup-otp endpoint to create the account
-                const response = await fetch('/api/verify-signup-otp', {
+                // Call the verify-email-and-create-account endpoint to create the account
+                const response = await fetch('/auth/verify-email-and-create-account', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1027,8 +1070,13 @@
                     body: JSON.stringify({
                         email: currentEmail,
                         otp: window.tempOTP,
-                        name: formData.name,
-                        password: formData.password
+                        userData: {
+                            name: formData.name,
+                            password: formData.password,
+                            company: formData.company,
+                            website: '',
+                            phone: ''
+                        }
                     })
                 });
 
