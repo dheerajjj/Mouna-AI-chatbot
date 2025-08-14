@@ -48,22 +48,15 @@ router.get('/google/callback', async (req, res, next) => {
             // Successful authentication
             console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
             
-            // Set token in cookie for security
-            res.cookie('authToken', token, {
-                httpOnly: false, // Allow JS access for now
-                secure: process.env.NODE_ENV === 'production',
-                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
-            
             // Check if this is a new user (first-time signup)
             if (user.isNew) {
                 console.log('🆕 Redirecting new user to quick-setup');
-                // New user from Get Started page → go to Quick Setup
-                res.redirect(`/quick-setup?provider=google&new=true`);
+                // New user from Get Started page → go to Quick Setup with token
+                res.redirect(`/quick-setup?token=${encodeURIComponent(token)}&provider=google&new=true`);
             } else {
                 console.log('👤 Redirecting existing user to dashboard');
-                // Existing user → go to dashboard
-                res.redirect(`/dashboard?provider=google`);
+                // Existing user → go to dashboard with token
+                res.redirect(`/dashboard?token=${encodeURIComponent(token)}&provider=google`);
             }
         } catch (error) {
             console.error('❌ Google OAuth callback error:', error);
