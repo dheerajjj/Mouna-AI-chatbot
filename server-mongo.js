@@ -163,7 +163,7 @@ async function validateApiKey(req, res, next) {
       req.user = {
         _id: new mongoose.Types.ObjectId(), // Generate a valid ObjectId
         name: 'Test User',
-        email: 'test@example.com',
+        email: 'test@mouna-ai.com',
         subscription: {
           plan: 'professional',
           status: 'active'
@@ -1337,7 +1337,7 @@ app.get('/email-validation-test', (req, res) => {
     // OTP Test endpoint - generates and displays OTP for testing
     app.get('/test-otp/:email?', async (req, res) => {
       try {
-        const email = req.params.email || 'test@example.com';
+        const email = req.params.email || 'info@mouna-ai.com';
         const OTPService = require('./services/OTPService');
         
         // Generate OTP
@@ -1608,6 +1608,16 @@ app.get('/email-validation-test', (req, res) => {
     // Terms of Service page
     app.get('/terms', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+    });
+
+    // Contact Us page
+    app.get('/contact', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'contact.html'));
+    });
+
+    // Refund and Cancellation Policy page
+    app.get('/refund-policy', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'refund-policy.html'));
     });
 
     // Error handling middleware

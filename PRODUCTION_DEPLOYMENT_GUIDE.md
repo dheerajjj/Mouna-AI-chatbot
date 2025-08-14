@@ -50,9 +50,9 @@ API_BASE_URL=https://your-domain.com
 
 # === EMAIL SERVICE ===
 EMAIL_SERVICE=gmail
-EMAIL_USER=your-email@gmail.com
+EMAIL_USER=info@mouna-ai.com
 EMAIL_PASS=your-app-specific-password
-EMAIL_FROM=noreply@your-domain.com
+EMAIL_FROM=info@mouna-ai.com
 
 # === OAUTH CREDENTIALS (Optional) ===
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com

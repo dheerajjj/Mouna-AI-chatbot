@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refund & Cancellation Policy - Mouna AI Chatbot Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8fafc;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 4rem 0;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .policy-content {
+            background: white;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin: 3rem 0;
+        }
+
+        .last-updated {
+            background: #eff6ff;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: #1e40af;
+        }
+
+        h2 {
+            color: #1e293b;
+            margin: 2rem 0 1rem 0;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            color: #374151;
+            margin: 1.5rem 0 0.75rem 0;
+            font-size: 1.2rem;
+        }
+
+        p, li {
+            color: #4b5563;
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .policy-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .highlight {
+            background: #fef3c7;
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 4px solid #f59e0b;
+            margin: 1rem 0;
+        }
+
+        .contact-info {
+            background: #f0fdf4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
+            margin: 2rem 0;
+        }
+
+        .contact-info h3 {
+            color: #065f46;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-info p {
+            color: #047857;
+            margin-bottom: 0.5rem;
+        }
+
+        .back-home {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .back-home a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-home a:hover {
+            text-decoration: underline;
+        }
+
+        .footer {
+            background: #1e293b;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+
+        .footer p {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .policy-content {
+                padding: 2rem;
+                margin: 2rem 0;
+            }
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .refund-timeline {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .refund-timeline h4 {
+            color: #dc2626;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .timeline-dot {
+            width: 12px;
+            height: 12px;
+            background: #dc2626;
+            border-radius: 50%;
+            margin-right: 1rem;
+            margin-top: 0.25rem;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Refund & Cancellation Policy</h1>
+            <p>Our transparent policies for subscription cancellations and refunds</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="policy-content">
+            <div class="last-updated">
+                <strong>Last Updated:</strong> January 14, 2025
+            </div>
+
+            <div class="policy-section">
+                <h2>1. Overview</h2>
+                <p>At Mouna AI Technologies, we strive for customer satisfaction. This Refund & Cancellation Policy explains the terms and conditions for subscription cancellations and refund requests for our AI Chatbot Widget service.</p>
+                
+                <div class="highlight">
+                    <strong>Important:</strong> By subscribing to our service, you agree to the terms outlined in this policy. Please read carefully before making any payments.
+                </div>
+            </div>
+
+            <div class="policy-section">
+                <h2>2. Subscription Plans & Billing</h2>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Plan</th>
+                                <th>Billing Cycle</th>
+                                <th>Cancellation Notice</th>
+                                <th>Refund Eligibility</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Free Plan</td>
+                                <td>N/A</td>
+                                <td>Immediate</td>
+                                <td>N/A</td>
+                            </tr>
+                            <tr>
+                                <td>Basic Plan</td>
+                                <td>Monthly (₹499)</td>
+                                <td>Before next billing cycle</td>
+                                <td>7-day full refund</td>
+                            </tr>
+                            <tr>
+                                <td>Pro Plan</td>
+                                <td>Monthly (₹1,499)</td>
+                                <td>Before next billing cycle</td>
+                                <td>7-day full refund</td>
+                            </tr>
+                            <tr>
+                                <td>Enterprise Plan</td>
+                                <td>Monthly (₹4,999)</td>
+                                <td>30 days notice</td>
+                                <td>Custom terms</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="policy-section">
+                <h2>3. Cancellation Policy</h2>
+                
+                <h3>3.1 How to Cancel</h3>
+                <p>You can cancel your subscription at any time through:</p>
+                <ul>
+                    <li>Your account dashboard under "Subscription Settings"</li>
+                    <li>Contacting our support team at <strong>info@mouna-ai.com</strong></li>
+                    <li>Calling our support line at <strong>+91 9876543210</strong></li>
+                </ul>
+
+                <h3>3.2 Cancellation Effective Date</h3>
+                <p>When you cancel your subscription:</p>
+                <ul>
+                    <li><strong>Basic & Pro Plans:</strong> Cancellation takes effect at the end of your current billing period</li>
+                    <li><strong>Enterprise Plans:</strong> Requires 30-day notice period</li>
+                    <li><strong>Free Plans:</strong> Takes effect immediately</li>
+                </ul>
+
+                <h3>3.3 Data Retention After Cancellation</h3>
+                <p>After cancellation:</p>
+                <ul>
+                    <li>Your data will be retained for 30 days for potential reactivation</li>
+                    <li>Chat history and analytics data will be available for download</li>
+                    <li>After 30 days, all data will be permanently deleted</li>
+                </ul>
+            </div>
+
+            <div class="policy-section">
+                <h2>4. Refund Policy</h2>
+
+                <h3>4.1 Eligible Refunds</h3>
+                <div class="refund-timeline">
+                    <h4>7-Day Money-Back Guarantee</h4>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div>
+                            <strong>Days 1-7:</strong> Full refund available for any reason
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div>
+                            <strong>Days 8-30:</strong> Refund available for service outages or technical issues
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div>
+                            <strong>After 30 days:</strong> No refunds available except for billing errors
+                        </div>
+                    </div>
+                </div>
+
+                <h3>4.2 Refund Conditions</h3>
+                <p>Refunds are processed under the following conditions:</p>
+                <ul>
+                    <li>Request submitted within eligible timeframe</li>
+                    <li>Original payment method available for credit</li>
+                    <li>Account in good standing (no violations of Terms of Service)</li>
+                    <li>Service usage within reasonable limits</li>
+                </ul>
+
+                <h3>4.3 Non-Refundable Items</h3>
+                <p>The following are not eligible for refunds:</p>
+                <ul>
+                    <li>Usage fees for consumed API calls beyond plan limits</li>
+                    <li>Third-party integration costs</li>
+                    <li>Custom development work</li>
+                    <li>Training or consulting services</li>
+                    <li>Subscription fees after 30 days</li>
+                </ul>
+            </div>
+
+            <div class="policy-section">
+                <h2>5. Refund Process</h2>
+                
+                <h3>5.1 How to Request a Refund</h3>
+                <ol>
+                    <li>Email us at <strong>info@mouna-ai.com</strong> with subject "Refund Request"</li>
+                    <li>Include your account email, transaction ID, and reason for refund</li>
+                    <li>Our team will review your request within 48 hours</li>
+                    <li>Approved refunds are processed within 5-7 business days</li>
+                </ol>
+
+                <h3>5.2 Refund Processing Time</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Payment Method</th>
+                                <th>Processing Time</th>
+                                <th>Additional Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Credit/Debit Card</td>
+                                <td>3-7 business days</td>
+                                <td>Appears as credit on statement</td>
+                            </tr>
+                            <tr>
+                                <td>UPI</td>
+                                <td>1-3 business days</td>
+                                <td>Instant for most banks</td>
+                            </tr>
+                            <tr>
+                                <td>Net Banking</td>
+                                <td>3-5 business days</td>
+                                <td>Bank-dependent processing</td>
+                            </tr>
+                            <tr>
+                                <td>Digital Wallets</td>
+                                <td>1-2 business days</td>
+                                <td>Usually instant</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="policy-section">
+                <h2>6. Special Circumstances</h2>
+                
+                <h3>6.1 Service Outages</h3>
+                <p>If our service experiences significant downtime (>24 hours), we may offer:</p>
+                <ul>
+                    <li>Service credit for affected period</li>
+                    <li>Extended subscription at no charge</li>
+                    <li>Full refund if outage exceeds 72 hours</li>
+                </ul>
+
+                <h3>6.2 Billing Errors</h3>
+                <p>Billing errors are corrected immediately with full refund regardless of time period.</p>
+
+                <h3>6.3 Account Suspension</h3>
+                <p>Accounts suspended for Terms of Service violations are not eligible for refunds.</p>
+            </div>
+
+            <div class="policy-section">
+                <h2>7. Dispute Resolution</h2>
+                <p>If you're unsatisfied with our refund decision:</p>
+                <ol>
+                    <li>Contact our customer service manager at <strong>info@mouna-ai.com</strong></li>
+                    <li>Provide detailed explanation and supporting documentation</li>
+                    <li>We'll review and respond within 5 business days</li>
+                    <li>Final decisions may be appealed through your payment provider</li>
+                </ol>
+            </div>
+
+            <div class="policy-section">
+                <h2>8. Policy Changes</h2>
+                <p>This policy may be updated periodically. Changes will be:</p>
+                <ul>
+                    <li>Posted on this page with updated date</li>
+                    <li>Notified to active subscribers via email</li>
+                    <li>Effective 30 days after posting</li>
+                    <li>Applied to new subscriptions immediately</li>
+                </ul>
+            </div>
+
+            <div class="contact-info">
+                <h3>Contact Information</h3>
+                <p><strong>Email:</strong> info@mouna-ai.com</p>
+                <p><strong>Phone:</strong> +91 9876543210</p>
+                <p><strong>Business Hours:</strong> Monday-Friday, 9:00 AM - 6:00 PM IST</p>
+                <p><strong>Address:</strong> Mouna AI Technologies, 123 Innovation Hub, Bangalore, Karnataka 560001, India</p>
+            </div>
+
+        </div>
+
+        <div class="back-home">
+            <a href="/">← Back to Home</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="container">
+            <p>&copy; 2025 Mouna AI Technologies. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

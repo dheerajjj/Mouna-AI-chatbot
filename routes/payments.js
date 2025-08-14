@@ -1,11 +1,12 @@
 const express = require('express');
+const crypto = require('crypto');
 const { User, Subscription } = require('../mockDB');
-const { PRICING_PLANS, ANNUAL_PRICING } = require('../config/pricing');
+const { PRICING_PLANS } = require('../config/pricing');
 const { authenticateToken } = require('./auth');
 const DatabaseService = require('../services/DatabaseService');
 const router = express.Router();
 
-// Initialize Razorpay (optional)
+// Initialize Razorpay
 const Razorpay = require('razorpay');
 let razorpay = null;
 
