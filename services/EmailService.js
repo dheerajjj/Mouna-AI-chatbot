@@ -199,6 +199,90 @@ class EmailService {
       throw error;
     }
   }
+
+  async sendLoginOTPEmail(userEmail, userName, otp) {
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@mounaai.com',
+      to: userEmail,
+      subject: '🔐 Login Verification Code - Mouna AI',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .otp-code { background: white; border: 2px solid #e74c3c; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0; }
+            .otp-number { font-size: 32px; font-weight: bold; color: #e74c3c; letter-spacing: 8px; }
+            .security-notice { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Login Verification</h1>
+              <p>Two-Factor Authentication</p>
+            </div>
+            <div class="content">
+              <h2>Hello ${userName}!</h2>
+              <p>Someone is trying to log into your Mouna AI account. Please use the following verification code to complete your login:</p>
+              
+              <div class="otp-code">
+                <div class="otp-number">${otp}</div>
+                <p style="margin: 10px 0 0 0; color: #666;">This code expires in 10 minutes</p>
+              </div>
+
+              <div class="security-notice">
+                <p><strong>⚠️ Security Notice:</strong></p>
+                <ul>
+                  <li>Never share this code with anyone</li>
+                  <li>Our team will never ask for your verification code</li>
+                  <li>If you didn't try to log in, please secure your account immediately</li>
+                </ul>
+              </div>
+              
+              <p>If you didn't attempt to log in, please ignore this email and consider changing your password.</p>
+            </div>
+            <div class="footer">
+              <p>© 2025 Mouna AI Chatbot Platform. All rights reserved.</p>
+              <p>This login attempt was from IP: [IP will be logged]</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Login Verification - Mouna AI
+        
+        Hello ${userName}!
+        
+        Someone is trying to log into your account.
+        
+        Your verification code: ${otp}
+        
+        This code expires in 10 minutes.
+        
+        Security Notice:
+        - Never share this code with anyone
+        - Our team will never ask for your verification code
+        - If you didn't try to log in, please secure your account
+        
+        © 2025 Mouna AI Chatbot Platform
+      `
+    };
+
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Login OTP email sent to:', userEmail);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to send login OTP email:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new EmailService();

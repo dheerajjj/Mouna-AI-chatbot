@@ -230,7 +230,7 @@ router.post('/register', [
   }
 });
 
-// Login
+// Login - Step 1: Verify credentials and send OTP
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 1 })
@@ -255,28 +255,41 @@ router.post('/login', [
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Update last login
-    await DatabaseService.updateUser(user._id, { lastLoginAt: new Date() });
+    console.log(`🔐 Password verified for login: ${email}`);
 
-    // Generate secure JWT token
-    const token = generateSecureToken({ userId: user._id, email: user.email });
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      token,
-      redirectTo: '/dashboard',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        company: user.company,
-        website: user.website,
-        subscription: user.subscription,
-        usage: user.usage,
-        apiKey: user.apiKey
-      }
-    });
+    // Generate and send OTP for login verification (2FA)
+    try {
+      const otp = await OTPService.generateAndStoreOTP(email, 'login');
+      
+      // Send OTP via email
+      EmailService.sendLoginOTPEmail(email, user.name, otp).catch(error => {
+        console.error('Failed to send login OTP email:', error);
+      });
+      
+      console.log(`🔐 Login OTP sent to: ${email}`);
+      
+      // Return success but require OTP verification
+      res.json({
+        success: false, // Not fully successful until OTP verified
+        requiresOTP: true,
+        message: 'Login verification required. Please check your email for verification code.',
+        email: email,
+        step: 'login_verification',
+        instructions: 'Please verify your login with the OTP sent to your email.',
+        nextStep: {
+          endpoint: '/auth/verify-login-otp',
+          method: 'POST',
+          requiredFields: ['email', 'otp']
+        }
+      });
+      
+    } catch (error) {
+      console.error('Failed to send login OTP:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to send login verification code' 
+      });
+    }
 
   } catch (error) {
     console.error('Login error:', error);
@@ -724,6 +737,117 @@ router.post('/resend-signup-otp', [
 
   } catch (error) {
     console.error('Resend signup OTP error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Verify login OTP and complete login (Step 2 of 2FA login)
+router.post('/verify-login-otp', [
+  body('email').isEmail().normalizeEmail(),
+  body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+    }
+
+    const { email, otp } = req.body;
+
+    // Find user
+    const user = await DatabaseService.findUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid request' });
+    }
+
+    // Verify OTP
+    const verificationResult = await OTPService.verifyOTP(email, otp);
+    
+    if (!verificationResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: verificationResult.error || 'Invalid or expired OTP',
+        code: verificationResult.code,
+        attemptsRemaining: verificationResult.attemptsRemaining
+      });
+    }
+
+    console.log(`✅ Login OTP verified successfully for: ${email}`);
+
+    // Update last login
+    await DatabaseService.updateUser(user._id, { lastLoginAt: new Date() });
+
+    // Generate secure JWT token
+    const token = generateSecureToken({ userId: user._id, email: user.email });
+
+    res.json({
+      success: true,
+      message: 'Login successful - 2FA verified',
+      token,
+      redirectTo: '/dashboard',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        company: user.company,
+        website: user.website,
+        subscription: user.subscription,
+        usage: user.usage,
+        apiKey: user.apiKey
+      }
+    });
+
+  } catch (error) {
+    console.error('Login OTP verification error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Resend login OTP
+router.post('/resend-login-otp', [
+  body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid email address', details: errors.array() });
+    }
+
+    const { email } = req.body;
+    
+    // Find user
+    const user = await DatabaseService.findUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid request' });
+    }
+
+    // Resend OTP for login verification
+    try {
+      const otp = await OTPService.generateAndStoreOTP(email, 'login');
+      
+      // Send OTP via email
+      EmailService.sendLoginOTPEmail(email, user.name, otp).catch(error => {
+        console.error('Failed to send login OTP email:', error);
+      });
+      
+      console.log(`🔐 Login OTP resent to: ${email}`);
+      
+      res.json({
+        success: true,
+        message: 'Login verification code sent successfully. Please check your email.',
+        expiresIn: 600 // 10 minutes
+      });
+      
+    } catch (error) {
+      console.error('Failed to resend login OTP:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to send login verification code' 
+      });
+    }
+
+  } catch (error) {
+    console.error('Resend login OTP error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

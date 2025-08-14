@@ -35,7 +35,8 @@
             font-weight: 500;
         }
         input[type="email"],
-        input[type="password"] {
+        input[type="password"],
+        input[type="text"] {
             width: 100%;
             padding: 0.8rem;
             margin-bottom: 1.5rem;
@@ -44,7 +45,8 @@
             transition: all 0.3s ease;
         }
         input[type="email"]:focus,
-        input[type="password"]:focus {
+        input[type="password"]:focus,
+        input[type="text"]:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -82,19 +84,43 @@
             <div id="error-message" style="display: none; color: #e53e3e; margin-bottom: 1rem; padding: 0.5rem; background: #fed7d7; border-radius: 4px;"></div>
             <div id="success-message" style="display: none; color: #38a169; margin-bottom: 1rem; padding: 0.5rem; background: #c6f6d5; border-radius: 4px;"></div>
             
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required>
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required>
-            <button class="btn" type="submit" id="submit-btn">Sign In</button>
+            <!-- Login credentials step -->
+            <div id="credentials-step">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                <button class="btn" type="submit" id="submit-btn">Sign In</button>
+            </div>
+            
+            <!-- OTP verification step -->
+            <div id="otp-step" style="display: none;">
+                <label for="otp">Enter the OTP sent to your email</label>
+                <input type="text" id="otp" name="otp" placeholder="Enter 6-digit OTP" maxlength="6" pattern="[0-9]{6}">
+                <button class="btn" type="button" id="verify-otp-btn">Verify OTP</button>
+                <button class="btn" type="button" id="resend-otp-btn" style="background: #718096; margin-top: 0.5rem;">Resend OTP</button>
+            </div>
         </form>
         <a href="/signup" class="signup-link">Don't have an account? Sign Up</a>
     </div>
 
     <script>
+        let userEmail = '';
+        
         document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+            await handleLogin();
+        });
+        
+        document.getElementById('verify-otp-btn').addEventListener('click', async function() {
+            await handleOTPVerification();
+        });
+        
+        document.getElementById('resend-otp-btn').addEventListener('click', async function() {
+            await handleResendOTP();
+        });
+        
+        async function handleLogin() {
             const submitBtn = document.getElementById('submit-btn');
             const errorMessage = document.getElementById('error-message');
             const successMessage = document.getElementById('success-message');
@@ -108,10 +134,11 @@
             submitBtn.disabled = true;
             
             try {
-                const formData = {
-                    email: document.getElementById('email').value,
-                    password: document.getElementById('password').value
-                };
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                userEmail = email;
+                
+                const formData = { email, password };
                 
                 const response = await fetch('/api/login', {
                     method: 'POST',
@@ -124,21 +151,25 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Store the token in localStorage
-                    localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    
-                    // Show success message
-                    successMessage.textContent = data.message;
-                    successMessage.style.display = 'block';
-                    
-                    // Redirect to dashboard after a short delay
-                    setTimeout(() => {
-                        window.location.href = data.redirectTo || '/dashboard';
-                    }, 1000);
+                    if (data.requiresOTP) {
+                        // Show OTP verification step
+                        successMessage.textContent = 'OTP sent to your email. Please check your inbox.';
+                        successMessage.style.display = 'block';
+                        document.getElementById('credentials-step').style.display = 'none';
+                        document.getElementById('otp-step').style.display = 'block';
+                        document.getElementById('otp').focus();
+                    } else {
+                        // Direct login success (shouldn't happen with new flow)
+                        localStorage.setItem('authToken', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        successMessage.textContent = data.message;
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = data.redirectTo || '/dashboard';
+                        }, 1000);
+                    }
                 } else {
-                    // Show error message
-                    errorMessage.textContent = data.error || 'Something went wrong. Please try again.';
+                    errorMessage.textContent = data.error || 'Invalid credentials. Please try again.';
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
@@ -146,11 +177,119 @@
                 errorMessage.textContent = 'Network error. Please try again.';
                 errorMessage.style.display = 'block';
             } finally {
-                // Reset button state
                 submitBtn.textContent = 'Sign In';
                 submitBtn.disabled = false;
             }
-        });
+        }
+        
+        async function handleOTPVerification() {
+            const verifyBtn = document.getElementById('verify-otp-btn');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            const otpInput = document.getElementById('otp');
+            
+            // Hide previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            const otp = otpInput.value.trim();
+            if (!otp || otp.length !== 6) {
+                errorMessage.textContent = 'Please enter a valid 6-digit OTP.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Show loading state
+            verifyBtn.textContent = 'Verifying...';
+            verifyBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/verify-login-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: userEmail,
+                        otp: otp
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store token and redirect
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    successMessage.textContent = 'Login successful! Redirecting...';
+                    successMessage.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    errorMessage.textContent = data.error || 'Invalid OTP. Please try again.';
+                    errorMessage.style.display = 'block';
+                    otpInput.value = '';
+                    otpInput.focus();
+                }
+            } catch (error) {
+                console.error('OTP verification error:', error);
+                errorMessage.textContent = 'Network error. Please try again.';
+                errorMessage.style.display = 'block';
+            } finally {
+                verifyBtn.textContent = 'Verify OTP';
+                verifyBtn.disabled = false;
+            }
+        }
+        
+        async function handleResendOTP() {
+            const resendBtn = document.getElementById('resend-otp-btn');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            
+            // Hide previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            // Show loading state
+            resendBtn.textContent = 'Resending...';
+            resendBtn.disabled = true;
+            
+            try {
+                // Re-submit login to trigger new OTP
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: userEmail,
+                        password: document.getElementById('password').value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.requiresOTP) {
+                    successMessage.textContent = 'New OTP sent to your email.';
+                    successMessage.style.display = 'block';
+                    document.getElementById('otp').value = '';
+                    document.getElementById('otp').focus();
+                } else {
+                    errorMessage.textContent = 'Failed to resend OTP. Please try again.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Resend OTP error:', error);
+                errorMessage.textContent = 'Network error. Please try again.';
+                errorMessage.style.display = 'block';
+            } finally {
+                resendBtn.textContent = 'Resend OTP';
+                resendBtn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
