@@ -149,7 +149,7 @@
                     phone: document.getElementById('phone').value
                 };
                 
-                const response = await fetch('/api/signup', {
+                const response = await fetch('/api/auth/signup', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -160,36 +160,51 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Check if OTP verification is required
-                    if (data.requiresOTP || data.redirectTo === '/verify-otp') {
-                        // Store email for OTP verification
-                        localStorage.setItem('registerEmail', formData.email);
-                        
-                        // Show success message
-                        successMessage.textContent = data.message || 'Registration successful! Please check your email for verification code.';
-                        successMessage.style.display = 'block';
-                        
-                        // Redirect to OTP verification page
-                        setTimeout(() => {
-                            window.location.href = `/verify-otp?email=${encodeURIComponent(formData.email)}`;
-                        }, 1500);
-                    } else {
-                        // Direct login - store token and redirect to dashboard
-                        localStorage.setItem('authToken', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        
-                        // Show success message
-                        successMessage.textContent = data.message;
-                        successMessage.style.display = 'block';
-                        
-                        // Redirect to dashboard after a short delay
-                        setTimeout(() => {
-                            window.location.href = data.redirectTo || '/dashboard';
-                        }, 1000);
-                    }
+                    // Direct registration successful (for backward compatibility)
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    // Show success message
+                    successMessage.textContent = data.message;
+                    successMessage.style.display = 'block';
+                    
+                    // Redirect to dashboard after a short delay
+                    setTimeout(() => {
+                        window.location.href = data.redirectTo || '/welcome-dashboard';
+                    }, 1000);
+                } else if (data.requiresVerification) {
+                    // New flow: Email verification required before account creation
+                    
+                    // Store registration data for later use
+                    localStorage.setItem('pendingRegistration', JSON.stringify({
+                        userData: formData,
+                        email: formData.email,
+                        timestamp: Date.now()
+                    }));
+                    
+                    // Show success message
+                    successMessage.textContent = data.message || 'Email verification required. Please check your email for verification code.';
+                    successMessage.style.display = 'block';
+                    
+                    // Redirect to OTP verification page
+                    setTimeout(() => {
+                        window.location.href = `/verify-otp?email=${encodeURIComponent(formData.email)}`;
+                    }, 1500);
                 } else {
                     // Show error message
-                    errorMessage.textContent = data.error || 'Something went wrong. Please try again.';
+                    let errorText = data.error || 'Something went wrong. Please try again.';
+                    
+                    // Handle detailed error messages
+                    if (data.details && Array.isArray(data.details)) {
+                        errorText = data.details.join(', ');
+                    }
+                    
+                    // Show suggestions if available
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        errorText += '. Suggestions: ' + data.suggestions.join(', ');
+                    }
+                    
+                    errorMessage.textContent = errorText;
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {

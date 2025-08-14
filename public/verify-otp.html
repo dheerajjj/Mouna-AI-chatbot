@@ -243,7 +243,19 @@
             verifyBtn.disabled = true;
             
             try {
-                const response = await fetch('/api/email/verify-otp', {
+                // Get pending registration data
+                const pendingRegistration = localStorage.getItem('pendingRegistration');
+                let userData = null;
+                
+                if (pendingRegistration) {
+                    userData = JSON.parse(pendingRegistration).userData;
+                }
+                
+                if (!userData) {
+                    throw new Error('Registration data not found. Please start over.');
+                }
+                
+                const response = await fetch('/api/auth/verify-email-and-create-account', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -251,25 +263,38 @@
                     body: JSON.stringify({
                         email: currentEmail,
                         otp: otp,
-                        type: 'email'
+                        userData: userData
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    successMessage.textContent = 'Email verified successfully! Redirecting...';
+                    successMessage.textContent = 'Email verified successfully! Account created. Redirecting...';
                     successMessage.style.display = 'block';
                     
-                    // Clear stored email
+                    // Store auth token
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    // Clear stored data
                     localStorage.removeItem('registerEmail');
+                    localStorage.removeItem('pendingRegistration');
                     
                     // Redirect to welcome dashboard
                     setTimeout(() => {
-                        window.location.href = '/welcome-dashboard';
+                        window.location.href = data.redirectTo || '/welcome-dashboard';
                     }, 1500);
                 } else {
-                    errorMessage.textContent = data.error || 'Invalid verification code. Please try again.';
+                    let errorText = data.error || 'Invalid verification code. Please try again.';
+                    
+                    if (data.code === 'ATTEMPTS_EXCEEDED') {
+                        errorText = 'Too many failed attempts. Please request a new code.';
+                    } else if (data.attemptsRemaining) {
+                        errorText += ` (${data.attemptsRemaining} attempts remaining)`;
+                    }
+                    
+                    errorMessage.textContent = errorText;
                     errorMessage.style.display = 'block';
                     
                     // Clear inputs
@@ -278,7 +303,7 @@
                 }
             } catch (error) {
                 console.error('Verification error:', error);
-                errorMessage.textContent = 'Network error. Please try again.';
+                errorMessage.textContent = error.message || 'Network error. Please try again.';
                 errorMessage.style.display = 'block';
             } finally {
                 // Reset button state
@@ -292,14 +317,13 @@
             e.preventDefault();
             
             try {
-                const response = await fetch('/api/email/send-otp', {
+                const response = await fetch('/api/auth/resend-signup-otp', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        email: currentEmail,
-                        type: 'email'
+                        email: currentEmail
                     })
                 });
                 
