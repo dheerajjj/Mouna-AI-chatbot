@@ -29,30 +29,48 @@ router.get('/google',
     })
 );
 
-router.get('/google/callback',
-    passport.authenticate('google', { failureRedirect: '/get-started?error=google_auth_failed' }),
-    async (req, res) => {
+router.get('/google/callback', async (req, res, next) => {
+    passport.authenticate('google', (err, user, info) => {
+        if (err) {
+            console.error('❌ Google OAuth passport error:', err);
+            return res.redirect('/auth/failure?error=passport_error');
+        }
+        
+        if (!user) {
+            console.error('❌ Google OAuth no user returned:', info);
+            return res.redirect('/auth/failure?error=no_user');
+        }
+        
         try {
             // Generate JWT token
-            const token = generateToken(req.user);
+            const token = generateToken(user);
             
             // Successful authentication
-            console.log('✅ Google OAuth successful for:', req.user.email);
+            console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
+            
+            // Set token in cookie for security
+            res.cookie('authToken', token, {
+                httpOnly: false, // Allow JS access for now
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
             
             // Check if this is a new user (first-time signup)
-            if (req.user.isNew) {
-                // New user from Get Started page -> go to Quick Setup
-                res.redirect(`/quick-setup?token=${token}&provider=google&name=${encodeURIComponent(req.user.name)}&new=true`);
+            if (user.isNew) {
+                console.log('🆕 Redirecting new user to quick-setup');
+                // New user from Get Started page → go to Quick Setup
+                res.redirect(`/quick-setup?provider=google&new=true`);
             } else {
-                // Existing user -> go to dashboard
-                res.redirect(`/dashboard?token=${token}&provider=google&name=${encodeURIComponent(req.user.name)}`);
+                console.log('👤 Redirecting existing user to dashboard');
+                // Existing user → go to dashboard
+                res.redirect(`/dashboard?provider=google`);
             }
         } catch (error) {
             console.error('❌ Google OAuth callback error:', error);
-            res.redirect('/get-started?error=auth_callback_failed');
+            res.redirect('/auth/failure?error=token_generation_failed');
         }
-    }
-);
+    })(req, res, next);
+});
 
 
 // OAuth success page

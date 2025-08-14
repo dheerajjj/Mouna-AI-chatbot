@@ -38,21 +38,33 @@ function initializeOAuth(DatabaseService) {
                 console.log('🔐 Google OAuth callback received:', {
                     id: profile.id,
                     email: profile.emails?.[0]?.value,
-                    name: profile.displayName
+                    name: profile.displayName,
+                    photos: profile.photos?.[0]?.value
                 });
 
+                const userEmail = profile.emails?.[0]?.value;
+                if (!userEmail) {
+                    console.error('❌ No email found in Google profile');
+                    return done(new Error('No email found in Google profile'), null);
+                }
+
                 // Check if user exists
-                const existingUser = await DatabaseService.findUserByEmail(profile.emails[0].value);
+                const existingUser = await DatabaseService.findUserByEmail(userEmail);
                 if (existingUser) {
-                    console.log('✅ Existing user found, logging in');
+                    console.log('✅ Existing user found, logging in:', userEmail);
+                    // Update last login
+                    existingUser.lastLoginAt = new Date();
+                    await DatabaseService.updateUser(existingUser._id, { lastLoginAt: new Date() });
                     existingUser.isNew = false; // Mark as existing user
                     return done(null, existingUser);
                 }
 
                 // Create new user from Google profile
+                console.log('🆕 Creating new Google user:', userEmail);
                 const newUser = await DatabaseService.createUser({
                     name: profile.displayName,
-                    email: profile.emails[0].value,
+                    email: userEmail,
+                    password: 'google-oauth-' + Math.random().toString(36), // Random password for Google users
                     provider: 'google',
                     providerId: profile.id,
                     avatar: profile.photos?.[0]?.value,
@@ -60,15 +72,19 @@ function initializeOAuth(DatabaseService) {
                     verificationStatus: {
                         email: true,
                         emailVerifiedAt: new Date()
-                    }
+                    },
+                    company: '', // Will be filled in quick setup
+                    website: '', // Will be filled in quick setup
+                    phone: '' // Will be filled in quick setup
                 });
 
-                console.log('🎉 New Google user created:', newUser.email);
+                console.log('🎉 New Google user created successfully:', newUser.email);
                 newUser.isNew = true; // Mark as new user
                 return done(null, newUser);
 
             } catch (error) {
-                console.error('❌ Google OAuth error:', error);
+                console.error('❌ Google OAuth strategy error:', error);
+                console.error('Error details:', error.message);
                 return done(error, null);
             }
         }));
