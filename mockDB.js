@@ -68,18 +68,8 @@ class MockUser {
 }
 
 // Mock data storage
-const users = [
-  new MockUser({
-    _id: 'test_user_1',
-    name: 'Test User',
-    email: 'test@example.com',
-    apiKey: 'test-api-key',
-    subscription: {
-      plan: 'professional',
-      status: 'active'
-    }
-  })
-];
+const users = [];
+// Removed pre-existing test user to avoid API key conflicts
 
 const chatSessions = [];
 
