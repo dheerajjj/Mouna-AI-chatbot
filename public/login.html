@@ -12,7 +12,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: #f7fafc;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
             margin: 0;
         }
         .login-container {
@@ -20,8 +20,8 @@
             max-width: 400px;
             background: white;
             padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
         }
         h2 {
             text-align: center;
@@ -54,7 +54,7 @@
         .btn {
             width: 100%;
             padding: 0.8rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
             color: white;
             border: none;
             border-radius: 8px;
@@ -71,14 +71,52 @@
             display: block;
             text-align: center;
             margin-top: 1.5rem;
-            color: #667eea;
+            color: #0d7b8a;
             text-decoration: none;
             font-weight: 500;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
+        <div class="logo-container">
+            <div class="logo">
+                <img src="/images/logo.png" alt="Mouna Logo" style="height: 50px; width: auto;" onerror="this.style.display='none'">
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">Voice of Thoughtful Silence</div>
+                </div>
+            </div>
+        </div>
         <h2>Sign In</h2>
         <form id="login-form">
             <div id="error-message" style="display: none; color: #e53e3e; margin-bottom: 1rem; padding: 0.5rem; background: #fed7d7; border-radius: 4px;"></div>
@@ -101,7 +139,7 @@
                 <button class="btn" type="button" id="resend-otp-btn" style="background: #718096; margin-top: 0.5rem;">Resend OTP</button>
             </div>
         </form>
-        <a href="/signup" class="signup-link">Don't have an account? Sign Up</a>
+        <a href="/get-started" class="signup-link">Don't have an account? Get Started</a>
     </div>
 
     <script>

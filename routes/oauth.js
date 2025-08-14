@@ -30,7 +30,7 @@ router.get('/google',
 );
 
 router.get('/google/callback',
-    passport.authenticate('google', { failureRedirect: '/signup?error=google_auth_failed' }),
+    passport.authenticate('google', { failureRedirect: '/get-started?error=google_auth_failed' }),
     async (req, res) => {
         try {
             // Generate JWT token
@@ -39,11 +39,17 @@ router.get('/google/callback',
             // Successful authentication
             console.log('✅ Google OAuth successful for:', req.user.email);
             
-            // Redirect with token - in a real app, you might want to set this as an httpOnly cookie
-            res.redirect(`/welcome-dashboard?token=${token}&provider=google&name=${encodeURIComponent(req.user.name)}`);
+            // Check if this is a new user (first-time signup)
+            if (req.user.isNew) {
+                // New user from Get Started page -> go to Quick Setup
+                res.redirect(`/quick-setup?token=${token}&provider=google&name=${encodeURIComponent(req.user.name)}&new=true`);
+            } else {
+                // Existing user -> go to dashboard
+                res.redirect(`/dashboard?token=${token}&provider=google&name=${encodeURIComponent(req.user.name)}`);
+            }
         } catch (error) {
             console.error('❌ Google OAuth callback error:', error);
-            res.redirect('/signup?error=auth_callback_failed');
+            res.redirect('/get-started?error=auth_callback_failed');
         }
     }
 );
@@ -181,7 +187,7 @@ router.get('/failure', (req, res) => {
             <div class="error-icon">×</div>
             <h1>Authentication Failed</h1>
             <p>Sorry, we couldn't sign you in. ${error ? `Error: ${error}` : 'Please try again.'}</p>
-            <a href="/signup" class="btn">Back to Sign Up</a>
+            <a href="/get-started" class="btn">Back to Get Started</a>
         </div>
     </body>
     </html>

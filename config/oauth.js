@@ -45,6 +45,7 @@ function initializeOAuth(DatabaseService) {
                 const existingUser = await DatabaseService.findUserByEmail(profile.emails[0].value);
                 if (existingUser) {
                     console.log('✅ Existing user found, logging in');
+                    existingUser.isNew = false; // Mark as existing user
                     return done(null, existingUser);
                 }
 
@@ -63,6 +64,7 @@ function initializeOAuth(DatabaseService) {
                 });
 
                 console.log('🎉 New Google user created:', newUser.email);
+                newUser.isNew = true; // Mark as new user
                 return done(null, newUser);
 
             } catch (error) {
