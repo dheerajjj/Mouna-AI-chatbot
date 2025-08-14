@@ -950,11 +950,11 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        name: 'TempUser',
+                        name: 'User',  // Temporary name for validation
                         email: email,
-                        password: 'tempPass123',
-                        company: '',
-                        website: ''
+                        password: 'TempPassword123!',  // Temporary strong password for validation
+                        company: 'Company',  // Temporary company for validation
+                        website: ''  // Optional field, empty is fine
                     })
                 });
 

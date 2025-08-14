@@ -64,7 +64,7 @@ router.post('/signup', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
   body('company').optional().trim().escape(),
-  body('website').optional().isURL()
+  body('website').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -169,7 +169,7 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
   body('company').optional().trim().escape(),
-  body('website').optional().isURL()
+  body('website').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -648,7 +648,7 @@ router.post('/verify-email-and-create-account', [
   body('userData.name').isLength({ min: 2 }).trim().escape(),
   body('userData.password').isLength({ min: 6 }),
   body('userData.company').optional().trim().escape(),
-  body('userData.website').optional().isURL()
+  body('userData.website').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
