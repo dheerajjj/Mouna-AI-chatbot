@@ -150,16 +150,16 @@
                 
                 const data = await response.json();
                 
-                if (data.success) {
+                if (response.ok) {
                     if (data.requiresOTP) {
                         // Show OTP verification step
-                        successMessage.textContent = 'OTP sent to your email. Please check your inbox.';
+                        successMessage.textContent = data.message || 'OTP sent to your email. Please check your inbox.';
                         successMessage.style.display = 'block';
                         document.getElementById('credentials-step').style.display = 'none';
                         document.getElementById('otp-step').style.display = 'block';
                         document.getElementById('otp').focus();
-                    } else {
-                        // Direct login success (shouldn't happen with new flow)
+                    } else if (data.success) {
+                        // Direct login success (old flow compatibility)
                         localStorage.setItem('authToken', data.token);
                         localStorage.setItem('user', JSON.stringify(data.user));
                         successMessage.textContent = data.message;
@@ -167,8 +167,13 @@
                         setTimeout(() => {
                             window.location.href = data.redirectTo || '/dashboard';
                         }, 1000);
+                    } else {
+                        // Handle other success responses
+                        successMessage.textContent = data.message || 'Login process initiated successfully.';
+                        successMessage.style.display = 'block';
                     }
                 } else {
+                    // Handle error responses
                     errorMessage.textContent = data.error || 'Invalid credentials. Please try again.';
                     errorMessage.style.display = 'block';
                 }
@@ -272,13 +277,18 @@
                 
                 const data = await response.json();
                 
-                if (data.success && data.requiresOTP) {
+                if (response.ok && data.requiresOTP) {
                     successMessage.textContent = 'New OTP sent to your email.';
                     successMessage.style.display = 'block';
                     document.getElementById('otp').value = '';
                     document.getElementById('otp').focus();
+                } else if (response.ok) {
+                    successMessage.textContent = data.message || 'New OTP sent to your email.';
+                    successMessage.style.display = 'block';
+                    document.getElementById('otp').value = '';
+                    document.getElementById('otp').focus();
                 } else {
-                    errorMessage.textContent = 'Failed to resend OTP. Please try again.';
+                    errorMessage.textContent = data.error || 'Failed to resend OTP. Please try again.';
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {

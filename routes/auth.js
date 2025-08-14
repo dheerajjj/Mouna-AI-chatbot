@@ -58,24 +58,6 @@ const generateSecureToken = (payload) => {
   );
 };
 
-// DEBUG: Check database users (temporary - remove in production)
-router.get('/debug-users', async (req, res) => {
-  try {
-    const users = await DatabaseService.getAllUsers(10, 0);
-    res.json({
-      totalUsers: users.length,
-      users: users.map(u => ({
-        email: u.email,
-        name: u.name,
-        createdAt: u.createdAt
-      }))
-    });
-  } catch (error) {
-    console.error('Debug users error:', error);
-    res.status(500).json({ error: 'Debug failed' });
-  }
-});
-
 // Register (with signup alias)
 router.post('/signup', [
   body('name').isLength({ min: 2 }).trim().escape(),
