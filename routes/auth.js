@@ -230,39 +230,70 @@ router.post('/register', [
   }
 });
 
-// Login - Step 1: Verify credentials and send OTP
+// Universal Login - Step 1: Validate email and send OTP (for any genuine email)
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 1 })
+  body('password').optional() // Make password optional for universal email login
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+      return res.status(400).json({ error: 'Invalid email format', details: errors.array() });
     }
 
     const { email, password } = req.body;
 
-    // Find user
-    const user = await DatabaseService.findUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    // Step 1: Comprehensive email validation for ANY email (not just registered users)
+    console.log(`🔍 Validating email for login: ${email}`);
+    const emailValidation = await EmailValidationService.validateEmail(email, { verifyExistence: true });
+    
+    if (!emailValidation.valid) {
+      console.log(`❌ Invalid email detected: ${emailValidation.reasons.join(', ')}`);
+      
+      return res.status(400).json({ 
+        error: 'Invalid email address', 
+        message: 'Please enter a valid email address from a genuine email provider.',
+        details: emailValidation.reasons,
+        suggestions: emailValidation.suggestions || [],
+        validationDetails: emailValidation.details
+      });
+    }
+    
+    console.log(`✅ Email validation passed: ${email}`);
+
+    // Step 2: Check if user exists (registered user with credentials)
+    const existingUser = await DatabaseService.findUserByEmail(email);
+    
+    if (existingUser && password) {
+      // Existing user trying to login with password - verify credentials
+      const isValidPassword = await existingUser.comparePassword(password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Invalid credentials - wrong password for this account' });
+      }
+      console.log(`🔐 Password verified for existing user: ${email}`);
+    } else if (existingUser && !password) {
+      // Existing user but no password provided - still allow OTP login
+      console.log(`🔐 Existing user requesting OTP login: ${email}`);
+    } else if (!existingUser && password) {
+      // New email with password - this isn't registration, redirect to signup
+      return res.status(404).json({ 
+        error: 'Account not found', 
+        message: 'No account exists with this email. Please sign up first.',
+        redirectTo: '/signup',
+        email: email
+      });
+    } else {
+      // New email, no password - universal OTP login for any genuine email
+      console.log(`🌍 Universal OTP login for genuine email: ${email}`);
     }
 
-    // Check password
-    const isValidPassword = await user.comparePassword(password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    console.log(`🔐 Password verified for login: ${email}`);
-
-    // Generate and send OTP for login verification (2FA)
+    // Step 3: Generate and send OTP for any genuine email
     try {
       const otp = await OTPService.generateAndStoreOTP(email, 'login');
       
-      // Send OTP via email
-      EmailService.sendLoginOTPEmail(email, user.name, otp).catch(error => {
+      // Send OTP via email (use name if user exists, otherwise use email)
+      const displayName = existingUser ? existingUser.name : email.split('@')[0];
+      EmailService.sendLoginOTPEmail(email, displayName, otp).catch(error => {
         console.error('Failed to send login OTP email:', error);
       });
       
@@ -274,8 +305,9 @@ router.post('/login', [
         requiresOTP: true,
         message: 'Login verification required. Please check your email for verification code.',
         email: email,
+        isExistingUser: !!existingUser,
         step: 'login_verification',
-        instructions: 'Please verify your login with the OTP sent to your email.',
+        instructions: 'Please verify your email with the OTP sent to your inbox.',
         nextStep: {
           endpoint: '/auth/verify-login-otp',
           method: 'POST',
@@ -741,7 +773,7 @@ router.post('/resend-signup-otp', [
   }
 });
 
-// Verify login OTP and complete login (Step 2 of 2FA login)
+// Verify login OTP and complete login (Universal login for any genuine email)
 router.post('/verify-login-otp', [
   body('email').isEmail().normalizeEmail(),
   body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
@@ -754,13 +786,7 @@ router.post('/verify-login-otp', [
 
     const { email, otp } = req.body;
 
-    // Find user
-    const user = await DatabaseService.findUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid request' });
-    }
-
-    // Verify OTP
+    // Verify OTP first (for any email)
     const verificationResult = await OTPService.verifyOTP(email, otp);
     
     if (!verificationResult.success) {
@@ -774,28 +800,64 @@ router.post('/verify-login-otp', [
 
     console.log(`✅ Login OTP verified successfully for: ${email}`);
 
-    // Update last login
-    await DatabaseService.updateUser(user._id, { lastLoginAt: new Date() });
+    // Check if user exists (registered user)
+    const existingUser = await DatabaseService.findUserByEmail(email);
+    
+    if (existingUser) {
+      // Existing registered user - full login
+      console.log(`🔐 Existing user login completed: ${email}`);
+      
+      // Update last login
+      await DatabaseService.updateUser(existingUser._id, { lastLoginAt: new Date() });
 
-    // Generate secure JWT token
-    const token = generateSecureToken({ userId: user._id, email: user.email });
+      // Generate secure JWT token
+      const token = generateSecureToken({ userId: existingUser._id, email: existingUser.email });
 
-    res.json({
-      success: true,
-      message: 'Login successful - 2FA verified',
-      token,
-      redirectTo: '/dashboard',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        company: user.company,
-        website: user.website,
-        subscription: user.subscription,
-        usage: user.usage,
-        apiKey: user.apiKey
-      }
-    });
+      res.json({
+        success: true,
+        message: 'Login successful - Welcome back!',
+        token,
+        redirectTo: '/dashboard',
+        userType: 'existing',
+        user: {
+          id: existingUser._id,
+          name: existingUser.name,
+          email: existingUser.email,
+          company: existingUser.company,
+          website: existingUser.website,
+          subscription: existingUser.subscription,
+          usage: existingUser.usage,
+          apiKey: existingUser.apiKey
+        }
+      });
+    } else {
+      // New user with verified email - temporary access or prompt for registration
+      console.log(`🌍 New user verified email access: ${email}`);
+      
+      res.json({
+        success: true,
+        message: 'Email verified successfully! You can now access our services.',
+        email: email,
+        userType: 'guest',
+        emailVerified: true,
+        redirectTo: '/guest-dashboard', // Or prompt for full registration
+        options: {
+          continueAsGuest: true,
+          createAccount: {
+            message: 'Create a full account to access all features',
+            redirectTo: '/complete-registration',
+            benefits: ['Save chat history', 'Custom configurations', 'Advanced features']
+          }
+        },
+        // Temporary guest token (limited access)
+        guestToken: generateSecureToken({ 
+          email: email, 
+          type: 'guest',
+          verified: true,
+          exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+        })
+      });
+    }
 
   } catch (error) {
     console.error('Login OTP verification error:', error);
