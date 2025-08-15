@@ -390,12 +390,36 @@ router.get('/profile', authenticateToken, async (req, res) => {
     console.log('✅ User found:', { id: user._id, email: user.email, name: user.name });
 
     // Get comprehensive plan information and usage summary
-    const { PlanManager } = require('../config/planFeatures');
-    const { getUsageSummary } = require('../middleware/planAccessControl');
+    let planDetails, usageSummary, currentPlan;
     
-    const currentPlan = user.subscription?.plan || 'free';
-    const planDetails = PlanManager.getPlanDetails(currentPlan);
-    const usageSummary = getUsageSummary(user);
+    try {
+      const { PlanManager } = require('../config/planFeatures');
+      const { getUsageSummary } = require('../middleware/planAccessControl');
+      
+      currentPlan = user.subscription?.plan || 'free';
+      console.log('📊 Getting plan details for plan:', currentPlan);
+      
+      planDetails = PlanManager.getPlanDetails(currentPlan);
+      console.log('📊 Plan details retrieved:', planDetails?.name);
+      
+      usageSummary = getUsageSummary(user);
+      console.log('📊 Usage summary retrieved:', usageSummary?.plan);
+    } catch (planError) {
+      console.error('❌ Error getting plan information:', planError);
+      // Fallback to basic plan info
+      currentPlan = 'free';
+      planDetails = {
+        name: 'Free Plan',
+        price: 0,
+        currency: 'INR',
+        billingCycle: 'monthly',
+        limits: { messagesPerMonth: 100 },
+        features: {},
+        restrictions: {},
+        ui: {}
+      };
+      usageSummary = { plan: 'free', usage: {}, warnings: [] };
+    }
     
     // Calculate days until billing renewal
     let daysUntilRenewal = null;
@@ -406,8 +430,15 @@ router.get('/profile', authenticateToken, async (req, res) => {
     }
     
     // Determine suggested upgrade
-    const nextPlan = PlanManager.getNextPlan(currentPlan);
-    const canUpgrade = !!nextPlan;
+    let nextPlan, canUpgrade;
+    try {
+      const { PlanManager } = require('../config/planFeatures');
+      nextPlan = PlanManager.getNextPlan(currentPlan);
+      canUpgrade = !!nextPlan;
+    } catch (err) {
+      nextPlan = null;
+      canUpgrade = false;
+    }
 
     res.json({
       user: {
@@ -467,16 +498,33 @@ router.get('/profile', authenticateToken, async (req, res) => {
         widgetConfig: user.widgetConfig,
         
         // Account status and capabilities
-        capabilities: {
-          canSendMessages: PlanManager.isWithinLimit(currentPlan, 'messagesPerMonth', user.usage?.messagesThisMonth || 0),
-          canAccessAnalytics: PlanManager.hasFeature(currentPlan, 'basicAnalytics'),
-          canAccessAdvancedAnalytics: PlanManager.hasFeature(currentPlan, 'advancedAnalytics'),
-          canCustomizeBranding: PlanManager.hasFeature(currentPlan, 'customBranding'),
-          hasApiAccess: PlanManager.hasFeature(currentPlan, 'apiAccess'),
-          hasPrioritySupport: PlanManager.hasFeature(currentPlan, 'prioritySupport'),
-          canUseWebhooks: PlanManager.hasFeature(currentPlan, 'webhooks'),
-          canExportData: PlanManager.hasFeature(currentPlan, 'exportData')
-        }
+        capabilities: (() => {
+          try {
+            const { PlanManager } = require('../config/planFeatures');
+            return {
+              canSendMessages: PlanManager.isWithinLimit(currentPlan, 'messagesPerMonth', user.usage?.messagesThisMonth || 0),
+              canAccessAnalytics: PlanManager.hasFeature(currentPlan, 'basicAnalytics'),
+              canAccessAdvancedAnalytics: PlanManager.hasFeature(currentPlan, 'advancedAnalytics'),
+              canCustomizeBranding: PlanManager.hasFeature(currentPlan, 'customBranding'),
+              hasApiAccess: PlanManager.hasFeature(currentPlan, 'apiAccess'),
+              hasPrioritySupport: PlanManager.hasFeature(currentPlan, 'prioritySupport'),
+              canUseWebhooks: PlanManager.hasFeature(currentPlan, 'webhooks'),
+              canExportData: PlanManager.hasFeature(currentPlan, 'exportData')
+            };
+          } catch (capError) {
+            console.error('❌ Error getting capabilities:', capError);
+            return {
+              canSendMessages: true,
+              canAccessAnalytics: false,
+              canAccessAdvancedAnalytics: false,
+              canCustomizeBranding: false,
+              hasApiAccess: false,
+              hasPrioritySupport: false,
+              canUseWebhooks: false,
+              canExportData: false
+            };
+          }
+        })()
       }
     });
 
