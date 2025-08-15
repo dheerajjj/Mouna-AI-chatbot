@@ -337,10 +337,57 @@ router.post('/login', [
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const user = await DatabaseService.findUserById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    console.log('🔍 Profile endpoint called');
+    console.log('📋 JWT payload:', req.user);
+    console.log('🆔 Looking for user ID:', req.user.userId);
+    console.log('🆔 User ID type:', typeof req.user.userId);
+    
+    // Convert string ID to ObjectId if needed for MongoDB
+    let searchUserId = req.user.userId;
+    if (typeof searchUserId === 'string' && searchUserId.length === 24) {
+      // Check if it looks like a MongoDB ObjectId
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(searchUserId)) {
+        searchUserId = new mongoose.Types.ObjectId(searchUserId);
+        console.log('🔄 Converted string ID to ObjectId:', searchUserId);
+      }
     }
+    
+    const user = await DatabaseService.findUserById(searchUserId);
+    
+    if (!user) {
+      console.error('❌ User not found in database!');
+      console.log('🔍 Searched with ID:', searchUserId);
+      console.log('🔍 Original JWT userId:', req.user.userId);
+      
+      // Debug: Show available users (in development only)
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const allUsers = await DatabaseService.getAllUsers(10, 0);
+          console.log('👥 All users:', allUsers.map(u => ({ 
+            id: u._id, 
+            idType: typeof u._id,
+            idString: u._id.toString(),
+            email: u.email, 
+            name: u.name 
+          })));
+        } catch (debugErr) {
+          console.error('Failed to fetch debug users:', debugErr);
+        }
+      }
+      
+      return res.status(404).json({ 
+        error: 'User not found',
+        debug: {
+          searchedUserId: req.user.userId,
+          searchedUserIdType: typeof req.user.userId,
+          convertedId: searchUserId.toString(),
+          jwtPayload: req.user
+        }
+      });
+    }
+    
+    console.log('✅ User found:', { id: user._id, email: user.email, name: user.name });
 
     // Get comprehensive plan information and usage summary
     const { PlanManager } = require('../config/planFeatures');

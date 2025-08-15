@@ -31,7 +31,7 @@ class MockUser {
   }
 
   generateApiKey() {
-    this.apiKey = 'ak_' + crypto.randomBytes(32).toString('hex');
+    this.apiKey = 'cb_' + crypto.randomBytes(32).toString('hex');
     return this.apiKey;
   }
 

@@ -78,7 +78,15 @@ class DatabaseService {
 
   async findUserById(userId) {
     if (this.isMongoConnected) {
-      return await this.models.User.findById(userId);
+      // Handle MongoDB ObjectId conversion
+      let searchId = userId;
+      if (typeof userId === 'string' && userId.length === 24) {
+        const mongoose = require('mongoose');
+        if (mongoose.Types.ObjectId.isValid(userId)) {
+          searchId = new mongoose.Types.ObjectId(userId);
+        }
+      }
+      return await this.models.User.findById(searchId);
     } else {
       return await this.mockDB.User.findById(userId);
     }
