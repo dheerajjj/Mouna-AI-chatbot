@@ -527,9 +527,12 @@
         
         <!-- Upgrade Banner -->
         <div class="upgrade-banner" id="upgrade-banner" style="display: none;">
-            <h3>🚀 Upgrade to Professional for More Features!</h3>
-            <p>Get advanced analytics, priority support, and more message allowance.</p>
-            <a href="/pricing" class="btn" style="margin-top: 0.5rem;">Upgrade Now</a>
+            <h3 id="upgrade-banner-title">🚀 Upgrade to Professional for More Features!</h3>
+            <p id="upgrade-banner-description">Get advanced analytics, priority support, and more message allowance.</p>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button id="upgrade-primary-btn" class="btn" onclick="upgradeToNextTier()">Upgrade Now</button>
+                <a href="/pricing" class="btn btn-secondary">Compare All Plans</a>
+            </div>
         </div>
 
         <!-- Stats Grid -->
@@ -1340,31 +1343,46 @@
         // Update upgrade banner based on plan hierarchy
         function updateUpgradeBanner(currentPlan) {
             const upgradeBanner = document.getElementById('upgrade-banner');
-            const upgradeBannerH3 = upgradeBanner.querySelector('h3');
-            const upgradeBannerP = upgradeBanner.querySelector('p');
-            const upgradeBannerLink = upgradeBanner.querySelector('a');
+            const upgradeBannerTitle = document.getElementById('upgrade-banner-title');
+            const upgradeBannerDescription = document.getElementById('upgrade-banner-description');
+            const upgradePrimaryBtn = document.getElementById('upgrade-primary-btn');
             
-            // Plan hierarchy: free -> starter -> professional
-            // Hide upgrade banner for the highest plan (professional)
-            if (currentPlan === 'professional' || currentPlan === 'enterprise') {
+            // Plan hierarchy: free -> starter -> professional -> enterprise
+            // Hide upgrade banner for the highest plan (enterprise)
+            if (currentPlan === 'enterprise') {
                 upgradeBanner.style.display = 'none';
                 return;
             }
             
+            // Store current plan globally for upgrade function
+            window.currentUserPlan = currentPlan;
+            
             // Show appropriate upgrade options
             if (currentPlan === 'free') {
-                upgradeBannerH3.textContent = '🚀 Upgrade to Starter for More Features!';
-                upgradeBannerP.textContent = 'Get 1,000 messages per month, custom branding, and advanced AI responses.';
-                upgradeBannerLink.href = '/pricing?suggested=starter';
+                upgradeBannerTitle.textContent = '🚀 Upgrade to Starter for More Features!';
+                upgradeBannerDescription.textContent = 'Get 10x more messages (1,000/month), custom widget branding, priority support, and advanced AI responses.';
+                upgradePrimaryBtn.textContent = 'Upgrade to Starter - ₹499/month';
+                upgradePrimaryBtn.setAttribute('data-plan', 'starter');
                 upgradeBanner.style.display = 'block';
             } else if (currentPlan === 'starter') {
-                upgradeBannerH3.textContent = '🚀 Upgrade to Professional for More Features!';
-                upgradeBannerP.textContent = 'Get 10,000 messages per month, advanced analytics, API access, and priority support.';
-                upgradeBannerLink.href = '/pricing?suggested=professional';
+                upgradeBannerTitle.textContent = '🚀 Upgrade to Professional for More Features!';
+                upgradeBannerDescription.textContent = 'Get 5x more messages (5,000/month), advanced analytics, API access, priority support, and enhanced AI capabilities.';
+                upgradePrimaryBtn.textContent = 'Upgrade to Professional - ₹1,499/month';
+                upgradePrimaryBtn.setAttribute('data-plan', 'professional');
+                upgradeBanner.style.display = 'block';
+            } else if (currentPlan === 'professional') {
+                upgradeBannerTitle.textContent = '🎆 Upgrade to Enterprise for Ultimate Power!';
+                upgradeBannerDescription.textContent = 'Get unlimited messages, dedicated support, custom integrations, and enterprise-grade features.';
+                upgradePrimaryBtn.textContent = 'Contact for Enterprise Pricing';
+                upgradePrimaryBtn.setAttribute('data-plan', 'enterprise');
                 upgradeBanner.style.display = 'block';
             } else {
-                // Unknown plan or already at highest tier
-                upgradeBanner.style.display = 'none';
+                // Unknown plan - show free to starter upgrade
+                upgradeBannerTitle.textContent = '🚀 Unlock More Features!';
+                upgradeBannerDescription.textContent = 'Upgrade your plan to get more messages, advanced features, and priority support.';
+                upgradePrimaryBtn.textContent = 'View Plans';
+                upgradePrimaryBtn.setAttribute('data-plan', 'starter');
+                upgradeBanner.style.display = 'block';
             }
         }
 
@@ -1701,6 +1719,91 @@
                 container.insertBefore(hint, upgradeBanner.nextSibling);
             } else if (container) {
                 container.insertBefore(hint, container.children[1]);
+            }
+        }
+        
+        // Upgrade to next tier function (called by upgrade banner button)
+        function upgradeToNextTier() {
+            const upgradePrimaryBtn = document.getElementById('upgrade-primary-btn');
+            const targetPlan = upgradePrimaryBtn.getAttribute('data-plan');
+            
+            if (!targetPlan) {
+                console.error('No target plan specified');
+                window.location.href = '/pricing';
+                return;
+            }
+            
+            // Handle enterprise plan separately (contact-based)
+            if (targetPlan === 'enterprise') {
+                const message = 'Contact Sales for Enterprise Plan\n\n' +
+                              'Enterprise features include:\n' +
+                              '• Unlimited messages and AI responses\n' +
+                              '• Dedicated account manager\n' +
+                              '• Custom integrations and APIs\n' +
+                              '• On-premise deployment options\n' +
+                              '• SLA guarantees and priority support\n' +
+                              '• Advanced security and compliance\n\n' +
+                              'Would you like to contact our sales team?';
+                              
+                if (confirm(message)) {
+                    // Open email client or redirect to contact page
+                    window.location.href = 'mailto:sales@mouna-ai.com?subject=Enterprise Plan Inquiry&body=Hi, I\'m interested in the Enterprise plan for my chatbot. Please contact me to discuss pricing and features.';
+                }
+                return;
+            }
+            
+            // For starter and professional plans, show upgrade modal
+            showUpgradeModal(targetPlan);
+        }
+        
+        // Enhanced upgrade modal with plan comparison
+        function showUpgradeModal(plan) {
+            const planDetails = {
+                starter: {
+                    name: 'Starter Plan',
+                    price: '₹499/month',
+                    features: [
+                        '1,000 messages per month',
+                        'Custom widget branding',
+                        'Priority email support',
+                        'Advanced AI responses',
+                        'Basic analytics',
+                        'Widget customization'
+                    ]
+                },
+                professional: {
+                    name: 'Professional Plan', 
+                    price: '₹1,499/month',
+                    features: [
+                        '5,000 messages per month',
+                        'Advanced analytics dashboard',
+                        'API access and webhooks',
+                        'Priority support + live chat',
+                        'Enhanced AI capabilities',
+                        'Custom integrations',
+                        'White-label options'
+                    ]
+                }
+            };
+            
+            const selectedPlan = planDetails[plan];
+            if (!selectedPlan) {
+                alert('Invalid plan selected');
+                return;
+            }
+            
+            const currentPlanName = window.currentUserPlan || 'free';
+            const featuresText = selectedPlan.features.map(f => `• ${f}`).join('\n');
+            
+            const confirmMessage = `Upgrade to ${selectedPlan.name}?\n\n` +
+                                 `Price: ${selectedPlan.price}\n\n` +
+                                 `You'll get:\n${featuresText}\n\n` +
+                                 `This will upgrade you from ${currentPlanName} plan.\n\n` +
+                                 `Continue to secure payment?`;
+            
+            if (confirm(confirmMessage)) {
+                // Proceed with upgrade
+                initiateUpgrade(plan);
             }
         }
         
