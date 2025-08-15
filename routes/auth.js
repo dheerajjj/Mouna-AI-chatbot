@@ -392,33 +392,50 @@ router.get('/profile', authenticateToken, async (req, res) => {
     // Get comprehensive plan information and usage summary
     let planDetails, usageSummary, currentPlan;
     
+    // Initialize defaults first
+    currentPlan = user.subscription?.plan || 'free';
+    planDetails = {
+      name: 'Free Plan',
+      price: 0,
+      currency: 'INR',
+      billingCycle: 'monthly',
+      limits: { messagesPerMonth: 100 },
+      features: {},
+      restrictions: {},
+      ui: {}
+    };
+    usageSummary = { plan: currentPlan, usage: {}, warnings: [] };
+    
     try {
       const { PlanManager } = require('../config/planFeatures');
-      const { getUsageSummary } = require('../middleware/planAccessControl');
-      
-      currentPlan = user.subscription?.plan || 'free';
       console.log('📊 Getting plan details for plan:', currentPlan);
       
-      planDetails = PlanManager.getPlanDetails(currentPlan);
-      console.log('📊 Plan details retrieved:', planDetails?.name);
-      
-      usageSummary = getUsageSummary(user);
-      console.log('📊 Usage summary retrieved:', usageSummary?.plan);
+      if (PlanManager && typeof PlanManager.getPlanDetails === 'function') {
+        const retrievedPlanDetails = PlanManager.getPlanDetails(currentPlan);
+        if (retrievedPlanDetails) {
+          planDetails = retrievedPlanDetails;
+          console.log('📊 Plan details retrieved:', planDetails?.name);
+        }
+      }
     } catch (planError) {
       console.error('❌ Error getting plan information:', planError);
-      // Fallback to basic plan info
-      currentPlan = 'free';
-      planDetails = {
-        name: 'Free Plan',
-        price: 0,
-        currency: 'INR',
-        billingCycle: 'monthly',
-        limits: { messagesPerMonth: 100 },
-        features: {},
-        restrictions: {},
-        ui: {}
-      };
-      usageSummary = { plan: 'free', usage: {}, warnings: [] };
+      console.error('❌ PlanManager error stack:', planError.stack);
+      // Keep the default fallback values already set above
+    }
+    
+    try {
+      const { getUsageSummary } = require('../middleware/planAccessControl');
+      if (getUsageSummary && typeof getUsageSummary === 'function') {
+        const retrievedUsageSummary = getUsageSummary(user);
+        if (retrievedUsageSummary) {
+          usageSummary = retrievedUsageSummary;
+          console.log('📊 Usage summary retrieved:', usageSummary?.plan);
+        }
+      }
+    } catch (usageError) {
+      console.error('❌ Error getting usage summary:', usageError);
+      console.error('❌ Usage summary error stack:', usageError.stack);
+      // Keep the default fallback values already set above
     }
     
     // Calculate days until billing renewal
