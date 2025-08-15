@@ -268,6 +268,113 @@ class DatabaseService {
     }
   }
 
+  // Usage tracking operations
+  async incrementUserUsage(userId, limitType, increment = 1) {
+    try {
+      if (this.isMongoConnected) {
+        const updatePath = `usage.${limitType}`;
+        return await this.models.User.findByIdAndUpdate(
+          userId,
+          { 
+            $inc: { [updatePath]: increment },
+            $set: { 'usage.lastUpdated': new Date() }
+          },
+          { new: true, upsert: false }
+        );
+      } else {
+        const user = this.mockDB.users.find(u => u._id === userId);
+        if (user) {
+          if (!user.usage) user.usage = {};
+          user.usage[limitType] = (user.usage[limitType] || 0) + increment;
+          user.usage.lastUpdated = new Date();
+          return user;
+        }
+        return null;
+      }
+    } catch (error) {
+      console.error('Error incrementing user usage:', error);
+      throw error;
+    }
+  }
+
+  async resetUserUsage(userId, limitType = null) {
+    try {
+      if (this.isMongoConnected) {
+        if (limitType) {
+          // Reset specific usage type
+          const updatePath = `usage.${limitType}`;
+          return await this.models.User.findByIdAndUpdate(
+            userId,
+            { 
+              $set: { 
+                [updatePath]: 0,
+                'usage.lastUpdated': new Date()
+              }
+            },
+            { new: true }
+          );
+        } else {
+          // Reset all usage
+          return await this.models.User.findByIdAndUpdate(
+            userId,
+            { 
+              $set: { 
+                usage: {
+                  messagesPerMonth: 0,
+                  apiCallsPerMonth: 0,
+                  customResponses: 0,
+                  knowledgeBaseEntries: 0,
+                  widgetCustomizations: 0,
+                  maxFileUploads: 0,
+                  totalMessages: 0,
+                  lastUpdated: new Date()
+                }
+              }
+            },
+            { new: true }
+          );
+        }
+      } else {
+        const user = this.mockDB.users.find(u => u._id === userId);
+        if (user) {
+          if (limitType) {
+            if (!user.usage) user.usage = {};
+            user.usage[limitType] = 0;
+          } else {
+            user.usage = {
+              messagesPerMonth: 0,
+              apiCallsPerMonth: 0,
+              customResponses: 0,
+              knowledgeBaseEntries: 0,
+              widgetCustomizations: 0,
+              maxFileUploads: 0,
+              totalMessages: 0
+            };
+          }
+          user.usage.lastUpdated = new Date();
+          return user;
+        }
+        return null;
+      }
+    } catch (error) {
+      console.error('Error resetting user usage:', error);
+      throw error;
+    }
+  }
+
+  async getUserUsageSummary(userId) {
+    try {
+      const user = await this.findUserById(userId);
+      if (!user) return null;
+
+      const { getUsageSummary } = require('../middleware/planAccessControl');
+      return getUsageSummary(user);
+    } catch (error) {
+      console.error('Error getting user usage summary:', error);
+      throw error;
+    }
+  }
+
   // Utility methods
   getConnectionStatus() {
     if (this.isMongoConnected) {

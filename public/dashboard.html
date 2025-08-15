@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="/js/planFeatures.js"></script>
     <style>
         * {
             margin: 0;
@@ -528,7 +529,7 @@
         <div class="upgrade-banner" id="upgrade-banner" style="display: none;">
             <h3>🚀 Upgrade to Professional for More Features!</h3>
             <p>Get advanced analytics, priority support, and more message allowance.</p>
-            <a href="/pricing.html" class="btn" style="margin-top: 0.5rem;">Upgrade Now</a>
+            <a href="/pricing" class="btn" style="margin-top: 0.5rem;">Upgrade Now</a>
         </div>
 
         <!-- Stats Grid -->
@@ -683,7 +684,7 @@
                     Actions
                 </div>
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                    <a href="/pricing.html" class="btn">Change Plan</a>
+                    <a href="/pricing" class="btn">Change Plan</a>
                     <button onclick="downloadInvoice()" class="btn btn-secondary">Download Invoice</button>
                     <button onclick="updatePaymentMethod()" class="btn btn-secondary">Update Payment</button>
                     <button onclick="cancelSubscription()" class="btn btn-danger">Cancel Subscription</button>
@@ -693,8 +694,16 @@
     </div>
 
     <script>
+        // Initialize plan manager and feature gates
+        let planManager = null;
+        let featureGate = null;
+        
         // Load user data on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize plan manager
+            planManager = new FrontendPlanManager();
+            featureGate = new FeatureGate();
+            
             loadUserData();
             handleUpgradeParameter();
         });
@@ -914,25 +923,57 @@
         }
 
         // Handle payment success
-        function handlePaymentSuccess(response, plan) {
+        async function handlePaymentSuccess(response, plan) {
             console.log('Payment successful:', response);
             
-            // In production, you would verify the payment on your backend
-            // and then update the user's subscription
-            
-            // For now, we'll show a success message and simulate the upgrade
-            alert(`Payment successful! \n\nPayment ID: ${response.razorpay_payment_id}\n\nYour account has been upgraded to ${plan} plan.`);
-            
-            // Simulate account upgrade by updating the UI
-            simulateAccountUpgrade(plan);
-            
-            // Clean up URL
-            window.history.replaceState({}, '', '/dashboard');
-            
-            // Reload user data to reflect changes
-            setTimeout(() => {
-                loadUserData();
-            }, 1000);
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    alert('Authentication required. Please log in again.');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                // Verify payment with backend
+                const verifyResponse = await fetch('/api/payments/verify-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature,
+                        planId: plan
+                    })
+                });
+                
+                const verifyResult = await verifyResponse.json();
+                
+                if (verifyResponse.ok && verifyResult.success) {
+                    // Payment verified successfully
+                    console.log('Payment verified:', verifyResult);
+                    
+                    // Show success message
+                    alert(`Payment Successful! \n\nPayment ID: ${response.razorpay_payment_id}\n\nYour account has been upgraded to ${plan} plan.\n\nRedirecting to success page...`);
+                    
+                    // Redirect to success page
+                    window.location.href = verifyResult.redirectTo || '/payment-success';
+                } else {
+                    throw new Error(verifyResult.error || 'Payment verification failed');
+                }
+                
+            } catch (error) {
+                console.error('Payment verification error:', error);
+                alert(`Payment successful but verification failed: ${error.message}\n\nPlease contact support with Payment ID: ${response.razorpay_payment_id}`);
+                
+                // Clean up URL and reload
+                window.history.replaceState({}, '', '/dashboard');
+                setTimeout(() => {
+                    loadUserData();
+                }, 1000);
+            }
         }
 
         // Simulate account upgrade (in production, this would be done on backend)
@@ -1026,6 +1067,9 @@
                     // Show upgrade banner based on plan hierarchy
                     const currentPlan = data.user.subscription.plan;
                     updateUpgradeBanner(currentPlan);
+                    
+                    // Apply plan-based UI restrictions
+                    applyPlanRestrictions(data.user);
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
@@ -1326,6 +1370,286 @@
                 // Good: Under 50%
                 alertElement.style.display = 'none';
             }
+        }
+        
+        // Apply plan-based UI restrictions
+        function applyPlanRestrictions(user) {
+            if (!planManager || !featureGate) {
+                console.warn('Plan manager or feature gate not initialized');
+                return;
+            }
+            
+            const currentPlan = user.subscription.plan || 'free';
+            const usage = user.usage || {};
+            
+            console.log('Applying plan restrictions for:', currentPlan);
+            
+            // Get plan details from plan manager
+            const planDetails = planManager.getPlanDetails(currentPlan);
+            const usagePercentage = planManager.calculateUsagePercentage(currentPlan, usage.messagesThisMonth || 0);
+            
+            // Apply feature restrictions based on plan
+            applyFeatureRestrictions(currentPlan, planDetails, usage, usagePercentage);
+            
+            // Add upgrade prompts for limited features
+            addUpgradePrompts(currentPlan, planDetails);
+            
+            // Show plan-specific UI hints
+            showPlanHints(currentPlan, planDetails, usage);
+        }
+        
+        // Apply feature restrictions based on current plan
+        function applyFeatureRestrictions(plan, planDetails, usage, usagePercentage) {
+            // Widget customization - only available for paid plans
+            const customizeBtn = document.querySelector('button[onclick="customizeWidget()"]');
+            if (customizeBtn) {
+                if (planDetails.features.customBranding) {
+                    customizeBtn.disabled = false;
+                    customizeBtn.title = 'Customize your widget appearance';
+                } else {
+                    featureGate.disableElement(customizeBtn, {
+                        reason: 'Widget customization requires a paid plan',
+                        upgradeMessage: 'Upgrade to customize colors, position, and branding',
+                        suggestedPlan: 'starter'
+                    });
+                }
+            }
+            
+            // API key regeneration - limit frequency for free users
+            const regenBtn = document.querySelector('button[onclick="regenerateApiKey()"]');
+            if (regenBtn && plan === 'free') {
+                // Add tooltip warning for free users
+                regenBtn.title = 'Free users can regenerate API keys once per day';
+                regenBtn.style.opacity = '0.8';
+            }
+            
+            // Analytics access (simulate future feature)
+            addAnalyticsSection(plan, planDetails);
+            
+            // Usage-based restrictions
+            if (usagePercentage >= 90) {
+                // Near limit - disable non-essential features
+                const testBtn = document.querySelector('button[onclick="testWidget()"]');
+                if (testBtn && plan === 'free') {
+                    featureGate.showUpgradePrompt(testBtn, {
+                        message: 'You\'re near your monthly limit! Upgrade to continue testing.',
+                        suggestedPlan: planManager.getUpgradeSuggestion(plan)
+                    });
+                }
+            }
+        }
+        
+        // Add upgrade prompts for premium features
+        function addUpgradePrompts(plan, planDetails) {
+            // Add "Pro Feature" badges to restricted elements
+            if (!planDetails.features.analytics) {
+                // Future analytics section would get a "Pro Feature" badge
+                console.log('Analytics restricted for plan:', plan);
+            }
+            
+            if (!planDetails.features.apiAccess) {
+                // API documentation link could show upgrade prompt
+                const docLink = document.querySelector('a[href="/integration"]');
+                if (docLink) {
+                    const badge = document.createElement('span');
+                    badge.textContent = '⭐ Enhanced docs in Pro';
+                    badge.style.cssText = 'font-size: 0.8rem; color: #f59e0b; margin-left: 0.5rem;';
+                    docLink.appendChild(badge);
+                }
+            }
+        }
+        
+        // Show plan-specific hints and information
+        function showPlanHints(plan, planDetails, usage) {
+            // Add plan badge to subscription section
+            const planElement = document.getElementById('current-plan');
+            if (planElement && planElement.parentElement) {
+                // Remove existing badges
+                const existingBadges = planElement.parentElement.querySelectorAll('.plan-badge');
+                existingBadges.forEach(badge => badge.remove());
+                
+                // Add new plan badge
+                const badge = document.createElement('span');
+                badge.className = 'plan-badge';
+                badge.style.cssText = `
+                    background: ${getPlanColor(plan)};
+                    color: white;
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.7rem;
+                    margin-left: 0.5rem;
+                    text-transform: uppercase;
+                    font-weight: bold;
+                `;
+                badge.textContent = plan === 'free' ? 'Free' : plan;
+                planElement.parentElement.insertBefore(badge, planElement.nextSibling);
+            }
+            
+            // Show plan-specific usage context
+            const usageSection = document.querySelector('.usage-section');
+            if (usageSection) {
+                // Add plan context to usage display
+                const usageTitle = usageSection.querySelector('.usage-title');
+                if (usageTitle && !usageTitle.querySelector('.plan-context')) {
+                    const context = document.createElement('span');
+                    context.className = 'plan-context';
+                    context.style.cssText = 'font-size: 0.8rem; color: #64748b; font-weight: normal;';
+                    context.textContent = ` (${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan)`;
+                    usageTitle.appendChild(context);
+                }
+            }
+            
+            // Show feature comparison hint for free users
+            if (plan === 'free' && usage.messagesThisMonth >= 50) {
+                addFeatureComparisonHint();
+            }
+        }
+        
+        // Add analytics section preview (future feature)
+        function addAnalyticsSection(plan, planDetails) {
+            // Check if analytics section already exists
+            let analyticsCard = document.getElementById('analytics-preview');
+            
+            if (!analyticsCard) {
+                // Create analytics preview card
+                analyticsCard = document.createElement('div');
+                analyticsCard.id = 'analytics-preview';
+                analyticsCard.className = 'card';
+                analyticsCard.style.cssText = planDetails.features.analytics ? '' : 'opacity: 0.6; position: relative;';
+                
+                analyticsCard.innerHTML = `
+                    <h3><i class="fas fa-chart-bar"></i> Analytics <span class="feature-badge">${planDetails.features.analytics ? 'Available' : 'Pro Feature'}</span></h3>
+                    <div style="${planDetails.features.analytics ? '' : 'filter: blur(2px);'}">
+                        <div class="stat-card" style="margin-bottom: 0.5rem; padding: 0.8rem;">
+                            <div class="stat-value" style="font-size: 1.5rem;">42%</div>
+                            <div class="stat-label" style="font-size: 0.8rem;">Avg. Response Rate</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px; text-align: center;">
+                                <div style="font-weight: bold; color: #4a5568;">156</div>
+                                <div style="font-size: 0.8rem; color: #718096;">Peak Hour Chats</div>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px; text-align: center;">
+                                <div style="font-weight: bold; color: #4a5568;">3.2s</div>
+                                <div style="font-size: 0.8rem; color: #718096;">Avg. Response Time</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add upgrade overlay for non-pro users
+                if (!planDetails.features.analytics) {
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(255, 255, 255, 0.9);
+                        border-radius: 12px;
+                        cursor: pointer;
+                    `;
+                    overlay.innerHTML = `
+                        <div style="text-align: center; padding: 1rem;">
+                            <i class="fas fa-lock" style="font-size: 2rem; color: #f59e0b; margin-bottom: 0.5rem;"></i>
+                            <div style="font-weight: bold; color: #1e293b; margin-bottom: 0.5rem;">Unlock Analytics</div>
+                            <div style="font-size: 0.9rem; color: #64748b;">Upgrade to Professional</div>
+                        </div>
+                    `;
+                    overlay.onclick = () => window.location.href = '/pricing?feature=analytics';
+                    analyticsCard.appendChild(overlay);
+                }
+                
+                // Add to dashboard grid
+                const dashboardGrid = document.querySelector('.dashboard-grid');
+                if (dashboardGrid) {
+                    // Make grid 3 columns temporarily
+                    dashboardGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+                    dashboardGrid.appendChild(analyticsCard);
+                }
+            }
+            
+            // Update feature badge
+            const featureBadge = analyticsCard.querySelector('.feature-badge');
+            if (featureBadge) {
+                featureBadge.textContent = planDetails.features.analytics ? 'Available' : 'Pro Feature';
+                featureBadge.style.cssText = `
+                    background: ${planDetails.features.analytics ? '#48bb78' : '#f59e0b'};
+                    color: white;
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.7rem;
+                    margin-left: 0.5rem;
+                    font-weight: bold;
+                `;
+            }
+        }
+        
+        // Add feature comparison hint for free users approaching limits
+        function addFeatureComparisonHint() {
+            // Check if hint already exists
+            if (document.getElementById('feature-hint')) return;
+            
+            const hint = document.createElement('div');
+            hint.id = 'feature-hint';
+            hint.style.cssText = `
+                background: linear-gradient(135deg, #fef3c7, #fbbf24);
+                border: 1px solid #f59e0b;
+                border-radius: 8px;
+                padding: 1rem;
+                margin-bottom: 2rem;
+                color: #92400e;
+                font-size: 0.9rem;
+            `;
+            
+            hint.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>💡 Did you know?</strong>
+                </div>
+                <p>You're using the Free plan effectively! Upgrading to Starter would give you:</p>
+                <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <li>10x more messages (1,000/month)</li>
+                    <li>Custom widget branding</li>
+                    <li>Priority email support</li>
+                    <li>Advanced AI responses</li>
+                </ul>
+                <button onclick="window.location.href='/pricing?suggested=starter'" style="
+                    background: #f59e0b;
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    margin-top: 0.5rem;
+                ">Compare Plans</button>
+            `;
+            
+            // Insert after upgrade banner or at the beginning of container
+            const upgradeBanner = document.getElementById('upgrade-banner');
+            const container = document.querySelector('.container');
+            
+            if (upgradeBanner && container) {
+                container.insertBefore(hint, upgradeBanner.nextSibling);
+            } else if (container) {
+                container.insertBefore(hint, container.children[1]);
+            }
+        }
+        
+        // Helper function to get plan-specific colors
+        function getPlanColor(plan) {
+            const colors = {
+                free: '#6b7280',
+                starter: '#3b82f6',
+                professional: '#8b5cf6',
+                enterprise: '#f59e0b'
+            };
+            return colors[plan] || colors.free;
         }
     </script>
 </body>

@@ -93,6 +93,140 @@ router.post('/create-subscription', authenticateToken, async (req, res) => {
   }
 });
 
+// Verify Razorpay payment and update user subscription
+router.post('/verify-payment', authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, planId } = req.body;
+    
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !planId) {
+      return res.status(400).json({ error: 'Missing required payment verification data' });
+    }
+    
+    // Verify payment signature
+    const crypto = require('crypto');
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex');
+    
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ error: 'Payment verification failed - Invalid signature' });
+    }
+    
+    // Get user
+    const user = await DatabaseService.findUserById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Get plan details from centralized configuration
+    const { PlanManager } = require('../config/planFeatures');
+    const planDetails = PlanManager.getPlanDetails(planId);
+    
+    if (!planDetails || planDetails === PlanManager.getPlanDetails('free')) {
+      return res.status(400).json({ error: 'Invalid plan selected' });
+    }
+    
+    // Calculate billing dates
+    const now = new Date();
+    const billingCycleDays = planDetails.billingCycle === 'monthly' ? 30 : planDetails.billingCycle === 'yearly' ? 365 : 30;
+    const nextBilling = new Date(now.getTime() + billingCycleDays * 24 * 60 * 60 * 1000);
+    
+    // Comprehensive subscription update with all plan features
+    const subscriptionUpdate = {
+      'subscription.plan': planId,
+      'subscription.planName': planDetails.name,
+      'subscription.status': 'active',
+      'subscription.currentPeriodStart': now,
+      'subscription.currentPeriodEnd': nextBilling,
+      'subscription.nextBilling': nextBilling.toISOString().split('T')[0],
+      'subscription.billingCycle': planDetails.billingCycle,
+      'subscription.currency': planDetails.currency,
+      'subscription.amount': planDetails.price,
+      'subscription.razorpayPaymentId': razorpay_payment_id,
+      'subscription.razorpayOrderId': razorpay_order_id,
+      'subscription.lastPayment': {
+        amount: planDetails.price,
+        currency: planDetails.currency,
+        date: now,
+        paymentId: razorpay_payment_id,
+        planId: planId,
+        planName: planDetails.name
+      },
+      'subscription.updatedAt': now
+    };
+    
+    // Reset usage counters for new billing cycle if upgrading from free
+    const currentPlan = user.subscription?.plan || 'free';
+    if (currentPlan === 'free') {
+      subscriptionUpdate['usage.messagesThisMonth'] = 0;
+      subscriptionUpdate['usage.apiCallsPerMonth'] = 0;
+      subscriptionUpdate['usage.customResponses'] = 0;
+      subscriptionUpdate['usage.knowledgeBaseEntries'] = 0;
+      subscriptionUpdate['usage.widgetCustomizations'] = 0;
+      subscriptionUpdate['usage.maxFileUploads'] = 0;
+      subscriptionUpdate['usage.lastReset'] = now;
+    }
+    
+    // Apply the update
+    await DatabaseService.updateUser(user._id, subscriptionUpdate);
+    
+    // Log the successful payment with comprehensive details
+    console.log(`✅ Payment verified and user upgraded:`, {
+      userId: user._id,
+      email: user.email,
+      previousPlan: currentPlan,
+      newPlan: planId,
+      planName: planDetails.name,
+      amount: planDetails.price,
+      currency: planDetails.currency,
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      nextBilling: nextBilling.toISOString(),
+      features: Object.keys(planDetails.features).filter(f => planDetails.features[f]),
+      limits: planDetails.limits
+    });
+    
+    // Get updated user data for response
+    const updatedUser = await DatabaseService.findUserById(user._id);
+    
+    res.json({
+      success: true,
+      message: 'Payment verified successfully',
+      subscription: {
+        plan: planId,
+        planName: planDetails.name,
+        status: 'active',
+        nextBilling: nextBilling.toISOString().split('T')[0],
+        currentPeriodStart: now.toISOString().split('T')[0],
+        currentPeriodEnd: nextBilling.toISOString().split('T')[0],
+        amount: planDetails.price,
+        currency: planDetails.currency
+      },
+      planDetails: {
+        limits: planDetails.limits,
+        features: planDetails.features,
+        ui: planDetails.ui
+      },
+      usage: updatedUser.usage,
+      redirectTo: '/payment-success',
+      upgradeDetails: {
+        from: currentPlan,
+        to: planId,
+        newLimits: planDetails.limits,
+        newFeatures: Object.keys(planDetails.features).filter(f => planDetails.features[f])
+      }
+    });
+    
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({
+      error: 'Payment verification failed',
+      details: error.message
+    });
+  }
+});
+
 // Cancel subscription
 router.post('/cancel-subscription', authenticateToken, async (req, res) => {
   try {

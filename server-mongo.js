@@ -1129,8 +1129,11 @@ async function startServer() {
       });
     });
 
+    // Import plan access control middleware
+    const { checkUsageLimit, incrementUsage } = require('./middleware/planAccessControl');
+
     // Chat endpoint
-    app.post('/ask', validateApiKey, async (req, res) => {
+    app.post('/ask', validateApiKey, checkUsageLimit('messagesPerMonth', 1), incrementUsage(DatabaseService), async (req, res) => {
       try {
         const { message, sessionId, website, language } = req.body;
         const user = req.user;
@@ -1288,14 +1291,58 @@ async function startServer() {
       }
     });
 
+    // Plan details endpoint - returns current plan configuration
+    app.get('/api/plan-details', async (req, res) => {
+      try {
+        const { PlanManager } = require('./config/planFeatures');
+        const planId = req.query.plan || 'free';
+        
+        if (planId === 'all') {
+          // Return all plan configurations
+          res.json({
+            success: true,
+            plans: PlanManager.getAllPlans()
+          });
+        } else {
+          // Return specific plan details
+          const planDetails = PlanManager.getPlanDetails(planId);
+          res.json({
+            success: true,
+            plan: planDetails,
+            planId: planId
+          });
+        }
+      } catch (error) {
+        console.error('Plan details fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch plan details' });
+      }
+    });
+
     // Pricing plans endpoint
     app.get('/api/payments/plans', async (req, res) => {
       try {
         const currency = req.query.currency || 'INR';
-        const { PRICING_PLANS } = require('./config/pricing');
+        const { PlanManager } = require('./config/planFeatures');
+        
+        // Use the centralized plan configuration instead of old pricing file
+        const allPlans = PlanManager.getAllPlans();
+        const pricingPlans = {};
+        
+        // Convert to the format expected by the frontend
+        for (const [planId, planDetails] of Object.entries(allPlans)) {
+          pricingPlans[planId] = {
+            name: planDetails.name,
+            price: planDetails.price,
+            currency: planDetails.currency,
+            billingCycle: planDetails.billingCycle,
+            limits: planDetails.limits,
+            features: Object.keys(planDetails.features).filter(feature => planDetails.features[feature]),
+            popular: planId === 'professional' // Mark professional as popular
+          };
+        }
         
         res.json({
-          monthly: PRICING_PLANS,
+          monthly: pricingPlans,
           currency: currency
         });
       } catch (error) {

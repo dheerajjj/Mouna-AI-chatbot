@@ -342,6 +342,26 @@ router.get('/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Get comprehensive plan information and usage summary
+    const { PlanManager } = require('../config/planFeatures');
+    const { getUsageSummary } = require('../middleware/planAccessControl');
+    
+    const currentPlan = user.subscription?.plan || 'free';
+    const planDetails = PlanManager.getPlanDetails(currentPlan);
+    const usageSummary = getUsageSummary(user);
+    
+    // Calculate days until billing renewal
+    let daysUntilRenewal = null;
+    if (user.subscription?.nextBilling) {
+      const nextBilling = new Date(user.subscription.nextBilling);
+      const now = new Date();
+      daysUntilRenewal = Math.ceil((nextBilling - now) / (1000 * 60 * 60 * 24));
+    }
+    
+    // Determine suggested upgrade
+    const nextPlan = PlanManager.getNextPlan(currentPlan);
+    const canUpgrade = !!nextPlan;
+
     res.json({
       user: {
         id: user._id,
@@ -350,12 +370,66 @@ router.get('/profile', authenticateToken, async (req, res) => {
         company: user.company,
         website: user.website,
         phone: user.phone,
-        subscription: user.subscription,
-        usage: user.usage,
-        widgetConfig: user.widgetConfig,
         apiKey: user.apiKey,
         createdAt: user.createdAt,
-        lastLoginAt: user.lastLoginAt
+        lastLoginAt: user.lastLoginAt,
+        
+        // Enhanced subscription information
+        subscription: {
+          ...user.subscription,
+          plan: currentPlan,
+          planName: planDetails.name,
+          status: user.subscription?.status || 'active',
+          nextBilling: user.subscription?.nextBilling,
+          daysUntilRenewal,
+          canCancel: currentPlan !== 'free'
+        },
+        
+        // Enhanced usage with plan context
+        usage: {
+          ...user.usage,
+          summary: usageSummary,
+          messagesThisMonth: user.usage?.messagesThisMonth || 0,
+          totalMessages: user.usage?.totalMessages || 0
+        },
+        
+        // Plan details and features
+        plan: {
+          current: {
+            id: currentPlan,
+            name: planDetails.name,
+            price: planDetails.price,
+            currency: planDetails.currency,
+            billingCycle: planDetails.billingCycle,
+            limits: planDetails.limits,
+            features: planDetails.features,
+            restrictions: planDetails.restrictions,
+            ui: planDetails.ui
+          },
+          upgrade: canUpgrade ? {
+            available: true,
+            suggestedPlan: nextPlan,
+            suggestedPlanDetails: PlanManager.getPlanDetails(nextPlan)
+          } : {
+            available: false,
+            reason: currentPlan === 'enterprise' ? 'Already on highest plan' : 'No upgrades available'
+          }
+        },
+        
+        // Widget configuration
+        widgetConfig: user.widgetConfig,
+        
+        // Account status and capabilities
+        capabilities: {
+          canSendMessages: PlanManager.isWithinLimit(currentPlan, 'messagesPerMonth', user.usage?.messagesThisMonth || 0),
+          canAccessAnalytics: PlanManager.hasFeature(currentPlan, 'basicAnalytics'),
+          canAccessAdvancedAnalytics: PlanManager.hasFeature(currentPlan, 'advancedAnalytics'),
+          canCustomizeBranding: PlanManager.hasFeature(currentPlan, 'customBranding'),
+          hasApiAccess: PlanManager.hasFeature(currentPlan, 'apiAccess'),
+          hasPrioritySupport: PlanManager.hasFeature(currentPlan, 'prioritySupport'),
+          canUseWebhooks: PlanManager.hasFeature(currentPlan, 'webhooks'),
+          canExportData: PlanManager.hasFeature(currentPlan, 'exportData')
+        }
       }
     });
 
