@@ -754,9 +754,59 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication first - redirect to dashboard if already logged in
+            checkAuthenticationAndRedirect();
             setupEventListeners();
             updateBotName();
         });
+        
+        async function checkAuthenticationAndRedirect() {
+            try {
+                // Check for token in URL parameters first (from OAuth callback or email verification)
+                const urlParams = new URLSearchParams(window.location.search);
+                const tokenFromUrl = urlParams.get('token');
+                
+                if (tokenFromUrl) {
+                    console.log('🔑 Token found in URL, storing in localStorage');
+                    // Store token in localStorage
+                    localStorage.setItem('authToken', tokenFromUrl);
+                    // Clean up URL by removing token parameter and redirect to dashboard
+                    window.location.href = '/dashboard';
+                    return;
+                }
+                
+                // Check for existing token in localStorage
+                const existingToken = localStorage.getItem('authToken');
+                if (!existingToken) {
+                    console.log('🔍 No auth token found - user can proceed with setup');
+                    return; // User is not authenticated, let them continue with setup
+                }
+                
+                console.log('🔑 Found existing auth token, verifying with server...');
+                
+                // Verify token with server
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${existingToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    console.log('✅ User is authenticated - redirecting to dashboard');
+                    // User is authenticated, redirect to dashboard
+                    window.location.href = '/dashboard';
+                } else {
+                    console.log('❌ Token is invalid - clearing and allowing setup to continue');
+                    // Token is invalid, clear it and let user continue with setup
+                    localStorage.removeItem('authToken');
+                }
+            } catch (error) {
+                console.error('Error checking authentication:', error);
+                // On error, clear any invalid tokens and let user continue
+                localStorage.removeItem('authToken');
+            }
+        }
 
         function setupEventListeners() {
             // Bot name input
