@@ -1084,11 +1084,27 @@
                 
                 if (data.user) {
                     document.getElementById('user-name').textContent = data.user.name;
-                    document.getElementById('current-plan').textContent = data.user.subscription.plan;
-                    document.getElementById('plan-status').textContent = data.user.subscription.status;
-                    document.getElementById('total-messages').textContent = data.user.usage.totalMessages;
+                    document.getElementById('current-plan').textContent = data.user.plan?.current?.name || data.user.subscription?.plan || 'Free';
+                    document.getElementById('plan-status').textContent = data.user.subscription?.status || 'active';
+                    document.getElementById('total-messages').textContent = data.user.usage?.totalMessages || '0';
                     document.getElementById('api-key').textContent = data.user.apiKey;
-                    document.getElementById('next-billing').textContent = data.user.subscription.nextBilling || 'N/A';
+                    
+                    // Handle next billing date
+                    const nextBilling = data.user.subscription?.nextBilling;
+                    let nextBillingText = 'N/A';
+                    if (nextBilling) {
+                        try {
+                            const date = new Date(nextBilling);
+                            nextBillingText = date.toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'short', 
+                                day: 'numeric'
+                            });
+                        } catch (e) {
+                            nextBillingText = nextBilling;
+                        }
+                    }
+                    document.getElementById('next-billing').textContent = nextBillingText;
                     
                     // Personalize welcome message
                     const welcomeTitle = document.getElementById('welcome-title');
@@ -1103,7 +1119,7 @@
                     integrationCode.innerHTML = integrationCode.innerHTML.replace('YOUR_API_KEY_HERE', data.user.apiKey);
                     
                     // Show upgrade banner based on plan hierarchy
-                    const currentPlan = data.user.subscription.plan;
+                    const currentPlan = data.user.plan?.current?.id || data.user.subscription?.plan || 'free';
                     updateUpgradeBanner(currentPlan);
                     
                     // Apply plan-based UI restrictions
@@ -1350,8 +1366,8 @@
 
         // Smart Usage Statistics Function
         function updateUsageStatistics(user) {
-            const messagesUsed = user.usage.messagesThisMonth || 0;
-            const plan = user.subscription.plan || 'free';
+            const messagesUsed = user.usage?.messagesThisMonth || 0;
+            const plan = user.plan?.current?.id || user.subscription?.plan || 'free';
             
             // Define plan limits
             const planLimits = {
