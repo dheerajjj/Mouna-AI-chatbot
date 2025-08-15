@@ -41,12 +41,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://checkout.razorpay.com", "https://cdnjs.cloudflare.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "http://localhost:3000", "https://localhost:3000", "https://mouna-ai-chatbot-production.up.railway.app"]
+      connectSrc: ["'self'", "http://localhost:3000", "https://localhost:3000", "https://mouna-ai-chatbot-production.up.railway.app", "https://api.razorpay.com"]
     }
   }
 }));
@@ -108,11 +108,19 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files with proper MIME types
+// Serve static files with proper MIME types and cache headers
 app.use(express.static('public', {
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache for JS files
+    } else if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache for CSS files
+    } else if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // No cache for HTML
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=1800'); // 30 minutes for other files
     }
   }
 }));
