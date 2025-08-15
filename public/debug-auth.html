@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication - Mouna AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background: #f5f5f5;
+        }
+        .debug-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .debug-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .debug-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .token-display {
+            background: #f8f8f8;
+            padding: 1rem;
+            border-radius: 4px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 Authentication Debug Tool</h1>
+        <p>This page helps debug authentication issues. Use it to check token storage, API responses, and troubleshoot login problems.</p>
+
+        <div class="debug-section">
+            <h3>1. Local Storage Check</h3>
+            <p><strong>Auth Token:</strong></p>
+            <div class="token-display" id="auth-token-display">Loading...</div>
+            <p><strong>User Data:</strong></p>
+            <div class="token-display" id="user-data-display">Loading...</div>
+            <button class="btn" onclick="refreshLocalStorage()">🔄 Refresh</button>
+            <button class="btn" onclick="clearLocalStorage()">🗑️ Clear All</button>
+        </div>
+
+        <div class="debug-section">
+            <h3>2. API Profile Test</h3>
+            <p>Test if the current token can access the /api/profile endpoint:</p>
+            <button class="btn" onclick="testProfileAPI()">🧪 Test Profile API</button>
+            <div id="profile-test-result"></div>
+        </div>
+
+        <div class="debug-section">
+            <h3>3. Token Decoder</h3>
+            <p>Decode the JWT token to see its contents (client-side only):</p>
+            <button class="btn" onclick="decodeToken()">🔓 Decode Token</button>
+            <div id="token-decode-result"></div>
+        </div>
+
+        <div class="debug-section">
+            <h3>4. Manual Token Test</h3>
+            <p>Enter a token manually to test:</p>
+            <input type="text" id="manual-token" placeholder="Enter JWT token here..." style="width: 100%; padding: 0.5rem; margin-bottom: 0.5rem;">
+            <button class="btn" onclick="testManualToken()">🔍 Test Manual Token</button>
+            <div id="manual-test-result"></div>
+        </div>
+
+        <div class="debug-section">
+            <h3>5. Navigation Actions</h3>
+            <button class="btn" onclick="goToLogin()">🔑 Go to Login</button>
+            <button class="btn" onclick="goToDashboard()">📊 Go to Dashboard</button>
+            <button class="btn" onclick="goToWelcome()">👋 Go to Welcome</button>
+        </div>
+    </div>
+
+    <script>
+        // Utility function to show status messages
+        function showStatus(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // 1. Local Storage Check
+        function refreshLocalStorage() {
+            const authToken = localStorage.getItem('authToken');
+            const userData = localStorage.getItem('user');
+            const pendingLogin = localStorage.getItem('pendingLogin');
+            const pendingRegistration = localStorage.getItem('pendingRegistration');
+
+            document.getElementById('auth-token-display').textContent = authToken || 'No token found';
+            
+            let userDisplay = 'No user data found';
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    userDisplay = JSON.stringify(user, null, 2);
+                } catch (e) {
+                    userDisplay = `Error parsing user data: ${userData}`;
+                }
+            }
+            
+            if (pendingLogin) {
+                userDisplay += `\n\nPending Login: ${pendingLogin}`;
+            }
+            
+            if (pendingRegistration) {
+                userDisplay += `\n\nPending Registration: ${pendingRegistration}`;
+            }
+            
+            document.getElementById('user-data-display').textContent = userDisplay;
+        }
+
+        function clearLocalStorage() {
+            if (confirm('Clear all localStorage data? This will log you out.')) {
+                localStorage.clear();
+                refreshLocalStorage();
+                showStatus('profile-test-result', 'Local storage cleared successfully', 'success');
+            }
+        }
+
+        // 2. Profile API Test
+        async function testProfileAPI() {
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                showStatus('profile-test-result', 'No auth token found in localStorage', 'error');
+                return;
+            }
+
+            showStatus('profile-test-result', 'Testing API call...', 'info');
+
+            try {
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const responseText = await response.text();
+                let responseData;
+                
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch (e) {
+                    responseData = { error: 'Invalid JSON response', raw: responseText };
+                }
+
+                const resultMessage = `
+                    <strong>Status:</strong> ${response.status} ${response.statusText}<br>
+                    <strong>Response:</strong><br>
+                    <pre style="background: #f8f8f8; padding: 1rem; border-radius: 4px; white-space: pre-wrap;">${JSON.stringify(responseData, null, 2)}</pre>
+                `;
+
+                showStatus('profile-test-result', resultMessage, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showStatus('profile-test-result', `Network error: ${error.message}`, 'error');
+            }
+        }
+
+        // 3. Token Decoder
+        function decodeToken() {
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                showStatus('token-decode-result', 'No token found to decode', 'error');
+                return;
+            }
+
+            try {
+                // Simple JWT decode (client-side only, not secure verification)
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid JWT format');
+                }
+
+                const header = JSON.parse(atob(parts[0]));
+                const payload = JSON.parse(atob(parts[1]));
+
+                const decoded = {
+                    header: header,
+                    payload: payload,
+                    signature: parts[2] // Don't decode signature
+                };
+
+                // Check expiration
+                const now = Math.floor(Date.now() / 1000);
+                const isExpired = payload.exp && payload.exp < now;
+                const timeUntilExpiry = payload.exp ? (payload.exp - now) : null;
+
+                let expiryInfo = '';
+                if (payload.exp) {
+                    const expiryDate = new Date(payload.exp * 1000);
+                    expiryInfo = `<br><strong>Expires:</strong> ${expiryDate.toLocaleString()}`;
+                    if (isExpired) {
+                        expiryInfo += ' <span style="color: red;">(EXPIRED)</span>';
+                    } else {
+                        expiryInfo += ` <span style="color: green;">(${Math.floor(timeUntilExpiry / 60)} minutes remaining)</span>`;
+                    }
+                }
+
+                const resultMessage = `
+                    <strong>Token Structure:</strong><br>
+                    <pre style="background: #f8f8f8; padding: 1rem; border-radius: 4px; white-space: pre-wrap;">${JSON.stringify(decoded, null, 2)}</pre>
+                    ${expiryInfo}
+                `;
+
+                showStatus('token-decode-result', resultMessage, isExpired ? 'error' : 'success');
+            } catch (error) {
+                showStatus('token-decode-result', `Error decoding token: ${error.message}`, 'error');
+            }
+        }
+
+        // 4. Manual Token Test
+        async function testManualToken() {
+            const token = document.getElementById('manual-token').value.trim();
+            
+            if (!token) {
+                showStatus('manual-test-result', 'Please enter a token to test', 'error');
+                return;
+            }
+
+            showStatus('manual-test-result', 'Testing manual token...', 'info');
+
+            try {
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const responseData = await response.json();
+
+                if (response.ok) {
+                    showStatus('manual-test-result', `✅ Token is valid! User: ${responseData.user.name} (${responseData.user.email})`, 'success');
+                    
+                    // Offer to save this token
+                    if (confirm('This token works! Save it to localStorage?')) {
+                        localStorage.setItem('authToken', token);
+                        localStorage.setItem('user', JSON.stringify(responseData.user));
+                        showStatus('manual-test-result', '✅ Token saved successfully! You can now navigate to dashboard.', 'success');
+                        refreshLocalStorage();
+                    }
+                } else {
+                    showStatus('manual-test-result', `❌ Token invalid: ${responseData.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('manual-test-result', `Network error: ${error.message}`, 'error');
+            }
+        }
+
+        // 5. Navigation Actions
+        function goToLogin() {
+            window.location.href = '/login';
+        }
+
+        function goToDashboard() {
+            window.location.href = '/dashboard';
+        }
+
+        function goToWelcome() {
+            window.location.href = '/welcome-dashboard';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshLocalStorage();
+        });
+    </script>
+</body>
+</html>

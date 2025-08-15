@@ -1027,8 +1027,11 @@
                 // Get token from localStorage
                 const token = localStorage.getItem('authToken');
                 if (!token) {
+                    console.error('❌ No authentication token found in localStorage');
                     throw new Error('No authentication token found');
                 }
+                
+                console.log('🔑 Found auth token, attempting to fetch user data...');
                 
                 // This would typically be a protected route that requires authentication
                 const response = await fetch('/api/profile', {
@@ -1038,11 +1041,46 @@
                     }
                 });
                 
+                console.log('📡 Profile API response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok
+                });
+                
                 if (!response.ok) {
-                    throw new Error('Failed to fetch user data');
+                    // Get detailed error information
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                        console.error('❌ Profile API error details:', errorData);
+                    } catch (e) {
+                        console.error('❌ Failed to parse error response:', e);
+                        errorData = { error: 'Unknown error' };
+                    }
+                    
+                    // Handle specific authentication errors
+                    if (response.status === 401) {
+                        console.error('❌ Authentication failed - token may be invalid or expired');
+                        console.log('🧹 Clearing invalid token from localStorage');
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('user');
+                        throw new Error(`Authentication failed: ${errorData.error || 'Invalid token'}`);
+                    } else if (response.status === 403) {
+                        console.error('❌ Access forbidden - token verification failed');
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('user');
+                        throw new Error(`Access forbidden: ${errorData.error || 'Token verification failed'}`);
+                    } else {
+                        throw new Error(`API Error (${response.status}): ${errorData.error || 'Failed to fetch user data'}`);
+                    }
                 }
                 
                 const data = await response.json();
+                console.log('✅ Successfully fetched user data:', {
+                    userId: data.user?.id,
+                    userName: data.user?.name,
+                    userEmail: data.user?.email
+                });
                 
                 if (data.user) {
                     document.getElementById('user-name').textContent = data.user.name;
