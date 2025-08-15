@@ -17,10 +17,23 @@ function requireFeature(requiredFeature) {
       }
 
       const userPlan = user.subscription?.plan || 'free';
-      const hasFeature = PlanManager.hasFeature(userPlan, requiredFeature);
+      let hasFeature = false;
+      let nextPlan = null;
+      
+      try {
+        hasFeature = PlanManager.hasFeature(userPlan, requiredFeature);
+        
+        if (!hasFeature) {
+          nextPlan = PlanManager.getNextPlan(userPlan);
+        }
+      } catch (planErr) {
+        console.error('Error checking plan features:', planErr);
+        // Default to denying access if plan check fails
+        hasFeature = false;
+        nextPlan = 'pro'; // Default suggestion
+      }
 
       if (!hasFeature) {
-        const nextPlan = PlanManager.getNextPlan(userPlan);
         return res.status(403).json({
           error: `This feature requires a higher plan subscription`,
           code: 'FEATURE_RESTRICTED',
@@ -63,11 +76,24 @@ function checkUsageLimit(limitType, increment = 1) {
       const currentUsage = user.usage?.[limitType] || 0;
       const newUsage = currentUsage + increment;
       
-      const isWithinLimit = PlanManager.isWithinLimit(userPlan, limitType, newUsage);
+      let isWithinLimit = true;
+      let limit = 'unlimited';
+      let nextPlan = null;
+      
+      try {
+        isWithinLimit = PlanManager.isWithinLimit(userPlan, limitType, newUsage);
+        
+        if (!isWithinLimit) {
+          limit = PlanManager.getLimit(userPlan, limitType);
+          nextPlan = PlanManager.getNextPlan(userPlan);
+        }
+      } catch (planErr) {
+        console.error('Error checking usage limits:', planErr);
+        // Default to allowing access if plan check fails
+        isWithinLimit = true;
+      }
       
       if (!isWithinLimit) {
-        const limit = PlanManager.getLimit(userPlan, limitType);
-        const nextPlan = PlanManager.getNextPlan(userPlan);
         
         return res.status(429).json({
           error: `Usage limit exceeded for ${limitType}`,
@@ -146,10 +172,16 @@ function requirePlan(allowedPlans) {
       const plansArray = Array.isArray(allowedPlans) ? allowedPlans : [allowedPlans];
       
       if (!plansArray.includes(userPlan)) {
-        const hierarchy = PlanManager.getPlanHierarchy();
-        const suggestedPlan = plansArray.find(plan => 
-          PlanManager.canUpgradeTo(userPlan, plan)
-        ) || plansArray[0];
+        let suggestedPlan;
+        try {
+          const hierarchy = PlanManager.getPlanHierarchy();
+          suggestedPlan = plansArray.find(plan => 
+            PlanManager.canUpgradeTo(userPlan, plan)
+          ) || plansArray[0];
+        } catch (planErr) {
+          console.error('Error getting plan hierarchy:', planErr);
+          suggestedPlan = plansArray[0];
+        }
         
         return res.status(403).json({
           error: `This endpoint requires a ${plansArray.join(' or ')} plan subscription`,
@@ -182,17 +214,33 @@ function enrichWithPlanInfo(req, res, next) {
   res.json = function(data) {
     if (req.user && data) {
       const userPlan = req.user.subscription?.plan || 'free';
-      const planDetails = PlanManager.getPlanDetails(userPlan);
       
-      // Add plan context to response
-      if (typeof data === 'object' && !Array.isArray(data)) {
-        data.planContext = {
-          currentPlan: userPlan,
-          planName: planDetails.name,
-          limits: planDetails.limits,
-          features: planDetails.features,
-          canUpgrade: !!PlanManager.getNextPlan(userPlan)
-        };
+      try {
+        const planDetails = PlanManager.getPlanDetails(userPlan);
+        const nextPlan = PlanManager.getNextPlan(userPlan);
+        
+        // Add plan context to response
+        if (typeof data === 'object' && !Array.isArray(data)) {
+          data.planContext = {
+            currentPlan: userPlan,
+            planName: planDetails.name,
+            limits: planDetails.limits,
+            features: planDetails.features,
+            canUpgrade: !!nextPlan
+          };
+        }
+      } catch (planErr) {
+        console.error('Error enriching with plan info:', planErr);
+        // Add minimal plan context on error
+        if (typeof data === 'object' && !Array.isArray(data)) {
+          data.planContext = {
+            currentPlan: userPlan,
+            planName: userPlan,
+            limits: {},
+            features: [],
+            canUpgrade: false
+          };
+        }
       }
     }
     
@@ -209,50 +257,76 @@ function enrichWithPlanInfo(req, res, next) {
  */
 function getUsageSummary(user) {
   const userPlan = user.subscription?.plan || 'free';
-  const planDetails = PlanManager.getPlanDetails(userPlan);
   const usage = user.usage || {};
   
   const summary = {
     plan: userPlan,
-    planName: planDetails.name,
+    planName: userPlan, // fallback
     usage: {},
     warnings: [],
     isNearLimit: false,
     isOverLimit: false
   };
   
-  // Calculate usage percentages for each limit
-  for (const [limitType, limit] of Object.entries(planDetails.limits)) {
-    const currentUsage = usage[limitType] || 0;
-    const percentage = PlanManager.calculateUsagePercentage(userPlan, limitType, currentUsage);
-    const isWithinLimit = PlanManager.isWithinLimit(userPlan, limitType, currentUsage);
+  try {
+    const planDetails = PlanManager.getPlanDetails(userPlan);
+    summary.planName = planDetails.name;
     
-    summary.usage[limitType] = {
-      current: currentUsage,
-      limit,
-      percentage: Math.round(percentage),
-      isWithinLimit,
-      isUnlimited: limit === 'unlimited'
-    };
-    
-    // Generate warnings
-    if (limit !== 'unlimited') {
-      if (percentage >= 90) {
-        summary.warnings.push({
-          type: 'critical',
-          limitType,
-          message: `You've used ${Math.round(percentage)}% of your ${limitType} limit`
-        });
-        summary.isOverLimit = true;
-      } else if (percentage >= 75) {
-        summary.warnings.push({
-          type: 'warning',
-          limitType,
-          message: `You've used ${Math.round(percentage)}% of your ${limitType} limit`
-        });
-        summary.isNearLimit = true;
+    // Calculate usage percentages for each limit
+    for (const [limitType, limit] of Object.entries(planDetails.limits)) {
+      const currentUsage = usage[limitType] || 0;
+      
+      try {
+        const percentage = PlanManager.calculateUsagePercentage(userPlan, limitType, currentUsage);
+        const isWithinLimit = PlanManager.isWithinLimit(userPlan, limitType, currentUsage);
+        
+        summary.usage[limitType] = {
+          current: currentUsage,
+          limit,
+          percentage: Math.round(percentage),
+          isWithinLimit,
+          isUnlimited: limit === 'unlimited'
+        };
+        
+        // Generate warnings
+        if (limit !== 'unlimited') {
+          if (percentage >= 90) {
+            summary.warnings.push({
+              type: 'critical',
+              limitType,
+              message: `You've used ${Math.round(percentage)}% of your ${limitType} limit`
+            });
+            summary.isOverLimit = true;
+          } else if (percentage >= 75) {
+            summary.warnings.push({
+              type: 'warning',
+              limitType,
+              message: `You've used ${Math.round(percentage)}% of your ${limitType} limit`
+            });
+            summary.isNearLimit = true;
+          }
+        }
+      } catch (limitErr) {
+        console.error(`Error calculating usage for ${limitType}:`, limitErr);
+        // Provide fallback data for this limit
+        summary.usage[limitType] = {
+          current: currentUsage,
+          limit,
+          percentage: 0,
+          isWithinLimit: true,
+          isUnlimited: limit === 'unlimited'
+        };
       }
     }
+  } catch (planErr) {
+    console.error('Error getting usage summary:', planErr);
+    // Return minimal summary on plan error
+    summary.usage = {};
+    summary.warnings = [{
+      type: 'error',
+      limitType: 'general',
+      message: 'Unable to load plan details'
+    }];
   }
   
   return summary;
