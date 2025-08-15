@@ -726,18 +726,57 @@
         }
         
         function showUpgradeModal(plan) {
-            const planNames = {
-                starter: 'Starter Plan (₹499/month)',
-                professional: 'Professional Plan (₹1,499/month)',
-                enterprise: 'Enterprise Plan (Contact for pricing)'
+            const planDetails = {
+                starter: {
+                    name: 'Starter Plan',
+                    price: '₹499/month',
+                    features: [
+                        '1,000 messages per month',
+                        'Custom widget branding',
+                        'Priority email support',
+                        'Advanced AI responses',
+                        'Basic analytics',
+                        'Widget customization'
+                    ]
+                },
+                professional: {
+                    name: 'Professional Plan', 
+                    price: '₹1,499/month',
+                    features: [
+                        '5,000 messages per month',
+                        'Advanced analytics dashboard',
+                        'API access and webhooks',
+                        'Priority support + live chat',
+                        'Enhanced AI capabilities',
+                        'Custom integrations',
+                        'White-label options'
+                    ]
+                }
             };
             
-            const planName = planNames[plan] || 'Selected Plan';
+            const selectedPlan = planDetails[plan];
+            if (!selectedPlan) {
+                alert('Invalid plan selected');
+                // Clean up URL parameter
+                window.history.replaceState({}, '', '/dashboard');
+                return;
+            }
             
-            if (confirm(`Upgrade to ${planName}?\n\nThis will redirect you to our secure payment page.`)) {
-                // In a real implementation, this would redirect to your payment processor
-                // For now, we'll show a placeholder
+            const currentPlanName = window.currentUserPlan || 'free';
+            const featuresText = selectedPlan.features.map(f => `• ${f}`).join('\n');
+            
+            const confirmMessage = `Upgrade to ${selectedPlan.name}?\n\n` +
+                                 `Price: ${selectedPlan.price}\n\n` +
+                                 `You'll get:\n${featuresText}\n\n` +
+                                 `This will upgrade you from ${currentPlanName} plan.\n\n` +
+                                 `Continue to secure payment?`;
+            
+            if (confirm(confirmMessage)) {
+                // Proceed with upgrade
                 initiateUpgrade(plan);
+            } else {
+                // User cancelled, clean up URL parameter
+                window.history.replaceState({}, '', '/dashboard');
             }
         }
         
@@ -1759,56 +1798,6 @@
             showUpgradeModal(targetPlan);
         }
         
-        // Enhanced upgrade modal with plan comparison
-        function showUpgradeModal(plan) {
-            const planDetails = {
-                starter: {
-                    name: 'Starter Plan',
-                    price: '₹499/month',
-                    features: [
-                        '1,000 messages per month',
-                        'Custom widget branding',
-                        'Priority email support',
-                        'Advanced AI responses',
-                        'Basic analytics',
-                        'Widget customization'
-                    ]
-                },
-                professional: {
-                    name: 'Professional Plan', 
-                    price: '₹1,499/month',
-                    features: [
-                        '5,000 messages per month',
-                        'Advanced analytics dashboard',
-                        'API access and webhooks',
-                        'Priority support + live chat',
-                        'Enhanced AI capabilities',
-                        'Custom integrations',
-                        'White-label options'
-                    ]
-                }
-            };
-            
-            const selectedPlan = planDetails[plan];
-            if (!selectedPlan) {
-                alert('Invalid plan selected');
-                return;
-            }
-            
-            const currentPlanName = window.currentUserPlan || 'free';
-            const featuresText = selectedPlan.features.map(f => `• ${f}`).join('\n');
-            
-            const confirmMessage = `Upgrade to ${selectedPlan.name}?\n\n` +
-                                 `Price: ${selectedPlan.price}\n\n` +
-                                 `You'll get:\n${featuresText}\n\n` +
-                                 `This will upgrade you from ${currentPlanName} plan.\n\n` +
-                                 `Continue to secure payment?`;
-            
-            if (confirm(confirmMessage)) {
-                // Proceed with upgrade
-                initiateUpgrade(plan);
-            }
-        }
         
         // Helper function to get plan-specific colors
         function getPlanColor(plan) {
