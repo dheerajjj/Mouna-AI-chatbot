@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const { User, Subscription } = require('../mockDB');
+const { User, Subscription } = require('../models/User');
 const { PRICING_PLANS } = require('../config/pricing');
 const { authenticateToken } = require('./auth');
 const DatabaseService = require('../services/DatabaseService');
@@ -25,9 +25,9 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
 router.get('/plans', async (req, res) => {
   try {
     const currency = 'INR';
-    const pricing = PRICING_PLANS[currency];
+    // PRICING_PLANS is a flat structure, not nested by currency
     res.json({
-      monthly: pricing,
+      monthly: PRICING_PLANS,
       currency: currency
     });
   } catch (error) {
@@ -50,7 +50,7 @@ router.post('/create-subscription', authenticateToken, async (req, res) => {
 
     const { planId } = req.body;
 
-    const user = await User.findById(req.user.userId);
+    const user = await DatabaseService.findUserById(req.user.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
