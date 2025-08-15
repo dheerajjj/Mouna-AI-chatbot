@@ -447,12 +447,14 @@ router.get('/profile', authenticateToken, async (req, res) => {
     }
     
     // Determine suggested upgrade
-    let nextPlan, canUpgrade;
+    let nextPlan, canUpgrade, planManagerForUpgrade;
     try {
       const { PlanManager } = require('../config/planFeatures');
+      planManagerForUpgrade = PlanManager;
       nextPlan = PlanManager.getNextPlan(currentPlan);
       canUpgrade = !!nextPlan;
     } catch (err) {
+      planManagerForUpgrade = null;
       nextPlan = null;
       canUpgrade = false;
     }
@@ -504,7 +506,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
           upgrade: canUpgrade ? {
             available: true,
             suggestedPlan: nextPlan,
-            suggestedPlanDetails: PlanManager.getPlanDetails(nextPlan)
+            suggestedPlanDetails: planManagerForUpgrade ? planManagerForUpgrade.getPlanDetails(nextPlan) : null
           } : {
             available: false,
             reason: currentPlan === 'enterprise' ? 'Already on highest plan' : 'No upgrades available'
