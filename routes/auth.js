@@ -839,18 +839,28 @@ router.post('/verify-email-and-create-account', [
   body('userData.website').optional()
 ], async (req, res) => {
   try {
+    console.log('🚀 NEW ACCOUNT CREATION - OTP verification and account creation started');
+    console.log('📧 Request body email:', req.body.email);
+    console.log('🔢 Request body OTP:', req.body.otp);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
     }
 
     const { email, otp, userData } = req.body;
     const { name, password, company, website, phone } = userData;
 
+    console.log(`🔍 Attempting to verify OTP for email: ${email}`);
+    console.log(`🔐 OTP to verify: ${otp}`);
+    
     // Verify OTP first
     const verificationResult = await OTPService.verifyOTP(email, otp);
+    console.log('📊 OTP verification result:', verificationResult);
     
     if (!verificationResult.success) {
+      console.log('❌ OTP verification failed:', verificationResult);
       return res.status(400).json({
         success: false,
         error: verificationResult.error || 'Invalid or expired OTP',

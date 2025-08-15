@@ -132,7 +132,10 @@ router.post('/verify-otp', async (req, res) => {
     try {
         const { email, otp } = req.body;
         
+        console.log(`🔍 Robust Email Validation - OTP verification attempt for: ${email}`);
+        
         if (!email || !otp) {
+            console.log('❌ Missing email or OTP parameters');
             return res.status(400).json({
                 success: false,
                 reason: 'Email and OTP are required',
@@ -140,10 +143,14 @@ router.post('/verify-otp', async (req, res) => {
             });
         }
         
-        // Verify OTP
+        // Verify OTP using RobustEmailValidator
+        console.log(`🔐 Verifying OTP: ${otp} for email: ${email}`);
         const verificationResult = RobustEmailValidator.verifyOTP(email, otp);
+        console.log('📊 RobustEmailValidator verification result:', verificationResult);
         
         if (verificationResult.success) {
+            console.log('✅ OTP verified successfully with RobustEmailValidator');
+            
             // Re-validate email to get updated verified status
             const validationResult = await RobustEmailValidator.validateEmail(email, { requireOTP: false });
             
@@ -158,7 +165,20 @@ router.post('/verify-otp', async (req, res) => {
                 }
             });
         } else {
-            res.status(400).json(verificationResult);
+            console.log('❌ OTP verification failed with RobustEmailValidator:', verificationResult);
+            
+            // Format the error response to match the expected format
+            const errorResponse = {
+                success: false,
+                error: verificationResult.reason || 'OTP verification failed',
+                code: verificationResult.code || 'VERIFICATION_FAILED'
+            };
+            
+            if (verificationResult.attemptsRemaining !== undefined) {
+                errorResponse.attemptsRemaining = verificationResult.attemptsRemaining;
+            }
+            
+            res.status(400).json(errorResponse);
         }
         
     } catch (error) {

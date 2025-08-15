@@ -182,6 +182,16 @@
             redirectDestination = '/dashboard';
         }
         
+        // Override if coming from signup (check for pending registration)
+        const pendingRegistration = localStorage.getItem('pendingRegistration');
+        if (pendingRegistration) {
+            console.log('🔍 Found pending registration, forcing signup flow');
+            flowType = 'signup';
+            apiEndpoint = '/api/verify-email-and-create-account';
+            resendEndpoint = '/api/resend-signup-otp';
+            redirectDestination = '/welcome-dashboard';
+        }
+        
         // Check localStorage for flow context
         const pendingLogin = localStorage.getItem('pendingLogin');
         if (pendingLogin) {
