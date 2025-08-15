@@ -726,6 +726,8 @@
         }
         
         function showUpgradeModal(plan) {
+            console.log('🚀 showUpgradeModal called with plan:', plan);
+            
             const planDetails = {
                 starter: {
                     name: 'Starter Plan',
@@ -755,8 +757,11 @@
             };
             
             const selectedPlan = planDetails[plan];
+            console.log('📋 Selected plan details:', selectedPlan);
+            
             if (!selectedPlan) {
-                alert('Invalid plan selected');
+                console.error('❌ Invalid plan selected:', plan);
+                alert('Invalid plan selected: ' + plan);
                 // Clean up URL parameter
                 window.history.replaceState({}, '', '/dashboard');
                 return;
@@ -781,6 +786,8 @@
         }
         
         function initiateUpgrade(plan) {
+            console.log('💳 initiateUpgrade called with plan:', plan);
+            
             // Plan details for Razorpay
             const planDetails = {
                 starter: { amount: 49900, name: 'Starter Plan' }, // Amount in paise (₹499 = 49900 paise)
@@ -789,25 +796,36 @@
             };
 
             const selectedPlan = planDetails[plan];
+            console.log('💰 Selected plan for payment:', selectedPlan);
+            
             if (!selectedPlan) {
-                alert('Invalid plan selected');
+                console.error('❌ Invalid plan in initiateUpgrade:', plan);
+                alert('Invalid plan selected: ' + plan);
                 return;
             }
 
             // First, try to create a proper payment order from backend
+            console.log('📡 Calling createPaymentOrder...');
             createPaymentOrder(plan, selectedPlan);
         }
         // Create payment order through backend
         async function createPaymentOrder(plan, selectedPlan) {
+            console.log('🔄 createPaymentOrder called with:', { plan, selectedPlan });
+            
             try {
                 const token = localStorage.getItem('authToken');
+                console.log('🔑 Auth token check:', token ? 'Found' : 'Missing');
+                
                 if (!token) {
+                    console.error('❌ No auth token - redirecting to login');
                     alert('Please log in to continue');
                     window.location.href = '/login';
                     return;
                 }
 
                 // Call backend to create Razorpay order
+                console.log('📡 Calling /api/payments/create-subscription with planId:', plan);
+                
                 const response = await fetch('/api/payments/create-subscription', {
                     method: 'POST',
                     headers: {
@@ -817,23 +835,29 @@
                     body: JSON.stringify({ planId: plan })
                 });
 
+                console.log('📡 API Response status:', response.status, response.statusText);
+
                 if (response.status === 503) {
-                    // Payment service unavailable - show simulation
+                    console.log('⚠️ Payment service unavailable (503) - showing fallback');
                     showPaymentFallback(plan, selectedPlan);
                     return;
                 }
 
                 const orderData = await response.json();
+                console.log('📦 API Response data:', orderData);
                 
                 if (!response.ok) {
+                    console.error('❌ API request failed:', orderData);
                     throw new Error(orderData.error || 'Failed to create payment order');
                 }
 
+                console.log('✅ Payment order created successfully, initializing Razorpay...');
                 // Initialize Razorpay with proper order
                 initializeRazorpayPayment(orderData.order, plan, selectedPlan);
                 
             } catch (error) {
-                console.error('Error creating payment order:', error);
+                console.error('💥 Error creating payment order:', error);
+                console.log('🔄 Falling back to payment simulation...');
                 showPaymentFallback(plan, selectedPlan);
             }
         }
@@ -1639,16 +1663,23 @@
             // Check if analytics section already exists
             let analyticsCard = document.getElementById('analytics-preview');
             
+            // Check if user has analytics access (basic OR advanced analytics)
+            const hasAnalyticsAccess = planDetails.features.basicAnalytics || planDetails.features.advancedAnalytics;
+            console.log('🔍 Analytics access check:', { plan, hasBasic: planDetails.features.basicAnalytics, hasAdvanced: planDetails.features.advancedAnalytics, hasAccess: hasAnalyticsAccess });
+            
             if (!analyticsCard) {
                 // Create analytics preview card
                 analyticsCard = document.createElement('div');
                 analyticsCard.id = 'analytics-preview';
                 analyticsCard.className = 'card';
-                analyticsCard.style.cssText = planDetails.features.analytics ? '' : 'opacity: 0.6; position: relative;';
+                analyticsCard.style.cssText = hasAnalyticsAccess ? '' : 'opacity: 0.6; position: relative;';
+                
+                const analyticsLevel = planDetails.features.advancedAnalytics ? 'Advanced Analytics' : 
+                                     planDetails.features.basicAnalytics ? 'Basic Analytics' : 'Analytics';
                 
                 analyticsCard.innerHTML = `
-                    <h3><i class="fas fa-chart-bar"></i> Analytics <span class="feature-badge">${planDetails.features.analytics ? 'Available' : 'Pro Feature'}</span></h3>
-                    <div style="${planDetails.features.analytics ? '' : 'filter: blur(2px);'}">
+                    <h3><i class="fas fa-chart-bar"></i> ${analyticsLevel} <span class="feature-badge">${hasAnalyticsAccess ? 'Available' : 'Pro Feature'}</span></h3>
+                    <div style="${hasAnalyticsAccess ? '' : 'filter: blur(2px);'}">
                         <div class="stat-card" style="margin-bottom: 0.5rem; padding: 0.8rem;">
                             <div class="stat-value" style="font-size: 1.5rem;">42%</div>
                             <div class="stat-label" style="font-size: 0.8rem;">Avg. Response Rate</div>
@@ -1663,11 +1694,17 @@
                                 <div style="font-size: 0.8rem; color: #718096;">Avg. Response Time</div>
                             </div>
                         </div>
+                        ${planDetails.features.advancedAnalytics ? `
+                        <div style="margin-top: 1rem; padding: 0.8rem; background: #f0f9ff; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                            <div style="font-size: 0.9rem; color: #1e40af; font-weight: 600;">✨ Advanced Features Active</div>
+                            <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">Real-time dashboards, custom reports, and export capabilities</div>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
                 
-                // Add upgrade overlay for non-pro users
-                if (!planDetails.features.analytics) {
+                // Add upgrade overlay for non-analytics users
+                if (!hasAnalyticsAccess) {
                     const overlay = document.createElement('div');
                     overlay.style.cssText = `
                         position: absolute;
@@ -1686,7 +1723,7 @@
                         <div style="text-align: center; padding: 1rem;">
                             <i class="fas fa-lock" style="font-size: 2rem; color: #f59e0b; margin-bottom: 0.5rem;"></i>
                             <div style="font-weight: bold; color: #1e293b; margin-bottom: 0.5rem;">Unlock Analytics</div>
-                            <div style="font-size: 0.9rem; color: #64748b;">Upgrade to Professional</div>
+                            <div style="font-size: 0.9rem; color: #64748b;">Upgrade to Starter or higher</div>
                         </div>
                     `;
                     overlay.onclick = () => window.location.href = '/pricing?feature=analytics';
@@ -1705,9 +1742,9 @@
             // Update feature badge
             const featureBadge = analyticsCard.querySelector('.feature-badge');
             if (featureBadge) {
-                featureBadge.textContent = planDetails.features.analytics ? 'Available' : 'Pro Feature';
+                featureBadge.textContent = hasAnalyticsAccess ? 'Available' : 'Pro Feature';
                 featureBadge.style.cssText = `
-                    background: ${planDetails.features.analytics ? '#48bb78' : '#f59e0b'};
+                    background: ${hasAnalyticsAccess ? '#48bb78' : '#f59e0b'};
                     color: white;
                     padding: 0.2rem 0.5rem;
                     border-radius: 4px;
