@@ -62,14 +62,6 @@ const userSchema = new mongoose.Schema({
       enum: ['active', 'cancelled', 'past_due', 'unpaid'],
       default: 'active'
     },
-    stripeCustomerId: {
-      type: String,
-      sparse: true
-    },
-    stripeSubscriptionId: {
-      type: String,
-      sparse: true
-    },
     currentPeriodStart: {
       type: Date,
       default: Date.now
@@ -78,9 +70,21 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
     },
-    cancelAtPeriodEnd: {
-      type: Boolean,
-      default: false
+    razorpayPaymentId: {
+      type: String,
+      sparse: true
+    },
+    razorpayOrderId: {
+      type: String,
+      sparse: true
+    },
+    lastPayment: {
+      amount: Number,
+      currency: String,
+      date: Date,
+      paymentId: String,
+      planId: String,
+      planName: String
     }
   },
   
@@ -231,42 +235,43 @@ userSchema.methods.incrementMessageCount = function() {
   return this.save();
 };
 
-// Subscription Schema for detailed tracking
-const subscriptionSchema = new mongoose.Schema({
+// Payment Transaction Schema for detailed tracking
+const paymentTransactionSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  stripeSubscriptionId: {
+  razorpayPaymentId: {
     type: String,
     required: true,
     unique: true
   },
-  stripePriceId: String,
+  razorpayOrderId: {
+    type: String,
+    required: true
+  },
   plan: {
     type: String,
     enum: ['starter', 'professional', 'enterprise'],
     required: true
   },
-  interval: {
+  planName: String,
+  amount: Number, // Amount in INR
+  currency: {
     type: String,
-    enum: ['month', 'year'],
-    required: true
+    default: 'INR'
   },
   status: {
     type: String,
-    enum: ['active', 'cancelled', 'past_due', 'unpaid', 'incomplete'],
+    enum: ['created', 'authorized', 'captured', 'failed', 'refunded'],
     required: true
   },
-  currentPeriodStart: Date,
-  currentPeriodEnd: Date,
-  cancelAtPeriodEnd: Boolean,
-  canceledAt: Date,
-  amount: Number, // Amount in paisa (INR cents)
-  currency: {
+  paymentMethod: String,
+  billingCycle: {
     type: String,
-    default: 'inr'
+    enum: ['monthly', 'yearly'],
+    default: 'monthly'
   },
   metadata: mongoose.Schema.Types.Mixed
 }, {
@@ -308,11 +313,11 @@ messageLogSchema.index({ userId: 1, timestamp: -1 });
 messageLogSchema.index({ website: 1, timestamp: -1 });
 
 const User = mongoose.model('User', userSchema);
-const Subscription = mongoose.model('Subscription', subscriptionSchema);
+const PaymentTransaction = mongoose.model('PaymentTransaction', paymentTransactionSchema);
 const MessageLog = mongoose.model('MessageLog', messageLogSchema);
 
 module.exports = {
   User,
-  Subscription,
+  PaymentTransaction,
   MessageLog
 };
