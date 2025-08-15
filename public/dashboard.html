@@ -1011,11 +1011,12 @@
 
         async function loadUserData() {
             try {
-                // Check for token in URL parameters first (from OAuth callback)
+                // Check for token in URL parameters first (from OAuth callback or OTP verification)
                 const urlParams = new URLSearchParams(window.location.search);
                 const tokenFromUrl = urlParams.get('token');
                 
                 if (tokenFromUrl) {
+                    console.log('🔑 Token found in URL, storing in localStorage');
                     // Store token in localStorage
                     localStorage.setItem('authToken', tokenFromUrl);
                     // Clean up URL by removing token parameter
@@ -1026,8 +1027,11 @@
                 
                 // Get token from localStorage
                 const token = localStorage.getItem('authToken');
+                console.log('🔍 Checking for auth token:', token ? 'Found' : 'Not found');
+                
                 if (!token) {
                     console.error('❌ No authentication token found in localStorage');
+                    console.log('🧹 Redirecting to login page');
                     throw new Error('No authentication token found');
                 }
                 

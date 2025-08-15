@@ -330,10 +330,23 @@
                     successMessage.textContent = successText;
                     successMessage.style.display = 'block';
                     
-                    // Store auth token
+                    // Store auth token with multiple persistence attempts
+                    console.log('🔑 Storing auth token in localStorage...');
                     localStorage.setItem('authToken', data.token);
                     if (data.user) {
                         localStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                    
+                    // Verify storage worked
+                    const storedToken = localStorage.getItem('authToken');
+                    console.log('✅ Token stored successfully:', storedToken ? 'Yes' : 'No');
+                    
+                    // Force immediate save to localStorage (browser-dependent)
+                    try {
+                        localStorage.setItem('_temp_test', 'test');
+                        localStorage.removeItem('_temp_test');
+                    } catch (e) {
+                        console.warn('localStorage might have issues:', e);
                     }
                     
                     // Clear stored data based on flow type
@@ -344,12 +357,22 @@
                         localStorage.removeItem('pendingLogin');
                     }
                     
-                    // Redirect based on flow and response
+                    // Redirect based on flow and response, with token in URL as backup
                     const finalRedirect = data.redirectTo || redirectDestination;
+                    // Ensure token is properly stored before redirect
+                    localStorage.setItem('authToken', data.token);
+                    if (data.user) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                    
+                    // Extend the delay to 2500ms to ensure localStorage has time to persist
                     setTimeout(() => {
-                        console.log(`Redirecting to: ${finalRedirect}`);
-                        window.location.href = finalRedirect;
-                    }, 1500);
+                        console.log(`Token stored. Redirecting to: ${finalRedirect}`);
+                        // Add token to URL as fallback for better reliability
+                        const redirectUrl = finalRedirect + (finalRedirect.includes('?') ? '&' : '?') + 
+                                          `token=${encodeURIComponent(data.token)}`;
+                        window.location.href = redirectUrl;
+                    }, 2500);
                 } else {
                     let errorText = data.error || 'Invalid verification code. Please try again.';
                     
