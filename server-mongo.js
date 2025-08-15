@@ -1656,6 +1656,11 @@ app.get('/email-validation-test', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'debug-chat.html'));
     });
     
+    // Add debug token route
+    app.get('/debug-token', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'debug-token.html'));
+    });
+    
     // Add widget test page route
     app.get('/widget-test', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'widget-test.html'));
