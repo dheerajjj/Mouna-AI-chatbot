@@ -149,8 +149,7 @@ const { initializeOAuth } = require('./config/oauth');
 // Initialize OAuth strategies after DatabaseService is available
 let oauthInitialized = false;
 
-app.use(passport.initialize());
-app.use(passport.session());
+// Note: Passport middleware will be initialized after session middleware
 
 // API Key validation middleware
 async function validateApiKey(req, res, next) {
@@ -242,6 +241,10 @@ async function startServer() {
     
     // Apply session middleware
     app.use(sessionMiddleware);
+    
+    // Initialize Passport middleware after session middleware
+    app.use(passport.initialize());
+    app.use(passport.session());
     
     // Initialize OAuth strategies now that DatabaseService is ready
     if (!oauthInitialized) {
