@@ -42,13 +42,15 @@ class Database {
     } catch (error) {
       console.error('❌ MongoDB connection failed:', error.message);
       
-      // Fallback to mock database in development
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('🔄 Falling back to mock database for development...');
-        return null; // This will trigger mock database usage
+      // In production, MongoDB is required
+      if (process.env.NODE_ENV === 'production') {
+        console.error('❌ MongoDB connection required in production!');
+        throw error;
       }
       
-      throw error;
+      // Only fallback to mock in development
+      console.log('🔄 Falling back to mock database for development...');
+      return null; // This will trigger mock database usage
     }
   }
 

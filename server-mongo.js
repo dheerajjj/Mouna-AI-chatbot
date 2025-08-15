@@ -140,13 +140,8 @@ app.use('/images', express.static('images', {
   }
 }));
 
-// Session middleware for OAuth
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false } // Set to true in production with HTTPS
-}));
+// Session middleware for OAuth (will be configured after DB connection)
+let sessionMiddleware;
 
 // Initialize Passport and OAuth
 const passport = require('passport');
@@ -215,6 +210,38 @@ async function startServer() {
     const dbStatus = DatabaseService.getConnectionStatus();
     
     console.log(`📊 Database: ${dbStatus.type} (${dbStatus.status})`);
+    
+    // Configure session middleware with proper store
+    if (mongoConnected) {
+      // Use MongoDB session store for production
+      const MongoStore = require('connect-mongo');
+      sessionMiddleware = session({
+        secret: process.env.SESSION_SECRET || 'your-secret-key',
+        resave: false,
+        saveUninitialized: false,
+        store: MongoStore.create({
+          mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-chatbot',
+          touchAfter: 24 * 3600 // lazy session update
+        }),
+        cookie: { 
+          secure: process.env.NODE_ENV === 'production', // HTTPS in production
+          maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+        }
+      });
+      console.log('✅ MongoDB session store configured');
+    } else {
+      // Fallback to memory store (development only)
+      sessionMiddleware = session({
+        secret: process.env.SESSION_SECRET || 'your-secret-key',
+        resave: false,
+        saveUninitialized: false,
+        cookie: { secure: false }
+      });
+      console.log('⚠️ Using memory session store (development only)');
+    }
+    
+    // Apply session middleware
+    app.use(sessionMiddleware);
     
     // Initialize OAuth strategies now that DatabaseService is ready
     if (!oauthInitialized) {
