@@ -1432,28 +1432,33 @@
         
         // Apply plan-based UI restrictions
         function applyPlanRestrictions(user) {
-            if (!planManager || !featureGate) {
-                console.warn('Plan manager or feature gate not initialized');
-                return;
+            try {
+                if (!planManager || !featureGate) {
+                    console.warn('Plan manager or feature gate not initialized');
+                    return;
+                }
+                
+                const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
+                const usage = user.usage || {};
+                
+                console.log('Applying plan restrictions for:', currentPlan);
+                
+                // Get plan details from plan manager
+                const planDetails = planManager.getPlanDetails(currentPlan);
+                const usagePercentage = planManager.calculateUsagePercentage(currentPlan, usage.messagesThisMonth || 0);
+                
+                // Apply feature restrictions based on plan
+                applyFeatureRestrictions(currentPlan, planDetails, usage, usagePercentage);
+                
+                // Add upgrade prompts for limited features
+                addUpgradePrompts(currentPlan, planDetails);
+                
+                // Show plan-specific UI hints
+                showPlanHints(currentPlan, planDetails, usage);
+            } catch (error) {
+                console.warn('Error applying plan restrictions:', error);
+                // Don't throw error - just log it and continue
             }
-            
-            const currentPlan = user.subscription.plan || 'free';
-            const usage = user.usage || {};
-            
-            console.log('Applying plan restrictions for:', currentPlan);
-            
-            // Get plan details from plan manager
-            const planDetails = planManager.getPlanDetails(currentPlan);
-            const usagePercentage = planManager.calculateUsagePercentage(currentPlan, usage.messagesThisMonth || 0);
-            
-            // Apply feature restrictions based on plan
-            applyFeatureRestrictions(currentPlan, planDetails, usage, usagePercentage);
-            
-            // Add upgrade prompts for limited features
-            addUpgradePrompts(currentPlan, planDetails);
-            
-            // Show plan-specific UI hints
-            showPlanHints(currentPlan, planDetails, usage);
         }
         
         // Apply feature restrictions based on current plan
