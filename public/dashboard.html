@@ -1173,9 +1173,22 @@
                     
                     // Apply plan-based UI restrictions
                     applyPlanRestrictions(data.user);
+                    
+                    // Check for pending upgrades after successful authentication
+                    checkPendingUpgrade();
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
+                // Preserve upgrade parameter through login redirect
+                const urlParams = new URLSearchParams(window.location.search);
+                const upgradePlan = urlParams.get('upgrade');
+                
+                if (upgradePlan) {
+                    // Store upgrade intention for after login
+                    localStorage.setItem('pendingUpgrade', upgradePlan);
+                    console.log('💾 Storing pending upgrade:', upgradePlan);
+                }
+                
                 // Redirect to login if not authenticated
                 window.location.href = '/login';
             }
@@ -1791,6 +1804,24 @@
             showUpgradeModal(targetPlan);
         }
         
+        
+        // Check for pending upgrades after successful authentication
+        function checkPendingUpgrade() {
+            const pendingUpgrade = localStorage.getItem('pendingUpgrade');
+            
+            if (pendingUpgrade) {
+                console.log('🔄 Found pending upgrade:', pendingUpgrade);
+                
+                // Remove from localStorage to prevent repeated prompts
+                localStorage.removeItem('pendingUpgrade');
+                
+                // Delay slightly to ensure user data is fully loaded
+                setTimeout(() => {
+                    console.log('🚀 Triggering pending upgrade modal for:', pendingUpgrade);
+                    showUpgradeModal(pendingUpgrade);
+                }, 500);
+            }
+        }
         
         // Helper function to get plan-specific colors
         function getPlanColor(plan) {
