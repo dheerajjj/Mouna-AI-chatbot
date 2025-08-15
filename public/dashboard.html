@@ -740,23 +740,71 @@
                 return;
             }
 
-            // Initialize Razorpay payment
+            // First, try to create a proper payment order from backend
+            createPaymentOrder(plan, selectedPlan);
+        }
+        // Create payment order through backend
+        async function createPaymentOrder(plan, selectedPlan) {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    alert('Please log in to continue');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                // Call backend to create Razorpay order
+                const response = await fetch('/api/payments/create-subscription', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ planId: plan })
+                });
+
+                if (response.status === 503) {
+                    // Payment service unavailable - show simulation
+                    showPaymentFallback(plan, selectedPlan);
+                    return;
+                }
+
+                const orderData = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(orderData.error || 'Failed to create payment order');
+                }
+
+                // Initialize Razorpay with proper order
+                initializeRazorpayPayment(orderData.order, plan, selectedPlan);
+                
+            } catch (error) {
+                console.error('Error creating payment order:', error);
+                showPaymentFallback(plan, selectedPlan);
+            }
+        }
+
+        // Initialize Razorpay payment with backend order
+        function initializeRazorpayPayment(order, plan, selectedPlan) {
+            // Get user data for prefill
+            const userName = document.getElementById('user-name').textContent || '';
+            
             const options = {
-                key: 'rzp_live_R5KFWsStzaOKbe', // Live Razorpay key
-                amount: selectedPlan.amount,
-                currency: 'INR',
+                key: order.key || 'rzp_test_demo', // Will be provided by backend
+                amount: order.amount,
+                currency: order.currency,
                 name: 'Mouna AI',
                 description: `${selectedPlan.name} Subscription`,
                 image: '/images/logo.png',
-                order_id: '', // Will be generated from backend in production
+                order_id: order.id,
                 handler: function (response) {
                     // Payment success callback
                     handlePaymentSuccess(response, plan);
                 },
                 prefill: {
-                    name: document.getElementById('user-name').textContent || '',
-                    email: 'user@example.com', // Get from user profile
-                    contact: '9999999999' // Get from user profile
+                    name: userName,
+                    email: '', // Will be populated from user profile
+                    contact: '' // Will be populated from user profile
                 },
                 notes: {
                     plan: plan,
@@ -797,24 +845,59 @@
 
         // Payment fallback when Razorpay fails to load
         function showPaymentFallback(plan, selectedPlan) {
-            const message = `Payment Gateway Temporarily Unavailable\n\n` +
+            const message = `Payment Gateway Setup Required\n\n` +
                           `Plan: ${selectedPlan.name}\n` +
                           `Amount: ₹${selectedPlan.amount / 100}\n\n` +
-                          `For now, we'll simulate the upgrade process.\n` +
-                          `In production, you would be redirected to:\n` +
-                          `• Razorpay Checkout\n` +
-                          `• Stripe Payment\n` +
-                          `• Bank Transfer\n\n` +
-                          `Would you like to simulate the upgrade?`;
+                          `The payment gateway is not fully configured yet.\n` +
+                          `To enable real payments, the administrator needs to:\n\n` +
+                          `• Set up Razorpay merchant account\n` +
+                          `• Configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET\n` +
+                          `• Enable live payment processing\n\n` +
+                          `For now, would you like to simulate the upgrade for testing?`;
             
             if (confirm(message)) {
-                // Simulate successful payment
-                const fakeResponse = {
-                    razorpay_payment_id: 'pay_demo_' + Math.random().toString(36).substr(2, 9)
-                };
-                handlePaymentSuccess(fakeResponse, plan);
+                // Use the backend simulation endpoint
+                simulateUpgradeViaBackend(plan);
             } else {
                 // Clean up URL if user cancels
+                window.history.replaceState({}, '', '/dashboard');
+            }
+        }
+        
+        // Simulate upgrade through backend API
+        async function simulateUpgradeViaBackend(plan) {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/payments/subscription/create', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ plan: plan })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Upgrade Successful!\n\nYour account has been upgraded to ${plan} plan.\n\nNote: This is a simulation for testing purposes.`);
+                    
+                    // Update the UI
+                    simulateAccountUpgrade(plan);
+                    
+                    // Clean up URL
+                    window.history.replaceState({}, '', '/dashboard');
+                    
+                    // Reload user data to reflect changes
+                    setTimeout(() => {
+                        loadUserData();
+                    }, 1000);
+                } else {
+                    throw new Error(result.error || 'Upgrade failed');
+                }
+            } catch (error) {
+                console.error('Simulation error:', error);
+                alert('Error during upgrade simulation: ' + error.message);
                 window.history.replaceState({}, '', '/dashboard');
             }
         }

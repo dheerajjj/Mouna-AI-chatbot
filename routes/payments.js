@@ -79,6 +79,7 @@ router.post('/create-subscription', authenticateToken, async (req, res) => {
         id: order.id,
         amount: order.amount,
         currency: order.currency,
+        key: process.env.RAZORPAY_KEY_ID, // Include the key for frontend
         plan: planId,
       },
     });
