@@ -167,6 +167,41 @@
         let countdownTimer;
         let currentEmail = new URLSearchParams(window.location.search).get('email') || localStorage.getItem('registerEmail') || 'your-email@example.com';
         
+        // Detect the flow type (signup vs login)
+        let flowType = 'signup'; // default
+        let apiEndpoint = '/api/verify-email-and-create-account';
+        let resendEndpoint = '/api/resend-signup-otp';
+        let redirectDestination = '/welcome-dashboard';
+        
+        // Check URL parameters for flow type
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('flow') === 'login' || urlParams.get('type') === 'login') {
+            flowType = 'login';
+            apiEndpoint = '/api/verify-login-otp';
+            resendEndpoint = '/api/resend-login-otp';
+            redirectDestination = '/dashboard';
+        }
+        
+        // Check localStorage for flow context
+        const pendingLogin = localStorage.getItem('pendingLogin');
+        if (pendingLogin) {
+            flowType = 'login';
+            apiEndpoint = '/api/verify-login-otp';
+            resendEndpoint = '/api/resend-login-otp';
+            redirectDestination = '/dashboard';
+            
+            // Get email from pending login data
+            try {
+                const loginData = JSON.parse(pendingLogin);
+                if (loginData.email) {
+                    currentEmail = loginData.email;
+                }
+            } catch (e) {
+                console.warn('Failed to parse pending login data:', e);
+            }
+        }
+        
+        console.log(`OTP Verification Flow: ${flowType}, Email: ${currentEmail}`);
         document.getElementById('email-display').textContent = currentEmail;
 
         // OTP input handling
@@ -243,47 +278,77 @@
             verifyBtn.disabled = true;
             
             try {
-                // Get pending registration data
-                const pendingRegistration = localStorage.getItem('pendingRegistration');
-                let userData = null;
+                let requestBody;
                 
-                if (pendingRegistration) {
-                    userData = JSON.parse(pendingRegistration).userData;
+                if (flowType === 'signup') {
+                    // Get pending registration data for signup
+                    const pendingRegistration = localStorage.getItem('pendingRegistration');
+                    let userData = null;
+                    
+                    if (pendingRegistration) {
+                        userData = JSON.parse(pendingRegistration).userData;
+                    }
+                    
+                    if (!userData) {
+                        throw new Error('Registration data not found. Please start over.');
+                    }
+                    
+                    requestBody = {
+                        email: currentEmail,
+                        otp: otp,
+                        userData: userData
+                    };
+                } else {
+                    // For login, only need email and OTP
+                    requestBody = {
+                        email: currentEmail,
+                        otp: otp
+                    };
                 }
                 
-                if (!userData) {
-                    throw new Error('Registration data not found. Please start over.');
-                }
+                console.log(`Calling ${apiEndpoint} for ${flowType}`);
                 
-                const response = await fetch('/api/verify-email-and-create-account', {
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        email: currentEmail,
-                        otp: otp,
-                        userData: userData
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    successMessage.textContent = 'Email verified successfully! Account created. Redirecting...';
+                    let successText = 'Verification successful!';
+                    
+                    if (flowType === 'signup') {
+                        successText = 'Email verified successfully! Account created. Redirecting...';
+                    } else {
+                        successText = 'Login successful! Redirecting to dashboard...';
+                    }
+                    
+                    successMessage.textContent = successText;
                     successMessage.style.display = 'block';
                     
                     // Store auth token
                     localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    if (data.user) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
                     
-                    // Clear stored data
-                    localStorage.removeItem('registerEmail');
-                    localStorage.removeItem('pendingRegistration');
+                    // Clear stored data based on flow type
+                    if (flowType === 'signup') {
+                        localStorage.removeItem('registerEmail');
+                        localStorage.removeItem('pendingRegistration');
+                    } else {
+                        localStorage.removeItem('pendingLogin');
+                    }
                     
-                    // Redirect to welcome dashboard
+                    // Redirect based on flow and response
+                    const finalRedirect = data.redirectTo || redirectDestination;
                     setTimeout(() => {
-                        window.location.href = data.redirectTo || '/welcome-dashboard';
+                        console.log(`Redirecting to: ${finalRedirect}`);
+                        window.location.href = finalRedirect;
                     }, 1500);
                 } else {
                     let errorText = data.error || 'Invalid verification code. Please try again.';
@@ -317,7 +382,9 @@
             e.preventDefault();
             
             try {
-                const response = await fetch('/api/resend-signup-otp', {
+                console.log(`Calling ${resendEndpoint} for ${flowType}`);
+                
+                const response = await fetch(resendEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

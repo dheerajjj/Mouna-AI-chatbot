@@ -187,12 +187,19 @@
                 
                 if (response.ok) {
                     if (data.requiresOTP) {
-                        // Show OTP verification step
-                        successMessage.textContent = data.message || 'OTP sent to your email. Please check your inbox.';
+                        // Store login context and redirect to verify-otp page
+                        localStorage.setItem('pendingLogin', JSON.stringify({
+                            email: email,
+                            timestamp: Date.now()
+                        }));
+                        
+                        successMessage.textContent = data.message || 'OTP sent to your email. Redirecting to verification page...';
                         successMessage.style.display = 'block';
-                        document.getElementById('credentials-step').style.display = 'none';
-                        document.getElementById('otp-step').style.display = 'block';
-                        document.getElementById('otp').focus();
+                        
+                        // Redirect to verify-otp page with login flow
+                        setTimeout(() => {
+                            window.location.href = `/verify-otp?email=${encodeURIComponent(email)}&flow=login`;
+                        }, 1500);
                     } else if (data.success) {
                         // Direct login success (old flow compatibility)
                         localStorage.setItem('authToken', data.token);
