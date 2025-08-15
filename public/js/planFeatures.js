@@ -217,6 +217,10 @@ class FrontendPlanManager {
     if (plan.price === 0) return 'Free';
     return `₹${plan.price}/${plan.billingCycle}`;
   }
+  
+  static getUpgradeSuggestion(currentPlan) {
+    return this.getNextPlan(currentPlan) || 'professional';
+  }
 }
 
 // Feature Gate Helper Functions

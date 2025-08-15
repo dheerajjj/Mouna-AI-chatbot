@@ -1504,8 +1504,8 @@
                 console.log('Applying plan restrictions for:', currentPlan);
                 
                 // Get plan details from plan manager
-                const planDetails = planManager.getPlanDetails(currentPlan);
-                const usagePercentage = planManager.calculateUsagePercentage(currentPlan, usage.messagesThisMonth || 0);
+                const planDetails = FrontendPlanManager.getPlanDetails(currentPlan);
+                const usagePercentage = FrontendPlanManager.calculateUsagePercentage(currentPlan, 'messagesPerMonth', usage.messagesThisMonth || 0);
                 
                 // Apply feature restrictions based on plan
                 applyFeatureRestrictions(currentPlan, planDetails, usage, usagePercentage);
@@ -1530,11 +1530,7 @@
                     customizeBtn.disabled = false;
                     customizeBtn.title = 'Customize your widget appearance';
                 } else {
-                    featureGate.disableElement(customizeBtn, {
-                        reason: 'Widget customization requires a paid plan',
-                        upgradeMessage: 'Upgrade to customize colors, position, and branding',
-                        suggestedPlan: 'starter'
-                    });
+                    FeatureGate.disableElement('button[onclick="customizeWidget()"]', 'Widget customization requires a paid plan - Upgrade to Starter');
                 }
             }
             
@@ -1554,10 +1550,7 @@
                 // Near limit - disable non-essential features
                 const testBtn = document.querySelector('button[onclick="testWidget()"]');
                 if (testBtn && plan === 'free') {
-                    featureGate.showUpgradePrompt(testBtn, {
-                        message: 'You\'re near your monthly limit! Upgrade to continue testing.',
-                        suggestedPlan: planManager.getUpgradeSuggestion(plan)
-                    });
+                    FeatureGate.disableElement('button[onclick="testWidget()"]', 'You\'re near your monthly limit! Upgrade to continue testing.');
                 }
             }
         }
