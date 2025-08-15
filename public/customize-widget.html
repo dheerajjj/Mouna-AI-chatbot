@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customize Widget - Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem 0;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+        
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
+        }
+        
+        .back-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .back-btn:hover {
+            background: #4b5563;
+            transform: translateY(-1px);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .customization-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        
+        .settings-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .preview-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: sticky;
+            top: 2rem;
+        }
+        
+        .section {
+            margin-bottom: 2rem;
+        }
+        
+        .section h3 {
+            margin-bottom: 1rem;
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .color-input {
+            width: 60px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .select-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .select-option {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .select-option.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            justify-content: center;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .preview-container {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 2rem;
+            position: relative;
+            min-height: 400px;
+            border: 2px dashed #e5e7eb;
+        }
+        
+        .widget-preview {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--widget-color, #667eea);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .widget-preview:hover {
+            transform: scale(1.1);
+        }
+        
+        .chat-bubble {
+            position: absolute;
+            bottom: 90px;
+            right: 20px;
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            max-width: 280px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border: 1px solid #e5e7eb;
+            display: none;
+        }
+        
+        .chat-bubble.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .upgrade-banner {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .customization-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .preview-panel {
+                position: static;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/images/logo.png" alt="Mouna AI Logo">
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">AI ASSISTANT</div>
+                </div>
+            </div>
+            <a href="/welcome-dashboard" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎨 Customize Widget Appearance</h1>
+            <p>Make your chatbot widget match your brand perfectly</p>
+        </div>
+
+        <!-- Upgrade Banner for Free Users -->
+        <div class="upgrade-banner" id="upgrade-banner" style="display: none;">
+            <h3>🔒 Premium Feature</h3>
+            <p>Widget customization is available for paid plan users. Upgrade to unlock advanced customization options!</p>
+            <button class="btn" onclick="window.location.href='/pricing'" style="background: white; color: #f59e0b; margin-top: 1rem; max-width: 200px; margin-left: auto; margin-right: auto;">
+                Upgrade Now
+            </button>
+        </div>
+
+        <div class="customization-grid">
+            <!-- Settings Panel -->
+            <div class="settings-panel">
+                <div class="section">
+                    <h3><i class="fas fa-palette"></i> Colors & Branding</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Primary Color</label>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <input type="color" id="primary-color" class="color-input" value="#667eea">
+                            <input type="text" id="primary-color-hex" class="form-input" value="#667eea" style="flex: 1;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Widget Title</label>
+                        <input type="text" id="widget-title" class="form-input" value="Hi! How can I help you?" placeholder="Enter widget title">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Welcome Message</label>
+                        <textarea id="welcome-message" class="form-input" rows="3" placeholder="Enter welcome message">Welcome! I'm here to help you with any questions you might have.</textarea>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3><i class="fas fa-cog"></i> Position & Size</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Widget Position</label>
+                        <div class="select-group">
+                            <div class="select-option active" data-position="bottom-right">
+                                <i class="fas fa-corner-down-right"></i>
+                                <div>Bottom Right</div>
+                            </div>
+                            <div class="select-option" data-position="bottom-left">
+                                <i class="fas fa-corner-down-left"></i>
+                                <div>Bottom Left</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Widget Size</label>
+                        <select id="widget-size" class="form-input">
+                            <option value="small">Small (50px)</option>
+                            <option value="medium" selected>Medium (60px)</option>
+                            <option value="large">Large (70px)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3><i class="fas fa-eye"></i> Appearance</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Widget Icon</label>
+                        <div class="select-group">
+                            <div class="select-option active" data-icon="chat">
+                                <i class="fas fa-comments"></i>
+                                <div>Chat</div>
+                            </div>
+                            <div class="select-option" data-icon="robot">
+                                <i class="fas fa-robot"></i>
+                                <div>Robot</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Animation</label>
+                        <select id="animation" class="form-input">
+                            <option value="pulse">Pulse</option>
+                            <option value="bounce">Bounce</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="saveCustomization()">
+                    <i class="fas fa-save"></i>
+                    Save Customization
+                </button>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="preview-panel">
+                <h3 style="margin-bottom: 1rem; color: #1e293b;">Live Preview</h3>
+                <p style="color: #64748b; margin-bottom: 1.5rem; font-size: 0.9rem;">See how your widget will look on your website</p>
+                
+                <div class="preview-container">
+                    <div style="position: absolute; top: 10px; left: 10px; color: #64748b; font-size: 0.8rem;">
+                        Your Website Preview
+                    </div>
+                    
+                    <div class="widget-preview" id="widget-preview">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    
+                    <div class="chat-bubble" id="chat-bubble">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;" id="preview-title">
+                            Hi! How can I help you?
+                        </div>
+                        <div style="color: #64748b; font-size: 0.9rem;" id="preview-message">
+                            Welcome! I'm here to help you with any questions you might have.
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <h4 style="margin-bottom: 0.5rem; color: #1e293b; font-size: 0.9rem;">Integration Code</h4>
+                    <div style="background: #1e293b; color: #e5e7eb; padding: 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.8rem; word-break: break-all;">
+                        <div id="integration-code">
+                            &lt;script src="https://your-domain.com/widget.js" data-api-key="your-api-key" data-color="#667eea"&gt;&lt;/script&gt;
+                        </div>
+                    </div>
+                    <button onclick="copyIntegrationCode()" style="background: #6b7280; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; margin-top: 0.5rem; cursor: pointer;">
+                        <i class="fas fa-copy"></i> Copy Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check user's plan and show/hide upgrade banner
+        document.addEventListener('DOMContentLoaded', function() {
+            checkUserPlan();
+            initializeCustomization();
+        });
+
+        async function checkUserPlan() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const { user } = await response.json();
+                    const userPlan = user.subscription?.plan || 'free';
+                    
+                    if (userPlan === 'free') {
+                        document.getElementById('upgrade-banner').style.display = 'block';
+                        // Disable inputs for free users
+                        disableCustomizationForFreeUsers();
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking user plan:', error);
+            }
+        }
+
+        function disableCustomizationForFreeUsers() {
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.disabled = true;
+                input.style.opacity = '0.6';
+            });
+
+            const selectOptions = document.querySelectorAll('.select-option');
+            selectOptions.forEach(option => {
+                option.style.pointerEvents = 'none';
+                option.style.opacity = '0.6';
+            });
+        }
+
+        function initializeCustomization() {
+            // Color picker event listeners
+            const colorInput = document.getElementById('primary-color');
+            const colorHex = document.getElementById('primary-color-hex');
+            
+            colorInput.addEventListener('change', function() {
+                colorHex.value = this.value;
+                updatePreview();
+            });
+            
+            colorHex.addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    colorInput.value = this.value;
+                    updatePreview();
+                }
+            });
+
+            // Text input event listeners
+            document.getElementById('widget-title').addEventListener('input', updatePreview);
+            document.getElementById('welcome-message').addEventListener('input', updatePreview);
+
+            // Position selector
+            document.querySelectorAll('.select-option[data-position]').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.select-option[data-position]').forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    updatePreview();
+                });
+            });
+
+            // Icon selector
+            document.querySelectorAll('.select-option[data-icon]').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    updatePreview();
+                });
+            });
+
+            // Widget preview click
+            document.getElementById('widget-preview').addEventListener('click', function() {
+                const chatBubble = document.getElementById('chat-bubble');
+                chatBubble.classList.toggle('show');
+            });
+
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const primaryColor = document.getElementById('primary-color').value;
+            const title = document.getElementById('widget-title').value;
+            const message = document.getElementById('welcome-message').value;
+            const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
+            const icon = document.querySelector('.select-option[data-icon].active')?.dataset.icon || 'chat';
+
+            // Update widget preview
+            const widgetPreview = document.getElementById('widget-preview');
+            widgetPreview.style.setProperty('--widget-color', primaryColor);
+            
+            // Update icon
+            const iconClass = icon === 'robot' ? 'fas fa-robot' : 'fas fa-comments';
+            widgetPreview.innerHTML = `<i class="${iconClass}"></i>`;
+
+            // Update position
+            widgetPreview.style.bottom = position.includes('bottom') ? '20px' : 'auto';
+            widgetPreview.style.top = position.includes('top') ? '20px' : 'auto';
+            widgetPreview.style.right = position.includes('right') ? '20px' : 'auto';
+            widgetPreview.style.left = position.includes('left') ? '20px' : 'auto';
+
+            // Update chat bubble
+            document.getElementById('preview-title').textContent = title;
+            document.getElementById('preview-message').textContent = message;
+
+            // Update integration code
+            updateIntegrationCode();
+        }
+
+        function updateIntegrationCode() {
+            const primaryColor = document.getElementById('primary-color').value;
+            const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
+            
+            const code = `&lt;script src="https://your-domain.com/widget.js" data-api-key="your-api-key" data-color="${primaryColor}" data-position="${position}"&gt;&lt;/script&gt;`;
+            document.getElementById('integration-code').innerHTML = code;
+        }
+
+        async function saveCustomization() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    alert('Please log in to save customization');
+                    return;
+                }
+
+                const customization = {
+                    primaryColor: document.getElementById('primary-color').value,
+                    title: document.getElementById('widget-title').value,
+                    welcomeMessage: document.getElementById('welcome-message').value,
+                    position: document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right',
+                    icon: document.querySelector('.select-option[data-icon].active')?.dataset.icon || 'chat',
+                    size: document.getElementById('widget-size').value,
+                    animation: document.getElementById('animation').value
+                };
+
+                const response = await fetch('/api/widget-config', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(customization)
+                });
+
+                if (response.ok) {
+                    alert('🎉 Widget customization saved successfully!');
+                } else {
+                    throw new Error('Failed to save customization');
+                }
+            } catch (error) {
+                console.error('Error saving customization:', error);
+                alert('Error saving customization. Please try again.');
+            }
+        }
+
+        function copyIntegrationCode() {
+            const code = document.getElementById('integration-code').textContent;
+            navigator.clipboard.writeText(code.replace(/&lt;/g, '<').replace(/&gt;/g, '>')).then(() => {
+                alert('Integration code copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>
