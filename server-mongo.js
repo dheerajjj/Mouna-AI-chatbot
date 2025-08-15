@@ -1498,6 +1498,21 @@ app.get('/email-validation-test', (req, res) => {
     const { router: authRoutes } = require('./routes/auth');
     app.use('/api', authRoutes);
     
+    // API info route
+    app.get('/api', (req, res) => {
+      res.json({
+        name: 'Mouna AI Chatbot API',
+        version: '1.0.0',
+        status: 'active',
+        endpoints: {
+          auth: '/api/signup, /api/login, /api/profile',
+          payments: '/api/payments/plans, /api/payments/create-subscription',
+          email: '/api/email/*'
+        },
+        documentation: 'Available endpoints for authenticated API access'
+      });
+    });
+    
     // Customer payment routes
     const paymentRoutes = require('./routes/payments');
     app.use('/api/payments', paymentRoutes);
