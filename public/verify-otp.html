@@ -255,7 +255,7 @@
                     throw new Error('Registration data not found. Please start over.');
                 }
                 
-                const response = await fetch('/api/auth/verify-email-and-create-account', {
+                const response = await fetch('/api/verify-email-and-create-account', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -317,7 +317,7 @@
             e.preventDefault();
             
             try {
-                const response = await fetch('/api/auth/resend-signup-otp', {
+                const response = await fetch('/api/resend-signup-otp', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
