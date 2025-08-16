@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-08-16T18:30:30.574Z",
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "successRate": "100.00%"
+  },
+  "tests": [
+    {
+      "testName": "Pricing Configuration",
+      "passed": true,
+      "details": "Updated plans: true, Usage limits: true"
+    },
+    {
+      "testName": "User Model Enhancements",
+      "passed": true,
+      "details": "Personal tenant ID: true, Tenant limits: true, Can create tenant: true, Get personal tenant: true"
+    },
+    {
+      "testName": "Tenant Model Enhancements",
+      "passed": true,
+      "details": "White-label: true, Subscription features: true, Personal tenant: true, Config method: true"
+    },
+    {
+      "testName": "Subscription Middleware",
+      "passed": true,
+      "details": "Can create tenant: true, Feature access: true, Subscription info: true, Personal tenant: true"
+    },
+    {
+      "testName": "Tenant Route Integration",
+      "passed": true,
+      "details": "Subscription validation: true, Personal tenant endpoint: true, Subscription info endpoint: true, Updated validation: true"
+    },
+    {
+      "testName": "Widget Backward Compatibility",
+      "passed": true,
+      "details": "Personal tenant fallback: true, Backward compatibility: true, Tenant ID support: true"
+    }
+  ]
+}
