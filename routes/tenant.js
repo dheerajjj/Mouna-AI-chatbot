@@ -250,7 +250,137 @@ router.get('/personal-tenant-auth', authenticateToken, ensurePersonalTenant, (re
 });
 
 /**
- * PROTECTED ENDPOINT: Create new tenant configuration
+ * PROTECTED ENDPOINT: Create simple tenant (for integration page)
+ * Creates a basic tenant configuration with minimal required data
+ */
+router.post('/', [
+  body('name').notEmpty().trim().isLength({ min: 2, max: 100 }).withMessage('Tenant name is required (2-100 characters)'),
+  body('description').optional().trim().isLength({ max: 500 }).withMessage('Description cannot exceed 500 characters'),
+  body('type').optional().isIn(['personal', 'client']).withMessage('Type must be personal or client')
+], authenticateToken, canCreateTenant, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: errors.array() 
+      });
+    }
+
+    const userId = req.user.userId;
+    const { name, description = '', type = 'client' } = req.body;
+
+    // Create basic tenant settings with minimal configuration
+    const tenantSettings = new TenantSettings({
+      userId,
+      tenantInfo: {
+        name: name,
+        description: description,
+        website: '',
+        domain: '',
+        contactEmail: '',
+        contactPhone: ''
+      },
+      isPersonalTenant: type === 'personal',
+      enabledFeatures: {
+        bookings: false,
+        orders: false,
+        slots: false,
+        payments: false,
+        analytics: false
+      },
+      widgetCustomization: {
+        primaryColor: '#667eea',
+        welcomeMessage: '👋 Hi there! How can I help you today?',
+        businessHours: {
+          timezone: 'Asia/Kolkata',
+          message: 'We are currently closed. Please leave a message and we\'ll get back to you.'
+        },
+        autoResponses: []
+      }
+    });
+
+    // Generate unique tenant ID
+    tenantSettings.generateTenantId();
+    
+    // Save to database
+    await tenantSettings.save();
+    
+    // Increment user's tenant count (if not personal tenant)
+    if (!tenantSettings.isPersonalTenant) {
+      await req.user.incrementTenantCount();
+    }
+
+    console.log(`✅ Simple tenant created: ${tenantSettings.tenantId} for user ${userId}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Tenant created successfully',
+      tenant: {
+        tenantId: tenantSettings.tenantId,
+        name: tenantSettings.tenantInfo.name,
+        description: tenantSettings.tenantInfo.description,
+        type: tenantSettings.isPersonalTenant ? 'personal' : 'client',
+        createdAt: tenantSettings.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating simple tenant:', error);
+    
+    if (error.code === 11000) {
+      return res.status(409).json({ 
+        error: 'Tenant with this configuration already exists' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to create tenant',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * PROTECTED ENDPOINT: List user tenants (for integration page)
+ * Returns a simple list of user's tenants with basic info
+ */
+router.get('/list', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const tenantSettings = await TenantSettings.find({ 
+      userId,
+      status: { $ne: 'suspended' }
+    })
+    .select('tenantId tenantInfo.name tenantInfo.description isPersonalTenant createdAt')
+    .sort({ createdAt: -1 });
+    
+    const tenants = tenantSettings.map(tenant => ({
+      tenantId: tenant.tenantId,
+      name: tenant.tenantInfo.name,
+      description: tenant.tenantInfo.description,
+      type: tenant.isPersonalTenant ? 'personal' : 'client',
+      createdAt: tenant.createdAt
+    }));
+    
+    res.json({
+      success: true,
+      tenants: tenants,
+      count: tenants.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching tenant list:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch tenants',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * PROTECTED ENDPOINT: Create new tenant configuration (detailed)
  * Creates a new tenant configuration for the authenticated user
  */
 router.post('/settings', [
