@@ -1617,6 +1617,14 @@ app.get('/email-validation-test', (req, res) => {
     const oauthRoutes = require('./routes/oauth');
     app.use('/auth', oauthRoutes);
     
+    // NEW: Tenant configuration routes
+    const tenantRoutes = require('./routes/tenant');
+    app.use('/api/tenant', tenantRoutes);
+    
+    // NEW: Tenant management dashboard routes  
+    const tenantDashboardRoutes = require('./routes/tenantDashboard');
+    app.use('/tenant', tenantDashboardRoutes);
+    
     // Serve pages
     app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, 'public', 'index.html'));

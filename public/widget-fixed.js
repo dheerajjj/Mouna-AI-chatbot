@@ -138,6 +138,7 @@
         // API endpoint (will be set from script tag or defaults)
         apiEndpoint: window.ChatbotWidgetAPI || 'https://mouna-ai-chatbot-production.up.railway.app',
         apiKey: null,
+        tenantId: null, // NEW: Tenant ID for configuration
         
         // Default widget settings
         primaryColor: '#667eea',
@@ -151,7 +152,16 @@
         typingDelay: 1000,
         
         // Animations
-        animationDuration: 300
+        animationDuration: 300,
+        
+        // Tenant-specific features (will be loaded from server)
+        enabledFeatures: {
+            bookings: false,
+            orders: false,
+            slots: false,
+            payments: false,
+            analytics: false
+        }
     };
     
     // Widget state
@@ -334,6 +344,103 @@
         } catch (error) {
             console.warn('Could not load widget configuration:', error);
         }
+    }
+    
+    // NEW: Load tenant-specific configuration
+    async function loadTenantConfiguration(tenantId) {
+        if (!tenantId) {
+            console.log('No tenant ID provided, using default configuration');
+            return;
+        }
+        
+        try {
+            console.log(`Loading tenant configuration for: ${tenantId}`);
+            const response = await fetch(`${currentConfig.apiEndpoint}/api/tenant/config/${tenantId}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                const tenantConfig = data.config;
+                
+                console.log('✅ Tenant configuration loaded:', tenantConfig);
+                
+                // Apply tenant configuration
+                if (tenantConfig.primaryColor) {
+                    currentConfig.primaryColor = tenantConfig.primaryColor;
+                }
+                
+                if (tenantConfig.welcomeMessage) {
+                    currentConfig.welcomeMessage = tenantConfig.welcomeMessage;
+                    // Update translations with tenant welcome message
+                    Object.keys(TRANSLATIONS).forEach(lang => {
+                        TRANSLATIONS[lang].welcomeMessage = tenantConfig.welcomeMessage;
+                    });
+                }
+                
+                // Apply enabled features
+                if (tenantConfig.enabledFeatures) {
+                    Object.assign(currentConfig.enabledFeatures, tenantConfig.enabledFeatures);
+                    console.log('✅ Enabled features:', currentConfig.enabledFeatures);
+                    
+                    // Add feature-specific system prompts to AI conversations
+                    if (tenantConfig.enabledFeatures.bookings) {
+                        console.log('📅 Bookings feature enabled');
+                    }
+                    if (tenantConfig.enabledFeatures.orders) {
+                        console.log('🛒 Orders feature enabled');
+                    }
+                    if (tenantConfig.enabledFeatures.slots) {
+                        console.log('⏰ Slots feature enabled');
+                    }
+                }
+                
+                // Apply auto responses if configured
+                if (tenantConfig.autoResponses && tenantConfig.autoResponses.length > 0) {
+                    currentConfig.autoResponses = tenantConfig.autoResponses;
+                    console.log('✅ Auto responses configured:', currentConfig.autoResponses.length);
+                }
+                
+                // Update widget colors dynamically
+                updateWidgetColors(currentConfig.primaryColor);
+                
+                return tenantConfig;
+            } else if (response.status === 404) {
+                console.warn(`⚠️ Tenant configuration not found for ID: ${tenantId}`);
+                // Use fallback config returned by server
+                const data = await response.json();
+                if (data.fallbackConfig) {
+                    console.log('Using fallback configuration:', data.fallbackConfig);
+                    Object.assign(currentConfig.enabledFeatures, data.fallbackConfig.enabledFeatures);
+                }
+            } else {
+                console.error(`❌ Failed to load tenant configuration: HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.error('❌ Error loading tenant configuration:', error);
+        }
+    }
+    
+    // NEW: Update widget colors dynamically
+    function updateWidgetColors(primaryColor) {
+        if (!primaryColor || !widget) return;
+        
+        // Update CSS custom properties for theming
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .ai-chatbot-widget {
+                --primary-color: ${primaryColor};
+                --primary-color-hover: ${primaryColor}dd;
+            }
+            .chatbot-widget-trigger {
+                background: linear-gradient(135deg, ${primaryColor}, ${primaryColor}aa) !important;
+            }
+            .chatbot-widget-header {
+                background: linear-gradient(135deg, ${primaryColor}, ${primaryColor}aa) !important;
+            }
+            .chatbot-message-user .chatbot-message-text {
+                background: ${primaryColor} !important;
+            }
+        `;
+        document.head.appendChild(style);
     }
     
     // Widget UI creation
@@ -1104,6 +1211,13 @@
                 currentConfig.apiEndpoint = apiUrl;
             }
             
+            // NEW: Handle tenant ID
+            const tenantId = scriptTag.getAttribute('data-tenant-id');
+            if (tenantId) {
+                currentConfig.tenantId = tenantId;
+                console.log('🏢 Tenant ID found:', tenantId);
+            }
+            
             // Check for other configuration attributes
             const attributes = ['primary-color', 'position', 'title', 'welcome-message', 'subtitle'];
             attributes.forEach(attr => {
@@ -1148,7 +1262,12 @@
         bindEvents();
         
         // Load configuration from server
-        loadConfiguration();
+        await loadConfiguration();
+        
+        // NEW: Load tenant-specific configuration if tenant ID is provided
+        if (currentConfig.tenantId) {
+            await loadTenantConfiguration(currentConfig.tenantId);
+        }
         
         // Auto-open if configured
         if (currentConfig.autoOpen) {
