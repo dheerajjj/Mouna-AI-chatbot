@@ -399,6 +399,37 @@
                     console.log('✅ Auto responses configured:', currentConfig.autoResponses.length);
                 }
                 
+                // WHITE-LABELING: Handle branding settings based on subscription plan
+                if (data.ownerSubscription) {
+                    const subscription = data.ownerSubscription;
+                    
+                    // Hide branding for Professional+ plans with white-labeling
+                    if (subscription.plan === 'professional' || subscription.plan === 'enterprise') {
+                        currentConfig.showBranding = false;
+                        console.log('🏷️ White-labeling enabled - branding hidden for', subscription.plan, 'plan');
+                    } else {
+                        currentConfig.showBranding = true;
+                    }
+                    
+                    // Full white-labeling for Enterprise plan
+                    if (subscription.plan === 'enterprise' && tenantConfig.customBranding) {
+                        const branding = tenantConfig.customBranding;
+                        
+                        if (branding.customLogo) {
+                            currentConfig.customLogo = branding.customLogo;
+                        }
+                        
+                        if (branding.companyName) {
+                            currentConfig.companyName = branding.companyName;
+                        }
+                        
+                        console.log('🎨 Full white-labeling applied for Enterprise plan');
+                    }
+                } else {
+                    // Default to showing branding if no subscription info
+                    currentConfig.showBranding = true;
+                }
+                
                 // Update widget colors dynamically
                 updateWidgetColors(currentConfig.primaryColor);
                 

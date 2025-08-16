@@ -42,7 +42,7 @@ router.get('/config/:tenantId', async (req, res) => {
     }
 
     // Find tenant configuration
-    const tenantSettings = await TenantSettings.findByTenantId(tenantId);
+    const tenantSettings = await TenantSettings.findByTenantId(tenantId).populate('userId');
     
     if (!tenantSettings) {
       // Return default configuration for unknown tenants
@@ -72,12 +72,19 @@ router.get('/config/:tenantId', async (req, res) => {
     tenantSettings.usage.lastActive = new Date();
     await tenantSettings.save();
 
-    // Return widget configuration
+    // Return widget configuration with owner subscription info for white-labeling
     const widgetConfig = tenantSettings.getWidgetConfig();
+    
+    // Include owner subscription info for white-labeling decisions
+    const ownerSubscription = tenantSettings.userId && tenantSettings.userId.subscription ? {
+      plan: tenantSettings.userId.subscription.plan || 'free',
+      status: tenantSettings.userId.subscription.status || 'active'
+    } : { plan: 'free', status: 'active' };
     
     res.json({
       success: true,
       config: widgetConfig,
+      ownerSubscription: ownerSubscription,
       timestamp: new Date().toISOString()
     });
 

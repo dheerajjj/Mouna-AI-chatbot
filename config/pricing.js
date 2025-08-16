@@ -265,19 +265,19 @@ const USAGE_LIMITS = {
     personalTenantOnly: true
   },
   professional: {
-    messagesPerMonth: 10000,
+    messagesPerMonth: 5000,
     overageRate: 0.30, // ₹0.30 per extra message
     maxOverageMessages: 2000,
     websites: 10,
     analytics: true,
     dashboard: true,
     apiAccess: true,
-    tenants: 2, // Up to 2 additional client tenants
+    tenants: 5, // Up to 5 client tenants (as per frontend)
     personalTenantOnly: false,
     whiteLabel: 'basic'
   },
   enterprise: {
-    messagesPerMonth: 50000,
+    messagesPerMonth: 'unlimited',
     overageRate: 0.20, // ₹0.20 per extra message
     maxOverageMessages: 10000,
     websites: 'unlimited',
