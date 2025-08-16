@@ -1765,8 +1765,9 @@ app.get('/email-validation-test', (req, res) => {
     });
 
     // Start server
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server running on port ${PORT}`);
+      console.log(`🌐 Server accessible at: ${process.env.RAILWAY_PUBLIC_DOMAIN || `http://localhost:${PORT}`}`);
       console.log(`🧪 Test page: http://localhost:${PORT}/test`);
       console.log(`🏥 Health check: http://localhost:${PORT}/health`);
       console.log(`🤖 OpenAI configured: ${!!process.env.OPENAI_API_KEY}`);
