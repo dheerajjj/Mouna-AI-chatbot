@@ -159,7 +159,7 @@ const PRICING_PLANS = {
   professional: {
     id: 'professional',
     name: 'Professional',
-    subtitle: 'For growing businesses',
+    subtitle: 'For freelancers & consultants',
     price: 1499,
     currency: 'INR',
     interval: 'month',
@@ -171,20 +171,58 @@ const PRICING_PLANS = {
       analytics: 'advanced',
       dashboard: true,
       branding: 'removable',
-      apiAccess: true
+      apiAccess: true,
+      tenants: 2,
+      whiteLabel: 'basic'
     },
     featureList: [
       '10,000 messages/month',
-      'Advanced AI responses',
-      'Custom branding',
+      '2 client tenants maximum',
+      'Basic white-label (logo/title)',
       'Advanced analytics',
       'API access',
-      'Multiple websites'
+      'Shared billing'
     ],
-    description: 'Perfect for growing businesses',
-    popular: false,
+    description: 'Perfect for freelancers and small agencies',
+    popular: true,
     stripeProductId: 'prod_professional_india',
     stripePriceId: 'price_professional_monthly_india'
+  },
+  
+  enterprise: {
+    id: 'enterprise',
+    name: 'Enterprise',
+    subtitle: 'For agencies & large organizations',
+    price: 4999,
+    currency: 'INR',
+    interval: 'month',
+    icon: '🚀',
+    features: {
+      monthlyMessages: 50000,
+      websites: 'unlimited',
+      customization: 'enterprise',
+      analytics: 'enterprise',
+      dashboard: true,
+      branding: 'white_label',
+      apiAccess: true,
+      tenants: 'unlimited',
+      whiteLabel: 'full',
+      customDomain: true,
+      dedicatedBilling: true,
+      rolesPermissions: true
+    },
+    featureList: [
+      '50,000 messages/month',
+      'Unlimited client tenants',
+      'Full white-label (custom domain)',
+      'Roles & permissions per tenant',
+      'Dedicated billing & analytics',
+      'Custom deployment options'
+    ],
+    description: 'For digital agencies and large organizations',
+    popular: false,
+    stripeProductId: 'prod_enterprise_india',
+    stripePriceId: 'price_enterprise_monthly_india'
   }
 };
 
@@ -212,7 +250,9 @@ const USAGE_LIMITS = {
     maxOverageMessages: 0,
     websites: 1,
     analytics: false,
-    dashboard: false
+    dashboard: false,
+    tenants: 0, // No tenant support for free plan
+    personalTenantOnly: true
   },
   starter: {
     messagesPerMonth: 1000,
@@ -220,7 +260,9 @@ const USAGE_LIMITS = {
     maxOverageMessages: 500,
     websites: 2,
     analytics: true,
-    dashboard: true
+    dashboard: true,
+    tenants: 0, // No additional tenants, only personal tenant
+    personalTenantOnly: true
   },
   professional: {
     messagesPerMonth: 10000,
@@ -229,7 +271,25 @@ const USAGE_LIMITS = {
     websites: 10,
     analytics: true,
     dashboard: true,
-    apiAccess: true
+    apiAccess: true,
+    tenants: 2, // Up to 2 additional client tenants
+    personalTenantOnly: false,
+    whiteLabel: 'basic'
+  },
+  enterprise: {
+    messagesPerMonth: 50000,
+    overageRate: 0.20, // ₹0.20 per extra message
+    maxOverageMessages: 10000,
+    websites: 'unlimited',
+    analytics: true,
+    dashboard: true,
+    apiAccess: true,
+    tenants: 'unlimited', // Unlimited client tenants
+    personalTenantOnly: false,
+    whiteLabel: 'full',
+    customDomain: true,
+    dedicatedBilling: true,
+    rolesPermissions: true
   }
 };
 

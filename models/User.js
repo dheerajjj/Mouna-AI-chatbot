@@ -150,6 +150,26 @@ const userSchema = new mongoose.Schema({
     sparse: true
   },
   
+  // Tenant Management
+  personalTenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TenantSettings',
+    required: false // Will be created automatically
+  },
+  tenantLimits: {
+    maxTenants: {
+      type: Number,
+      default: function() {
+        const { USAGE_LIMITS } = require('../config/pricing');
+        return USAGE_LIMITS[this.subscription.plan]?.tenants || 0;
+      }
+    },
+    currentTenants: {
+      type: Number,
+      default: 0
+    }
+  },
+  
   // Account Status
   emailVerified: {
     type: Boolean,
@@ -233,6 +253,71 @@ userSchema.methods.incrementMessageCount = function() {
   this.usage.messagesThisMonth += 1;
   this.usage.totalMessages += 1;
   return this.save();
+};
+
+// Tenant management methods
+userSchema.methods.canCreateTenant = function() {
+  const { USAGE_LIMITS } = require('../config/pricing');
+  const limits = USAGE_LIMITS[this.subscription.plan];
+  
+  if (limits.tenants === 'unlimited') return true;
+  if (limits.personalTenantOnly) return false;
+  
+  return this.tenantLimits.currentTenants < limits.tenants;
+};
+
+userSchema.methods.getTenantLimit = function() {
+  const { USAGE_LIMITS } = require('../config/pricing');
+  return USAGE_LIMITS[this.subscription.plan]?.tenants || 0;
+};
+
+userSchema.methods.incrementTenantCount = function() {
+  this.tenantLimits.currentTenants += 1;
+  return this.save();
+};
+
+userSchema.methods.decrementTenantCount = function() {
+  if (this.tenantLimits.currentTenants > 0) {
+    this.tenantLimits.currentTenants -= 1;
+  }
+  return this.save();
+};
+
+// Get or create personal tenant
+userSchema.methods.getPersonalTenant = async function() {
+  if (!this.personalTenantId) {
+    // Create personal tenant if it doesn't exist
+    const TenantSettings = require('./TenantSettings');
+    const personalTenant = new TenantSettings({
+      userId: this._id,
+      companyInfo: {
+        name: this.company || this.name + "'s Personal Chatbot",
+        website: this.website || ''
+      },
+      isPersonalTenant: true,
+      features: {
+        bookingsEnabled: false,
+        ordersEnabled: false,
+        slotsEnabled: false
+      },
+      customization: {
+        primaryColor: this.widgetConfig.primaryColor,
+        secondaryColor: '#f3f4f6',
+        title: this.widgetConfig.title,
+        welcomeMessage: this.widgetConfig.welcomeMessage,
+        placeholder: this.widgetConfig.placeholder
+      }
+    });
+    
+    await personalTenant.save();
+    this.personalTenantId = personalTenant._id;
+    await this.save();
+    
+    return personalTenant;
+  }
+  
+  const TenantSettings = require('./TenantSettings');
+  return await TenantSettings.findById(this.personalTenantId);
 };
 
 // Payment Transaction Schema for detailed tracking

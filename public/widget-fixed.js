@@ -419,6 +419,47 @@
         }
     }
     
+    // NEW: Load personal tenant for backward compatibility
+    async function loadPersonalTenantConfiguration() {
+        try {
+            console.log('Attempting to load user personal tenant...');
+            
+            // For backward compatibility, we'll try to identify the user via their API key
+            // and load their personal tenant configuration
+            if (!currentConfig.apiKey) {
+                console.log('No API key provided, using default configuration');
+                return;
+            }
+            
+            const response = await fetch(`${currentConfig.apiEndpoint}/api/tenant/personal-tenant`, {
+                method: 'GET',
+                headers: {
+                    'X-API-Key': currentConfig.apiKey
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const personalTenant = data.personalTenant;
+                
+                console.log('✅ Personal tenant loaded:', personalTenant.tenantId);
+                
+                // Set the tenant ID from personal tenant
+                currentConfig.tenantId = personalTenant.tenantId;
+                
+                // Load the configuration using the personal tenant ID
+                await loadTenantConfiguration(personalTenant.tenantId);
+            } else if (response.status === 404) {
+                console.log('ℹ️ No personal tenant found for this API key, using default configuration');
+            } else {
+                console.warn(`⚠️ Failed to load personal tenant: HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.warn('⚠️ Error loading personal tenant:', error);
+            // Continue with default configuration
+        }
+    }
+    
     // NEW: Update widget colors dynamically
     function updateWidgetColors(primaryColor) {
         if (!primaryColor || !widget) return;
@@ -1264,9 +1305,14 @@
         // Load configuration from server
         await loadConfiguration();
         
-        // NEW: Load tenant-specific configuration if tenant ID is provided
+        // NEW: Load tenant-specific configuration
         if (currentConfig.tenantId) {
+            // Use provided tenant ID
             await loadTenantConfiguration(currentConfig.tenantId);
+        } else {
+            // BACKWARD COMPATIBILITY: Try to load personal tenant for existing integrations
+            console.log('🔄 No tenant ID provided, attempting to load personal tenant for backward compatibility');
+            await loadPersonalTenantConfiguration();
         }
         
         // Auto-open if configured

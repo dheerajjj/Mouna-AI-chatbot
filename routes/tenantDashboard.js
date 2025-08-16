@@ -5,6 +5,258 @@ const { authenticateToken } = require('./auth');
 const router = express.Router();
 
 /**
+ * TEST ROUTE: Tenant Settings Dashboard Page (No Auth)
+ * For development and testing purposes
+ */
+router.get('/test-dashboard', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tenant Settings - Mouna AI (Test)</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                color: #333;
+                padding: 2rem;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            
+            .header {
+                background: rgba(255, 255, 255, 0.95);
+                padding: 2rem;
+                border-radius: 12px;
+                margin-bottom: 2rem;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            }
+            
+            .header h1 {
+                color: #667eea;
+                font-size: 2.5rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .header p {
+                color: #666;
+                font-size: 1.1rem;
+            }
+            
+            .card {
+                background: white;
+                border-radius: 12px;
+                padding: 2rem;
+                margin-bottom: 2rem;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            }
+            
+            .card h2 {
+                color: #333;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .status {
+                display: inline-block;
+                padding: 0.25rem 0.75rem;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                font-weight: 600;
+            }
+            
+            .status.success {
+                background: #d4edda;
+                color: #155724;
+            }
+            
+            .status.warning {
+                background: #fff3cd;
+                color: #856404;
+            }
+            
+            .feature-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 1.5rem;
+                margin-top: 1.5rem;
+            }
+            
+            .feature-card {
+                background: #f8f9ff;
+                border: 2px solid #e1e5e9;
+                border-radius: 12px;
+                padding: 1.5rem;
+                text-align: center;
+                transition: all 0.3s;
+            }
+            
+            .feature-card:hover {
+                border-color: #667eea;
+                transform: translateY(-2px);
+            }
+            
+            .feature-icon {
+                font-size: 2.5rem;
+                margin-bottom: 1rem;
+            }
+            
+            .feature-title {
+                font-size: 1.2rem;
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: #333;
+            }
+            
+            .feature-desc {
+                color: #666;
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                display: inline-block;
+                padding: 0.75rem 2rem;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 600;
+                margin: 0.5rem;
+                transition: all 0.3s;
+            }
+            
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            }
+            
+            .code-block {
+                background: #2d3748;
+                color: #e2e8f0;
+                padding: 1.5rem;
+                border-radius: 8px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.9rem;
+                overflow-x: auto;
+                margin: 1rem 0;
+            }
+            
+            .highlight {
+                background: #667eea;
+                color: white;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-weight: 600;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏢 Tenant Configuration Dashboard</h1>
+                <p>Multi-tenant chatbot management system - <span class="highlight">TEST MODE</span></p>
+            </div>
+            
+            <div class="card">
+                <h2>🚀 System Status</h2>
+                <p>Tenant system is <span class="status success">ACTIVE</span></p>
+                <p>Database: <span class="status success">MongoDB Connected</span></p>
+                <p>Widget Integration: <span class="status success">Ready</span></p>
+            </div>
+            
+            <div class="card">
+                <h2>✨ Available Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-title">Bookings</div>
+                        <div class="feature-desc">Appointment scheduling system</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🛒</div>
+                        <div class="feature-title">Orders</div>
+                        <div class="feature-desc">Order tracking & management</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⏰</div>
+                        <div class="feature-title">Time Slots</div>
+                        <div class="feature-desc">Available time slot management</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💳</div>
+                        <div class="feature-title">Payments</div>
+                        <div class="feature-desc">Payment processing integration</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Analytics</div>
+                        <div class="feature-desc">Usage tracking & reporting</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎨</div>
+                        <div class="feature-title">Custom Branding</div>
+                        <div class="feature-desc">Colors, messages, themes</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>🧪 Test Integration</h2>
+                <p>Use this code to test the tenant-based widget on your website:</p>
+                <div class="code-block">
+&lt;script&gt;<br>
+(function() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;var script = document.createElement('script');<br>
+&nbsp;&nbsp;&nbsp;&nbsp;script.src = 'http://localhost:3000/widget-fixed.js';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;script.setAttribute('data-api-key', 'test-api-key-123');<br>
+&nbsp;&nbsp;&nbsp;&nbsp;script.setAttribute('data-tenant-id', 'tenant_test_123456'); // Optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;script.async = true;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;document.head.appendChild(script);<br>
+})();<br>
+&lt;/script&gt;
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>🔗 Quick Links</h2>
+                <a href="/api/test-tenant/status" class="btn">System Status API</a>
+                <a href="/api/test-tenant/create-test-tenant" class="btn">Create Test Tenant</a>
+                <a href="/health" class="btn">Health Check</a>
+                <a href="/widget-test" class="btn">Widget Test Page</a>
+            </div>
+            
+            <div class="card">
+                <h2>📋 How It Works</h2>
+                <ol style="line-height: 1.8; color: #555;">
+                    <li><strong>Create Tenant:</strong> Each client gets a unique tenant configuration</li>
+                    <li><strong>Configure Features:</strong> Enable/disable features per tenant (bookings, orders, etc.)</li>
+                    <li><strong>Custom Branding:</strong> Set colors, messages, and branding per tenant</li>
+                    <li><strong>Widget Integration:</strong> Add tenant ID to widget script for automatic configuration</li>
+                    <li><strong>Isolated Experience:</strong> Each tenant has completely separate settings and analytics</li>
+                </ol>
+            </div>
+        </div>
+    </body>
+    </html>
+  `);
+});
+
+/**
  * PROTECTED ROUTE: Tenant Settings Dashboard Page
  * Serves the tenant configuration management interface
  */

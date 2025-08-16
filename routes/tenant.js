@@ -7,6 +7,14 @@ const router = express.Router();
 // Import authentication middleware from auth.js
 const { authenticateToken } = require('./auth');
 
+// Import subscription validation middleware
+const { 
+  canCreateTenant, 
+  getSubscriptionInfo, 
+  ensurePersonalTenant,
+  canAccessTenantFeature 
+} = require('../middleware/subscriptionValidation');
+
 /**
  * PUBLIC ENDPOINT: Get tenant configuration for widget
  * This endpoint is used by the widget to fetch tenant-specific configuration
@@ -163,6 +171,78 @@ router.get('/settings/:tenantId', authenticateToken, async (req, res) => {
 });
 
 /**
+ * PROTECTED ENDPOINT: Get subscription info and tenant limits
+ * Returns user's subscription information and tenant usage
+ */
+router.get('/subscription-info', authenticateToken, getSubscriptionInfo, (req, res) => {
+  res.json({
+    success: true,
+    subscription: req.subscriptionInfo
+  });
+});
+
+/**
+ * PROTECTED ENDPOINT: Get or create personal tenant (by API key)
+ * Returns user's personal tenant for backward compatibility with API key authentication
+ */
+router.get('/personal-tenant', async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    
+    if (!apiKey) {
+      return res.status(401).json({
+        success: false,
+        message: 'API key required'
+      });
+    }
+    
+    // Find user by API key
+    const { User } = require('../models/User');
+    const user = await User.findOne({ apiKey: apiKey });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid API key or user not found'
+      });
+    }
+    
+    // Get or create personal tenant
+    const personalTenant = await user.getPersonalTenant();
+    
+    res.json({
+      success: true,
+      personalTenant: {
+        tenantId: personalTenant.tenantId,
+        companyInfo: personalTenant.companyInfo,
+        isPersonalTenant: personalTenant.isPersonalTenant
+      },
+      message: 'Personal tenant ready for backward compatibility'
+    });
+    
+  } catch (error) {
+    console.error('Error getting personal tenant:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get personal tenant',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PROTECTED ENDPOINT: Get or create personal tenant (authenticated)
+ * Returns user's personal tenant (backward compatibility)
+ */
+router.get('/personal-tenant-auth', authenticateToken, ensurePersonalTenant, (req, res) => {
+  res.json({
+    success: true,
+    personalTenant: req.personalTenant,
+    message: 'Personal tenant ready for backward compatibility'
+  });
+});
+
+/**
  * PROTECTED ENDPOINT: Create new tenant configuration
  * Creates a new tenant configuration for the authenticated user
  */
@@ -178,7 +258,7 @@ router.post('/settings', [
   body('enabledFeatures.slots').optional().isBoolean(),
   body('enabledFeatures.payments').optional().isBoolean(),
   body('enabledFeatures.analytics').optional().isBoolean()
-], authenticateToken, async (req, res) => {
+], authenticateToken, canCreateTenant, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -250,6 +330,11 @@ router.post('/settings', [
     
     // Save to database
     await tenantSettings.save();
+    
+    // Increment user's tenant count (if not personal tenant)
+    if (!tenantSettings.isPersonalTenant) {
+      await req.user.incrementTenantCount();
+    }
 
     console.log(`✅ New tenant configuration created: ${tenantSettings.tenantId} for user ${userId}`);
 

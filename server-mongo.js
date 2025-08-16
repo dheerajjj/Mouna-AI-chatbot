@@ -1625,6 +1625,10 @@ app.get('/email-validation-test', (req, res) => {
     const tenantDashboardRoutes = require('./routes/tenantDashboard');
     app.use('/tenant', tenantDashboardRoutes);
     
+    // NEW: Test tenant routes for debugging
+    const testTenantRoutes = require('./routes/testTenant');
+    app.use('/api/test-tenant', testTenantRoutes);
+    
     // Serve pages
     app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, 'public', 'index.html'));

@@ -253,6 +253,157 @@ const tenantSettingsSchema = new mongoose.Schema({
     }
   },
   
+  // Plan-specific features and white-labeling
+  whiteLabel: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    level: {
+      type: String,
+      enum: ['basic', 'full'],
+      default: 'basic'
+    },
+    customDomain: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      domain: {
+        type: String,
+        trim: true,
+        default: ''
+      },
+      sslEnabled: {
+        type: Boolean,
+        default: false
+      }
+    },
+    branding: {
+      logo: {
+        type: String, // URL to logo image
+        default: ''
+      },
+      favicon: {
+        type: String, // URL to favicon
+        default: ''
+      },
+      companyName: {
+        type: String,
+        default: ''
+      },
+      hideMonuaBranding: {
+        type: Boolean,
+        default: false
+      },
+      customFooter: {
+        type: String,
+        default: ''
+      }
+    }
+  },
+  
+  // Subscription tier specific settings
+  subscriptionFeatures: {
+    tier: {
+      type: String,
+      enum: ['free', 'starter', 'professional', 'enterprise'],
+      default: 'free'
+    },
+    dedicatedBilling: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      billingEmail: {
+        type: String,
+        default: ''
+      },
+      taxId: {
+        type: String,
+        default: ''
+      }
+    },
+    rolesPermissions: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      roles: [{
+        name: {
+          type: String,
+          required: true
+        },
+        permissions: [{
+          resource: {
+            type: String,
+            enum: ['bookings', 'orders', 'analytics', 'settings', 'users']
+          },
+          actions: [{
+            type: String,
+            enum: ['read', 'write', 'delete', 'manage']
+          }]
+        }]
+      }],
+      users: [{
+        email: {
+          type: String,
+          required: true
+        },
+        role: {
+          type: String,
+          required: true
+        },
+        invitedAt: {
+          type: Date,
+          default: Date.now
+        },
+        acceptedAt: {
+          type: Date
+        },
+        status: {
+          type: String,
+          enum: ['invited', 'active', 'suspended'],
+          default: 'invited'
+        }
+      }]
+    }
+  },
+  
+  // Personal tenant flag for backward compatibility
+  isPersonalTenant: {
+    type: Boolean,
+    default: false
+  },
+  
+  // Company information (enhanced)
+  companyInfo: {
+    name: {
+      type: String,
+      default: ''
+    },
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      zipCode: String,
+      country: String
+    },
+    website: {
+      type: String,
+      default: ''
+    },
+    industry: {
+      type: String,
+      default: ''
+    },
+    size: {
+      type: String,
+      enum: ['1-10', '11-50', '51-200', '201-1000', '1000+'],
+      default: '1-10'
+    }
+  },
+  
   // Status and metadata
   status: {
     type: String,
@@ -308,14 +459,97 @@ tenantSettingsSchema.methods.getEnabledFeatures = function() {
 
 // Get widget configuration for the frontend
 tenantSettingsSchema.methods.getWidgetConfig = function() {
-  return {
+  const config = {
     tenantId: this.tenantId,
-    primaryColor: this.widgetCustomization.primaryColor,
-    welcomeMessage: this.widgetCustomization.welcomeMessage || `Welcome to ${this.tenantInfo.name}! How can I help you today?`,
+    primaryColor: this.widgetCustomization.primaryColor || this.customization?.primaryColor || '#667eea',
+    secondaryColor: this.widgetCustomization.secondaryColor || this.customization?.secondaryColor || '#f3f4f6',
+    title: this.widgetCustomization.title || this.customization?.title || 'AI Assistant',
+    welcomeMessage: this.widgetCustomization.welcomeMessage || this.customization?.welcomeMessage || `Welcome to ${this.tenantInfo.name || this.companyInfo.name}! How can I help you today?`,
+    placeholder: this.widgetCustomization.placeholder || this.customization?.placeholder || 'Type your message...',
     enabledFeatures: this.getEnabledFeatures(),
     businessHours: this.widgetCustomization.businessHours,
-    autoResponses: this.widgetCustomization.autoResponses.filter(ar => ar.enabled)
+    autoResponses: this.widgetCustomization.autoResponses?.filter(ar => ar.enabled) || [],
+    whiteLabel: {
+      enabled: this.whiteLabel.enabled,
+      level: this.whiteLabel.level,
+      branding: this.whiteLabel.branding,
+      hideMonuaBranding: this.whiteLabel.branding.hideMonuaBranding
+    },
+    isPersonalTenant: this.isPersonalTenant
   };
+  
+  return config;
+};
+
+// Configure subscription-based features
+tenantSettingsSchema.methods.configureSubscriptionFeatures = function(userPlan) {
+  const { USAGE_LIMITS } = require('../config/pricing');
+  const limits = USAGE_LIMITS[userPlan];
+  
+  if (!limits) return;
+  
+  // Set subscription tier
+  this.subscriptionFeatures.tier = userPlan;
+  
+  // Configure white-label features
+  if (limits.whiteLabel) {
+    this.whiteLabel.enabled = true;
+    this.whiteLabel.level = limits.whiteLabel === 'full' ? 'full' : 'basic';
+    this.whiteLabel.branding.hideMonuaBranding = limits.whiteLabel === 'full';
+  }
+  
+  // Configure custom domain
+  if (limits.customDomain) {
+    this.whiteLabel.customDomain.enabled = true;
+  }
+  
+  // Configure dedicated billing
+  if (limits.dedicatedBilling) {
+    this.subscriptionFeatures.dedicatedBilling.enabled = true;
+  }
+  
+  // Configure roles and permissions
+  if (limits.rolesPermissions) {
+    this.subscriptionFeatures.rolesPermissions.enabled = true;
+  }
+  
+  return this;
+};
+
+// Check if feature is available for current plan
+tenantSettingsSchema.methods.hasFeature = function(featureName) {
+  const { USAGE_LIMITS } = require('../config/pricing');
+  const limits = USAGE_LIMITS[this.subscriptionFeatures.tier];
+  
+  return limits && limits[featureName];
+};
+
+// Get tenant configuration with plan restrictions
+tenantSettingsSchema.methods.getTenantConfigForPlan = function(userPlan) {
+  const { USAGE_LIMITS } = require('../config/pricing');
+  const limits = USAGE_LIMITS[userPlan];
+  
+  const config = this.toObject();
+  
+  // Apply plan restrictions
+  if (!limits.whiteLabel) {
+    config.whiteLabel.enabled = false;
+    config.whiteLabel.branding.hideMonuaBranding = false;
+  }
+  
+  if (!limits.customDomain) {
+    config.whiteLabel.customDomain.enabled = false;
+  }
+  
+  if (!limits.dedicatedBilling) {
+    config.subscriptionFeatures.dedicatedBilling.enabled = false;
+  }
+  
+  if (!limits.rolesPermissions) {
+    config.subscriptionFeatures.rolesPermissions.enabled = false;
+  }
+  
+  return config;
 };
 
 // Static method to find tenant by ID
