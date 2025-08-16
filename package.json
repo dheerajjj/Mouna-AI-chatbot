@@ -2,9 +2,9 @@
   "name": "Mouna-AI-chatbot",
   "version": "1.0.0",
   "description": "A production-ready, embeddable AI chatbot widget powered by OpenAI GPT models with user management, subscription billing, and analytics",
-  "main": "server-minimal.js",
+  "main": "server-mongo.js",
   "scripts": {
-    "start": "node server-minimal.js",
+    "start": "node server-mongo.js",
     "dev": "nodemon server-mongo.js",
     "server": "node server-mongo.js",
     "dev:watch": "nodemon server-mongo.js",
