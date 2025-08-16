@@ -403,6 +403,86 @@
             box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
         }
         
+        /* Tenant selection styles */
+        .tenant-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: end;
+        }
+        
+        .tenant-dropdown-container {
+            flex: 1;
+        }
+        
+        .tenant-dropdown-container label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .tenant-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: white;
+            transition: border-color 0.2s;
+        }
+        
+        .tenant-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .create-tenant-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .create-tenant-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        
+        .tenant-info {
+            background: #f0f9ff;
+            border: 1px solid #0284c7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .tenant-info h4 {
+            margin: 0 0 0.5rem 0;
+            color: #0284c7;
+            font-size: 0.9rem;
+        }
+        
+        .tenant-details {
+            font-size: 0.85rem;
+            color: #374151;
+        }
+        
+        .tenant-details strong {
+            color: #1f2937;
+        }
+        
         .widget-mockup {
             max-width: 300px;
             margin: 2rem auto;
@@ -490,13 +570,41 @@
             </ol>
         </div>
 
+        <!-- Tenant Selection Card (for paid plans) -->
+        <div class="card" id="tenant-selection-card" style="display: none;">
+            <div class="card-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <h2 class="card-title">Tenant Configuration</h2>
+            <p style="color: #64748b; margin-bottom: 1.5rem;">Select or create a tenant for your widget integration:</p>
+            
+            <div class="tenant-controls">
+                <div class="tenant-dropdown-container">
+                    <label for="tenant-select">Select Tenant:</label>
+                    <select id="tenant-select" class="tenant-select">
+                        <option value="">Loading tenants...</option>
+                    </select>
+                </div>
+                
+                <button id="create-tenant-btn" class="create-tenant-btn">
+                    <i class="fas fa-plus"></i>
+                    Create New Tenant
+                </button>
+            </div>
+            
+            <div id="selected-tenant-info" class="tenant-info" style="display: none;">
+                <h4>Selected Tenant Details:</h4>
+                <div id="tenant-details"></div>
+            </div>
+        </div>
+
         <!-- Integration Code Card -->
         <div class="card">
             <div class="card-icon">
                 <i class="fas fa-code"></i>
             </div>
             <h2 class="card-title">Integration Code</h2>
-            <p style="color: #64748b; margin-bottom: 1.5rem;">Copy this single line of code to add the chatbot to your website:</p>
+            <p style="color: #64748b; margin-bottom: 1.5rem;" id="integration-description">Copy this code to add the chatbot to your website:</p>
             
             <div class="code-container">
                 <div class="code-block" id="widget-snippet">
@@ -795,8 +903,248 @@
                 });
         }
         
+        // Global state
+        let userApiKey = null;
+        let userSubscription = null;
+        let tenants = [];
+        let selectedTenant = null;
+        
+        // Load user subscription and tenant data
+        async function loadUserData() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    console.log('No auth token found');
+                    return;
+                }
+                
+                // Load user profile and subscription
+                const profileResponse = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (profileResponse.ok) {
+                    const { user } = await profileResponse.json();
+                    userApiKey = user.apiKey;
+                    userSubscription = user.subscription;
+                    
+                    console.log('User subscription:', userSubscription);
+                    
+                    // Show tenant selection for paid plans
+                    if (userSubscription && userSubscription.plan !== 'free') {
+                        document.getElementById('tenant-selection-card').style.display = 'block';
+                        await loadTenants();
+                        
+                        // Update integration guide
+                        updateIntegrationGuide(true);
+                    } else {
+                        // Free plan - use default integration
+                        updateIntegrationCode();
+                        updateIntegrationGuide(false);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+        
+        // Load user tenants
+        async function loadTenants() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/tenant/list', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    tenants = data.tenants || [];
+                    
+                    // Populate tenant dropdown
+                    const tenantSelect = document.getElementById('tenant-select');
+                    tenantSelect.innerHTML = '<option value="">Select a tenant...</option>';
+                    
+                    tenants.forEach(tenant => {
+                        const option = document.createElement('option');
+                        option.value = tenant.tenantId;
+                        option.textContent = `${tenant.name} (${tenant.type})`;
+                        tenantSelect.appendChild(option);
+                    });
+                    
+                    // Auto-select first tenant if available
+                    if (tenants.length > 0) {
+                        selectTenant(tenants[0]);
+                        tenantSelect.value = tenants[0].tenantId;
+                    }
+                } else {
+                    console.error('Failed to load tenants:', response.status);
+                }
+            } catch (error) {
+                console.error('Error loading tenants:', error);
+            }
+        }
+        
+        // Select a tenant
+        function selectTenant(tenant) {
+            selectedTenant = tenant;
+            
+            // Update tenant details display
+            const tenantDetails = document.getElementById('tenant-details');
+            tenantDetails.innerHTML = `
+                <p><strong>Name:</strong> ${tenant.name}</p>
+                <p><strong>Type:</strong> ${tenant.type}</p>
+                <p><strong>Tenant ID:</strong> <code>${tenant.tenantId}</code></p>
+                ${tenant.description ? `<p><strong>Description:</strong> ${tenant.description}</p>` : ''}
+            `;
+            
+            document.getElementById('selected-tenant-info').style.display = 'block';
+            
+            // Update integration code
+            updateIntegrationCode();
+        }
+        
+        // Update integration code based on selected tenant
+        function updateIntegrationCode() {
+            const widgetSnippet = document.getElementById('widget-snippet');
+            const exampleCode = document.getElementById('example-code');
+            
+            let apiKeyValue = userApiKey || 'YOUR_API_KEY';
+            let tenantParam = '';
+            
+            // Add tenant parameter for paid plans with selected tenant
+            if (selectedTenant) {
+                tenantParam = `<br>        <span class="attr">data-tenant-id</span>=<span class="string">"${selectedTenant.tenantId}"</span>`;
+            }
+            
+            // Update widget snippet
+            widgetSnippet.innerHTML = `
+<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js"</span><br>
+        <span class="attr">data-api-key</span>=<span class="string">"${apiKeyValue}"</span>${tenantParam}<br>
+        <span class="attr">data-primary-color</span>=<span class="string">"#667eea"</span><br>
+        <span class="attr">data-position</span>=<span class="string">"bottom-right"</span><span class="tag">&gt;&lt;/script&gt;</span>
+            `.trim();
+            
+            // Update example code
+            const tenantExampleParam = selectedTenant ? `<br>            <span class="attr">data-tenant-id</span>=<span class="string">"${selectedTenant.tenantId}"</span>` : '';
+            
+            exampleCode.innerHTML = `
+<span class="tag">&lt;!DOCTYPE html&gt;</span><br>
+<span class="tag">&lt;html</span> <span class="attr">lang</span>=<span class="string">"en"</span><span class="tag">&gt;</span><br>
+<span class="tag">&lt;head&gt;</span><br>
+    <span class="tag">&lt;meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span><span class="tag">&gt;</span><br>
+    <span class="tag">&lt;title&gt;</span>My Website<span class="tag">&lt;/title&gt;</span><br>
+<span class="tag">&lt;/head&gt;</span><br>
+<span class="tag">&lt;body&gt;</span><br>
+    <span class="tag">&lt;h1&gt;</span>Welcome to My Website<span class="tag">&lt;/h1&gt;</span><br>
+    <span class="tag">&lt;p&gt;</span>Your website content goes here...<span class="tag">&lt;/p&gt;</span><br>
+    <br>
+    <span class="comment">&lt;!-- Add the chatbot widget just before closing body tag --&gt;</span><br>
+    <span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js"</span><br>
+            <span class="attr">data-api-key</span>=<span class="string">"${apiKeyValue}"</span>${tenantExampleParam}<span class="tag">&gt;&lt;/script&gt;</span><br>
+<span class="tag">&lt;/body&gt;</span><br>
+<span class="tag">&lt;/html&gt;</span>
+            `.trim();
+        }
+        
+        // Update integration guide based on plan type
+        function updateIntegrationGuide(isPaidPlan) {
+            const guideSteps = document.querySelector('.guide-steps');
+            const integrationDescription = document.getElementById('integration-description');
+            
+            if (isPaidPlan) {
+                integrationDescription.textContent = 'Copy this tenant-specific code to add the chatbot to your website:';
+                
+                guideSteps.innerHTML = `
+                    <li><span class="step-number">1</span>Select or create a tenant above</li>
+                    <li><span class="step-number">2</span>Copy the tenant-specific integration code below</li>
+                    <li><span class="step-number">3</span>Paste it before the &lt;/body&gt; tag on your website</li>
+                    <li><span class="step-number">4</span>Customize tenant settings in your dashboard</li>
+                `;
+            } else {
+                integrationDescription.textContent = 'Copy this code to add the chatbot to your website:';
+                
+                guideSteps.innerHTML = `
+                    <li><span class="step-number">1</span>Copy the integration code below</li>
+                    <li><span class="step-number">2</span>Replace YOUR_API_KEY with your actual API key</li>
+                    <li><span class="step-number">3</span>Paste it before the &lt;/body&gt; tag on your website</li>
+                `;
+            }
+        }
+        
+        // Create new tenant
+        async function createNewTenant() {
+            const tenantName = prompt('Enter tenant name:', 'Client Website');
+            if (!tenantName) return;
+            
+            const tenantDescription = prompt('Enter tenant description (optional):', '');
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/tenant', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: tenantName,
+                        description: tenantDescription,
+                        type: 'client'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`Tenant "${data.tenant.name}" created successfully!`);
+                    
+                    // Reload tenants and select the new one
+                    await loadTenants();
+                    
+                    // Select the newly created tenant
+                    const newTenant = tenants.find(t => t.tenantId === data.tenant.tenantId);
+                    if (newTenant) {
+                        selectTenant(newTenant);
+                        document.getElementById('tenant-select').value = newTenant.tenantId;
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`Error creating tenant: ${error.message}`);
+                }
+            } catch (error) {
+                console.error('Error creating tenant:', error);
+                alert('Error creating tenant. Please try again.');
+            }
+        }
+        
         // Add some interactive animations
         document.addEventListener('DOMContentLoaded', function() {
+            // Load user data on page load
+            loadUserData();
+            
+            // Tenant selection change handler
+            document.getElementById('tenant-select').addEventListener('change', function(e) {
+                const tenantId = e.target.value;
+                if (tenantId) {
+                    const tenant = tenants.find(t => t.tenantId === tenantId);
+                    if (tenant) {
+                        selectTenant(tenant);
+                    }
+                } else {
+                    selectedTenant = null;
+                    document.getElementById('selected-tenant-info').style.display = 'none';
+                    updateIntegrationCode();
+                }
+            });
+            
+            // Create new tenant button handler
+            document.getElementById('create-tenant-btn').addEventListener('click', createNewTenant);
+            
             const cards = document.querySelectorAll('.card');
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
