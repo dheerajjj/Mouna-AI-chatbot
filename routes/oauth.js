@@ -30,39 +30,47 @@ router.get('/google',
 );
 
 router.get('/google/callback', async (req, res, next) => {
-    passport.authenticate('google', (err, user, info) => {
-        if (err) {
-            console.error('❌ Google OAuth passport error:', err);
-            return res.redirect('/auth/failure?error=passport_error');
-        }
-        
-        if (!user) {
-            console.error('❌ Google OAuth no user returned:', info);
-            return res.redirect('/auth/failure?error=no_user');
-        }
-        
-        try {
-            // Generate JWT token
-            const token = generateToken(user);
-            
-            // Successful authentication
-            console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
-            
-            // Check if this is a new user (first-time signup)
-            if (user.isNew) {
-                console.log('🆕 Redirecting new user to quick-setup');
-                // New user from Get Started page → go to Quick Setup with token
-                res.redirect(`/quick-setup?token=${encodeURIComponent(token)}&provider=google&new=true`);
-            } else {
-                console.log('👤 Redirecting existing user to dashboard');
-                // Existing user → go to dashboard with token
-                res.redirect(`/dashboard?token=${encodeURIComponent(token)}&provider=google`);
+    try {
+        passport.authenticate('google', (err, user, info) => {
+            if (err) {
+                console.error('❌ Google OAuth passport error:', err);
+                console.error('Error stack:', err.stack);
+                return res.redirect('/auth/failure?error=passport_error');
             }
-        } catch (error) {
-            console.error('❌ Google OAuth callback error:', error);
-            res.redirect('/auth/failure?error=token_generation_failed');
-        }
-    })(req, res, next);
+            
+            if (!user) {
+                console.error('❌ Google OAuth no user returned:', info);
+                return res.redirect('/auth/failure?error=no_user');
+            }
+            
+            try {
+                // Generate JWT token
+                const token = generateToken(user);
+                
+                // Successful authentication
+                console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
+                
+                // Check if this is a new user (first-time signup)
+                if (user.isNew) {
+                    console.log('🆕 Redirecting new user to quick-setup');
+                    // New user from Get Started page → go to Quick Setup with token
+                    res.redirect(`/quick-setup?token=${encodeURIComponent(token)}&provider=google&new=true`);
+                } else {
+                    console.log('👤 Redirecting existing user to dashboard');
+                    // Existing user → go to dashboard with token
+                    res.redirect(`/dashboard?token=${encodeURIComponent(token)}&provider=google`);
+                }
+            } catch (tokenError) {
+                console.error('❌ Google OAuth token generation error:', tokenError);
+                console.error('Token error stack:', tokenError.stack);
+                res.redirect('/auth/failure?error=token_generation_failed');
+            }
+        })(req, res, next);
+    } catch (routeError) {
+        console.error('❌ Google OAuth route error:', routeError);
+        console.error('Route error stack:', routeError.stack);
+        res.redirect('/auth/failure?error=route_error');
+    }
 });
 
 
