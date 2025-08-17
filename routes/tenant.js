@@ -308,7 +308,11 @@ router.post('/', [
     
     // Increment user's tenant count (if not personal tenant)
     if (!tenantSettings.isPersonalTenant) {
-      await req.user.incrementTenantCount();
+      // Update tenant count in the database
+      const DatabaseService = require('../services/DatabaseService');
+      await DatabaseService.updateUser(req.user._id, {
+        $inc: { 'tenantLimits.currentTenants': 1 }
+      });
     }
 
     console.log(`✅ Simple tenant created: ${tenantSettings.tenantId} for user ${userId}`);

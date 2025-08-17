@@ -483,6 +483,93 @@
             color: #1f2937;
         }
         
+        /* Tenant explanation styles */
+        .tenant-explanation {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .explanation-header {
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: #4f46e5;
+            transition: background-color 0.2s;
+        }
+        
+        .explanation-header:hover {
+            background: #f1f5f9;
+        }
+        
+        .explanation-arrow {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+        }
+        
+        .explanation-arrow.rotated {
+            transform: rotate(180deg);
+        }
+        
+        .explanation-content {
+            padding: 0 1rem 1rem 1rem;
+            border-top: 1px solid #e2e8f0;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .explanation-content p {
+            margin-bottom: 1rem;
+            color: #64748b;
+            line-height: 1.6;
+        }
+        
+        .explanation-examples {
+            margin: 1rem 0;
+        }
+        
+        .example {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .example i {
+            color: #4f46e5;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .example div {
+            flex: 1;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+        
+        .example strong {
+            color: #1f2937;
+        }
+        
         .widget-mockup {
             max-width: 300px;
             margin: 2rem auto;
@@ -576,7 +663,39 @@
                 <i class="fas fa-building"></i>
             </div>
             <h2 class="card-title">Tenant Configuration</h2>
-            <p style="color: #64748b; margin-bottom: 1.5rem;">Select or create a tenant for your widget integration:</p>
+            <p style="color: #64748b; margin-bottom: 1rem;">Select or create a tenant for your widget integration:</p>
+            
+            <div class="tenant-explanation">
+                <div class="explanation-header" onclick="toggleTenantExplanation()">
+                    <i class="fas fa-question-circle"></i>
+                    <span>What is a tenant?</span>
+                    <i class="fas fa-chevron-down explanation-arrow" id="explanation-arrow"></i>
+                </div>
+                <div class="explanation-content" id="explanation-content" style="display: none;">
+                    <p><strong>Think of a tenant as a separate chatbot setup for each client or website:</strong></p>
+                    <div class="explanation-examples">
+                        <div class="example">
+                            <i class="fas fa-utensils"></i>
+                            <div>
+                                <strong>Restaurant Client:</strong> Chatbot knows their menu, hours, booking system
+                            </div>
+                        </div>
+                        <div class="example">
+                            <i class="fas fa-stethoscope"></i>
+                            <div>
+                                <strong>Clinic Client:</strong> Chatbot handles appointments, medical info, clinic hours
+                            </div>
+                        </div>
+                        <div class="example">
+                            <i class="fas fa-briefcase"></i>
+                            <div>
+                                <strong>Your Portfolio:</strong> Chatbot shows your services, portfolio, contact info
+                            </div>
+                        </div>
+                    </div>
+                    <p><strong>Each tenant gets:</strong> Custom colors, logo, welcome messages, separate analytics, and different features enabled.</p>
+                </div>
+            </div>
             
             <div class="tenant-controls">
                 <div class="tenant-dropdown-container">
@@ -1074,6 +1193,20 @@
                     <li><span class="step-number">2</span>Replace YOUR_API_KEY with your actual API key</li>
                     <li><span class="step-number">3</span>Paste it before the &lt;/body&gt; tag on your website</li>
                 `;
+            }
+        }
+        
+        // Toggle tenant explanation
+        function toggleTenantExplanation() {
+            const content = document.getElementById('explanation-content');
+            const arrow = document.getElementById('explanation-arrow');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.classList.add('rotated');
+            } else {
+                content.style.display = 'none';
+                arrow.classList.remove('rotated');
             }
         }
         

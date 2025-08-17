@@ -3,18 +3,30 @@ const { USAGE_LIMITS } = require('../config/pricing');
 /**
  * Middleware to check if user can create more tenants based on their subscription plan
  */
-const canCreateTenant = (req, res, next) => {
+const canCreateTenant = async (req, res, next) => {
   try {
-    const user = req.user;
+    const userId = req.user.userId;
     
-    if (!user) {
+    if (!userId) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
       });
     }
 
-    const limits = USAGE_LIMITS[user.subscription.plan];
+    // Get user from database
+    const DatabaseService = require('../services/DatabaseService');
+    const user = await DatabaseService.findUserById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const currentPlan = user.subscription?.plan || 'free';
+    const limits = USAGE_LIMITS[currentPlan];
     
     // Check if plan supports additional tenants
     if (limits.personalTenantOnly) {
@@ -22,23 +34,33 @@ const canCreateTenant = (req, res, next) => {
         success: false,
         message: 'Your current plan only supports personal tenant. Upgrade to Professional or Enterprise to manage client tenants.',
         upgradeRequired: true,
-        currentPlan: user.subscription.plan,
+        currentPlan: currentPlan,
         suggestedPlans: ['professional', 'enterprise']
       });
     }
     
+    // Get current tenant count from database
+    const TenantSettings = require('../models/TenantSettings');
+    const currentTenantCount = await TenantSettings.countDocuments({ 
+      userId: user._id, 
+      status: { $ne: 'suspended' }
+    });
+    
     // Check if user has reached tenant limit
-    if (limits.tenants !== 'unlimited' && user.tenantLimits.currentTenants >= limits.tenants) {
+    if (limits.tenants !== 'unlimited' && currentTenantCount >= limits.tenants) {
       return res.status(403).json({
         success: false,
         message: `You have reached your tenant limit of ${limits.tenants}. Upgrade to create more client tenants.`,
         upgradeRequired: true,
-        currentPlan: user.subscription.plan,
-        currentTenants: user.tenantLimits.currentTenants,
+        currentPlan: currentPlan,
+        currentTenants: currentTenantCount,
         maxTenants: limits.tenants,
-        suggestedPlans: user.subscription.plan === 'professional' ? ['enterprise'] : ['professional', 'enterprise']
+        suggestedPlans: currentPlan === 'professional' ? ['enterprise'] : ['professional', 'enterprise']
       });
     }
+    
+    // Add user object to request for use in route
+    req.user = user;
     
     next();
   } catch (error) {

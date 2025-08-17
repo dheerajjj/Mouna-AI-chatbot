@@ -1334,35 +1334,119 @@
             modal.style.display = 'none';
         }
         
-        function updateBillingModal() {
-            // Get current plan data
-            const currentPlan = document.getElementById('current-plan').textContent;
-            const planStatus = document.getElementById('plan-status').textContent;
-            const nextBilling = document.getElementById('next-billing').textContent;
-            
-            // Update modal fields
-            document.getElementById('modal-current-plan').textContent = currentPlan;
-            document.getElementById('modal-plan-status').textContent = planStatus;
-            document.getElementById('modal-next-billing').textContent = nextBilling;
-            
-            // Calculate amount based on plan
-            const planAmounts = {
-                'free': '₹0/month',
-                'starter': '₹499/month',
-                'professional': '₹1,499/month',
-                'enterprise': 'Contact for pricing'
-            };
-            
-            const amount = planAmounts[currentPlan.toLowerCase()] || '₹0/month';
-            document.getElementById('modal-amount').textContent = amount;
-            
-            // Update status badge class
-            const statusBadge = document.getElementById('modal-plan-status');
-            statusBadge.className = 'status-badge ' + (planStatus.toLowerCase() === 'active' ? 'status-active' : 'status-cancelled');
+        async function updateBillingModal() {
+            try {
+                // Get current plan data
+                const currentPlan = document.getElementById('current-plan').textContent;
+                const planStatus = document.getElementById('plan-status').textContent;
+                const nextBilling = document.getElementById('next-billing').textContent;
+                
+                // Update modal fields
+                document.getElementById('modal-current-plan').textContent = currentPlan;
+                document.getElementById('modal-plan-status').textContent = planStatus;
+                document.getElementById('modal-next-billing').textContent = nextBilling;
+                
+                // Calculate amount based on plan
+                const planAmounts = {
+                    'free': '₹0/month',
+                    'starter': '₹499/month',
+                    'professional': '₹1,499/month',
+                    'enterprise': '₹4,999/month'
+                };
+                
+                const amount = planAmounts[currentPlan.toLowerCase()] || '₹0/month';
+                document.getElementById('modal-amount').textContent = amount;
+                
+                // Update status badge class
+                const statusBadge = document.getElementById('modal-plan-status');
+                statusBadge.className = 'status-badge ' + (planStatus.toLowerCase() === 'active' ? 'status-active' : 'status-cancelled');
+                
+                // Load billing history
+                await loadBillingHistory();
+                
+            } catch (error) {
+                console.error('Error updating billing modal:', error);
+            }
         }
         
-        function downloadInvoice() {
-            alert('Invoice download feature coming soon!\n\nIn production, this would:\n• Generate PDF invoice\n• Email invoice to user\n• Download invoice file');
+        async function loadBillingHistory() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+                
+                const response = await fetch('/api/payments/billing-history', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const historyContainer = document.getElementById('payment-history');
+                    
+                    if (data.history && data.history.length > 0) {
+                        historyContainer.innerHTML = data.history.map(payment => `
+                            <div class="billing-row">
+                                <span class="billing-label">${new Date(payment.date).toLocaleDateString('en-IN', { 
+                                    year: 'numeric', 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                })}</span>
+                                <span class="billing-value">₹${payment.amount} - ${payment.plan}</span>
+                                <button onclick="downloadInvoice('${payment.id}')" class="btn btn-sm" style="margin-left: 10px; font-size: 12px;">Download Invoice</button>
+                            </div>
+                        `).join('');
+                    } else {
+                        historyContainer.innerHTML = `
+                            <div class="billing-row">
+                                <span class="billing-label">No payment history</span>
+                                <span class="billing-value">-</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    console.error('Failed to load billing history:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error loading billing history:', error);
+            }
+        }
+        
+        async function downloadInvoice(paymentId = 'latest') {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    alert('Please log in to download invoice.');
+                    return;
+                }
+                
+                // Open invoice in new window
+                const invoiceUrl = `/api/payments/invoice/${paymentId}`;
+                const newWindow = window.open('', '_blank');
+                
+                // Fetch invoice with authentication
+                const response = await fetch(invoiceUrl, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const invoiceHtml = await response.text();
+                    newWindow.document.write(invoiceHtml);
+                    newWindow.document.title = `Invoice - Mouna AI`;
+                } else {
+                    const errorData = await response.json();
+                    newWindow.close();
+                    alert(`Failed to generate invoice: ${errorData.error || 'Unknown error'}`);
+                }
+                
+            } catch (error) {
+                console.error('Error downloading invoice:', error);
+                alert('Error generating invoice. Please try again later.');
+            }
         }
         
         function updatePaymentMethod() {

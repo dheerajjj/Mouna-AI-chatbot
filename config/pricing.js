@@ -261,8 +261,8 @@ const USAGE_LIMITS = {
     websites: 2,
     analytics: true,
     dashboard: true,
-    tenants: 0, // No additional tenants, only personal tenant
-    personalTenantOnly: true
+    tenants: 1, // Support 1 tenant as per plan description
+    personalTenantOnly: false
   },
   professional: {
     messagesPerMonth: 5000,

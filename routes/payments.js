@@ -127,10 +127,22 @@ router.post('/verify-payment', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Invalid plan selected' });
     }
     
-    // Calculate billing dates
+    // Calculate billing dates - use proper month/year arithmetic instead of simple days
     const now = new Date();
-    const billingCycleDays = planDetails.billingCycle === 'monthly' ? 30 : planDetails.billingCycle === 'yearly' ? 365 : 30;
-    const nextBilling = new Date(now.getTime() + billingCycleDays * 24 * 60 * 60 * 1000);
+    let nextBilling;
+    
+    if (planDetails.billingCycle === 'yearly') {
+      nextBilling = new Date(now);
+      nextBilling.setFullYear(now.getFullYear() + 1);
+    } else {
+      // Default to monthly
+      nextBilling = new Date(now);
+      nextBilling.setMonth(now.getMonth() + 1);
+      // Handle month overflow (e.g., Jan 31 + 1 month = Feb 28/29)
+      if (nextBilling.getDate() !== now.getDate()) {
+        nextBilling.setDate(0); // Set to last day of previous month
+      }
+    }
     
     // Comprehensive subscription update with all plan features
     const subscriptionUpdate = {
@@ -293,6 +305,177 @@ router.post('/subscription/cancel', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Subscription cancellation error:', error);
     res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+});
+
+// Get billing history
+router.get('/billing-history', authenticateToken, async (req, res) => {
+  try {
+    const user = await DatabaseService.findUserById(req.user.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // In a real implementation, you would fetch from a payments table
+    // For now, we'll construct from subscription data
+    const billingHistory = [];
+    
+    if (user.subscription && user.subscription.lastPayment) {
+      billingHistory.push({
+        id: user.subscription.razorpayPaymentId || 'payment_001',
+        date: user.subscription.lastPayment.date || user.subscription.currentPeriodStart,
+        amount: user.subscription.lastPayment.amount || user.subscription.amount,
+        currency: user.subscription.lastPayment.currency || user.subscription.currency || 'INR',
+        plan: user.subscription.lastPayment.planName || user.subscription.planName || user.subscription.plan,
+        status: 'paid',
+        paymentMethod: 'Razorpay',
+        orderId: user.subscription.razorpayOrderId
+      });
+    }
+    
+    res.json({
+      success: true,
+      history: billingHistory,
+      count: billingHistory.length
+    });
+    
+  } catch (error) {
+    console.error('Billing history error:', error);
+    res.status(500).json({ error: 'Failed to fetch billing history' });
+  }
+});
+
+// Generate and download invoice
+router.get('/invoice/:paymentId', authenticateToken, async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const user = await DatabaseService.findUserById(req.user.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify the payment belongs to this user
+    if (user.subscription?.razorpayPaymentId !== paymentId && paymentId !== 'latest') {
+      return res.status(403).json({ error: 'Access denied to this invoice' });
+    }
+
+    // Get payment details
+    const payment = user.subscription?.lastPayment || {};
+    const invoiceData = {
+      invoiceNumber: `INV-${paymentId.slice(-8)}`,
+      date: payment.date || user.subscription?.currentPeriodStart || new Date(),
+      dueDate: user.subscription?.currentPeriodEnd || new Date(),
+      customer: {
+        name: user.name,
+        email: user.email,
+        id: user._id
+      },
+      items: [{
+        description: `${payment.planName || user.subscription?.planName || 'Subscription'} - Monthly`,
+        quantity: 1,
+        rate: payment.amount || user.subscription?.amount || 0,
+        amount: payment.amount || user.subscription?.amount || 0
+      }],
+      subtotal: payment.amount || user.subscription?.amount || 0,
+      total: payment.amount || user.subscription?.amount || 0,
+      currency: payment.currency || user.subscription?.currency || 'INR',
+      paymentMethod: 'Razorpay',
+      paymentId: paymentId,
+      orderId: user.subscription?.razorpayOrderId
+    };
+
+    // Format invoice as HTML for now (could be PDF in production)
+    const invoiceHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Invoice ${invoiceData.invoiceNumber}</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            .header { border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
+            .company { color: #666; }
+            .invoice-details { display: flex; justify-content: space-between; margin-bottom: 30px; }
+            .customer-details, .invoice-info { flex: 1; }
+            .invoice-info { text-align: right; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+            th { background-color: #f8f9fa; font-weight: bold; }
+            .total-row { font-weight: bold; background-color: #f8f9fa; }
+            .footer { border-top: 2px solid #eee; padding-top: 20px; margin-top: 30px; color: #666; font-size: 12px; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>INVOICE</h1>
+            <div class="company">
+                <strong>Mouna AI</strong><br>
+                AI-Powered Chatbot Solutions<br>
+                contact@mouna-ai.com
+            </div>
+        </div>
+        
+        <div class="invoice-details">
+            <div class="customer-details">
+                <h3>Bill To:</h3>
+                <strong>${invoiceData.customer.name}</strong><br>
+                ${invoiceData.customer.email}<br>
+                Customer ID: ${invoiceData.customer.id.toString().slice(-8)}
+            </div>
+            <div class="invoice-info">
+                <h3>Invoice Details:</h3>
+                <strong>Invoice #:</strong> ${invoiceData.invoiceNumber}<br>
+                <strong>Date:</strong> ${new Date(invoiceData.date).toLocaleDateString('en-IN')}<br>
+                <strong>Due Date:</strong> ${new Date(invoiceData.dueDate).toLocaleDateString('en-IN')}<br>
+                <strong>Payment ID:</strong> ${invoiceData.paymentId}
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${invoiceData.items.map(item => `
+                <tr>
+                    <td>${item.description}</td>
+                    <td>${item.quantity}</td>
+                    <td>₹${item.rate}</td>
+                    <td>₹${item.amount}</td>
+                </tr>
+                `).join('')}
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
+                    <td><strong>₹${invoiceData.total}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="footer">
+            <p><strong>Payment Method:</strong> ${invoiceData.paymentMethod}</p>
+            <p><strong>Transaction Status:</strong> PAID</p>
+            <p><strong>Order ID:</strong> ${invoiceData.orderId || 'N/A'}</p>
+            <hr>
+            <p>Thank you for your business! This is a computer-generated invoice.</p>
+            <p>For support, contact us at support@mouna-ai.com</p>
+        </div>
+    </body>
+    </html>
+    `;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', `inline; filename="invoice-${invoiceData.invoiceNumber}.html"`);
+    res.send(invoiceHtml);
+    
+  } catch (error) {
+    console.error('Invoice generation error:', error);
+    res.status(500).json({ error: 'Failed to generate invoice' });
   }
 });
 
