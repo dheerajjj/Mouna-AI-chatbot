@@ -670,16 +670,8 @@
                 </div>
                 <div class="billing-card" id="payment-history">
                     <div class="billing-row">
-                        <span class="billing-label">Dec 15, 2023</span>
-                        <span class="billing-value">₹499 - Starter Plan</span>
-                    </div>
-                    <div class="billing-row">
-                        <span class="billing-label">Nov 15, 2023</span>
-                        <span class="billing-value">₹499 - Starter Plan</span>
-                    </div>
-                    <div class="billing-row">
-                        <span class="billing-label">Oct 15, 2023</span>
-                        <span class="billing-value">₹0 - Free Trial</span>
+                        <span class="billing-label">Loading payment history...</span>
+                        <span class="billing-value"></span>
                     </div>
                 </div>
             </div>
@@ -1449,8 +1441,33 @@
             }
         }
         
-        function updatePaymentMethod() {
-            alert('Payment method update coming soon!\n\nThis would open:\n• Credit/Debit card form\n• UPI payment setup\n• Bank account linking');
+        async function updatePaymentMethod() {
+            try {
+                // For now, redirect to Razorpay customer portal or show instructions
+                const currentPlan = document.getElementById('current-plan').textContent;
+                
+                if (currentPlan.toLowerCase() === 'free') {
+                    alert('You are on the free plan and do not have any payment method to update.');
+                    return;
+                }
+                
+                const message = `Update Payment Method\n\n` +
+                              `To update your payment method for ${currentPlan} plan:\n\n` +
+                              `1. Contact our support team at support@mouna-ai.com\n` +
+                              `2. Or use the "Change Plan" option to resubscribe\n` +
+                              `3. Include your current subscription details\n\n` +
+                              `We'll help you update your payment information securely.\n\n` +
+                              `Would you like to contact support now?`;
+                              
+                if (confirm(message)) {
+                    const subject = encodeURIComponent('Update Payment Method Request');
+                    const body = encodeURIComponent(`Hello,\n\nI would like to update my payment method for my ${currentPlan} plan.\n\nCurrent email: ${document.getElementById('user-name').textContent}\n\nPlease help me update my payment information.\n\nThank you!`);
+                    window.location.href = `mailto:support@mouna-ai.com?subject=${subject}&body=${body}`;
+                }
+            } catch (error) {
+                console.error('Error in updatePaymentMethod:', error);
+                alert('Error accessing payment update. Please try again later.');
+            }
         }
         
         function cancelSubscription() {
