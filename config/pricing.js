@@ -145,8 +145,9 @@ const PRICING_PLANS = {
     },
     featureList: [
       '1,000 messages/month',
+      '2 websites/tenants support',
       'Advanced AI responses',
-      'Custom branding',
+      'Custom branding (colors, position)',
       'Basic analytics',
       'Dashboard access'
     ],
@@ -261,7 +262,7 @@ const USAGE_LIMITS = {
     websites: 2,
     analytics: true,
     dashboard: true,
-    tenants: 1, // Support 1 tenant as per plan description
+    tenants: 2, // Support 2 client tenants to match websites limit
     personalTenantOnly: false
   },
   professional: {
