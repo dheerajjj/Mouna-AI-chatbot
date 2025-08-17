@@ -710,7 +710,8 @@
                     Create New Tenant
                 </button>
                 
-                <button id="debug-create-tenant-btn" class="create-tenant-btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); margin-left: 10px;">
+                <!-- Debug button - only shown in development mode -->
+                <button id="debug-create-tenant-btn" class="create-tenant-btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); margin-left: 10px; display: none;">
                     <i class="fas fa-bug"></i>
                     Debug Create
                 </button>
@@ -1309,6 +1310,11 @@
         
         // Add some interactive animations
         document.addEventListener('DOMContentLoaded', function() {
+            // Show debug button only in development mode
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                document.getElementById('debug-create-tenant-btn').style.display = 'flex';
+            }
+            
             // Load user data on page load
             loadUserData();
             
