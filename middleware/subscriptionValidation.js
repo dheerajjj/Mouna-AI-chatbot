@@ -5,9 +5,14 @@ const { USAGE_LIMITS } = require('../config/pricing');
  */
 const canCreateTenant = async (req, res, next) => {
   try {
+    console.log('🔍 [canCreateTenant] Starting validation...');
+    console.log('🔍 [canCreateTenant] Request user object:', req.user);
+    
     const userId = req.user.userId;
+    console.log('🔍 [canCreateTenant] User ID:', userId);
     
     if (!userId) {
+      console.log('❌ [canCreateTenant] No user ID found');
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
@@ -16,20 +21,28 @@ const canCreateTenant = async (req, res, next) => {
 
     // Get user from database
     const DatabaseService = require('../services/DatabaseService');
+    console.log('🔍 [canCreateTenant] Fetching user from database...');
     const user = await DatabaseService.findUserById(userId);
+    console.log('🔍 [canCreateTenant] Fetched user:', user ? 'Found' : 'Not found');
     
     if (!user) {
+      console.log('❌ [canCreateTenant] User not found in database');
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
+    console.log('🔍 [canCreateTenant] User subscription:', user.subscription);
     const currentPlan = user.subscription?.plan || 'free';
+    console.log('🔍 [canCreateTenant] Current plan:', currentPlan);
+    
     const limits = USAGE_LIMITS[currentPlan];
+    console.log('🔍 [canCreateTenant] Plan limits:', limits);
     
     // Check if plan supports additional tenants
     if (limits.personalTenantOnly) {
+      console.log('❌ [canCreateTenant] Plan only supports personal tenant');
       return res.status(403).json({
         success: false,
         message: 'Your current plan only supports personal tenant. Upgrade to Professional or Enterprise to manage client tenants.',
@@ -41,13 +54,17 @@ const canCreateTenant = async (req, res, next) => {
     
     // Get current tenant count from database
     const TenantSettings = require('../models/TenantSettings');
+    console.log('🔍 [canCreateTenant] Counting existing tenants for user...');
     const currentTenantCount = await TenantSettings.countDocuments({ 
       userId: user._id, 
       status: { $ne: 'suspended' }
     });
+    console.log('🔍 [canCreateTenant] Current tenant count:', currentTenantCount);
+    console.log('🔍 [canCreateTenant] Max tenants allowed:', limits.tenants);
     
     // Check if user has reached tenant limit
     if (limits.tenants !== 'unlimited' && currentTenantCount >= limits.tenants) {
+      console.log('❌ [canCreateTenant] Tenant limit reached');
       return res.status(403).json({
         success: false,
         message: `You have reached your tenant limit of ${limits.tenants}. Upgrade to create more client tenants.`,
@@ -59,15 +76,22 @@ const canCreateTenant = async (req, res, next) => {
       });
     }
     
+    console.log('✅ [canCreateTenant] Validation passed, allowing tenant creation');
     // Add user object to request for use in route
     req.user = user;
     
     next();
   } catch (error) {
-    console.error('Subscription validation error:', error);
+    console.error('❌ [canCreateTenant] Subscription validation error:', error);
+    console.error('❌ [canCreateTenant] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return res.status(500).json({
       success: false,
-      message: 'Internal server error during subscription validation'
+      message: 'Internal server error during subscription validation',
+      error: error.message
     });
   }
 };

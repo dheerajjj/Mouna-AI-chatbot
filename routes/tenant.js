@@ -259,8 +259,13 @@ router.post('/', [
   body('type').optional().isIn(['personal', 'client']).withMessage('Type must be personal or client')
 ], authenticateToken, canCreateTenant, async (req, res) => {
   try {
+    console.log('🚀 Starting tenant creation process...');
+    console.log('👤 Request user object:', req.user);
+    console.log('📝 Request body:', req.body);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({ 
         error: 'Validation failed', 
         details: errors.array() 
@@ -269,6 +274,8 @@ router.post('/', [
 
     const userId = req.user.userId;
     const { name, description = '', type = 'client' } = req.body;
+
+    console.log('🔧 Creating tenant with:', { userId, name, description, type });
 
     // Create basic tenant settings with minimal configuration
     const tenantSettings = new TenantSettings({
@@ -300,19 +307,25 @@ router.post('/', [
       }
     });
 
+    console.log('🆔 Generating tenant ID...');
     // Generate unique tenant ID
     tenantSettings.generateTenantId();
+    console.log('🆔 Generated tenant ID:', tenantSettings.tenantId);
     
+    console.log('💾 Saving tenant to database...');
     // Save to database
     await tenantSettings.save();
+    console.log('✅ Tenant saved successfully');
     
     // Increment user's tenant count (if not personal tenant)
     if (!tenantSettings.isPersonalTenant) {
+      console.log('📊 Incrementing user tenant count...');
       // Update tenant count in the database
       const DatabaseService = require('../services/DatabaseService');
       await DatabaseService.updateUser(req.user._id, {
         $inc: { 'tenantLimits.currentTenants': 1 }
       });
+      console.log('📊 Tenant count updated');
     }
 
     console.log(`✅ Simple tenant created: ${tenantSettings.tenantId} for user ${userId}`);
@@ -330,17 +343,28 @@ router.post('/', [
     });
 
   } catch (error) {
-    console.error('Error creating simple tenant:', error);
+    console.error('❌ Error creating simple tenant:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     
     if (error.code === 11000) {
       return res.status(409).json({ 
-        error: 'Tenant with this configuration already exists' 
+        error: 'Tenant with this configuration already exists',
+        details: error.message
       });
     }
     
     res.status(500).json({ 
       error: 'Failed to create tenant',
-      details: error.message 
+      details: error.message,
+      debugInfo: {
+        userId: req.user?.userId,
+        userObject: req.user,
+        requestBody: req.body
+      }
     });
   }
 });
