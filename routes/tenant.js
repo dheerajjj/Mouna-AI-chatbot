@@ -276,10 +276,34 @@ router.post('/', [
     const { name, description = '', type = 'client' } = req.body;
 
     console.log('🔧 Creating tenant with:', { userId, name, description, type });
+    
+    // Validate userId exists and is valid
+    if (!userId) {
+      console.error('❌ UserId is missing or undefined');
+      return res.status(400).json({
+        error: 'User ID is required',
+        details: 'Authentication failed - no user ID found'
+      });
+    }
+    
+    // Ensure proper ObjectId format for MongoDB
+    let validUserId = userId;
+    try {
+      const mongoose = require('mongoose');
+      if (typeof userId === 'string' && userId.length === 24 && mongoose.Types.ObjectId.isValid(userId)) {
+        validUserId = new mongoose.Types.ObjectId(userId);
+        console.log('🔧 Converted userId to ObjectId:', validUserId);
+      } else {
+        console.log('🔧 Using userId as-is:', validUserId);
+      }
+    } catch (err) {
+      console.log('🔧 ObjectId conversion not needed, using:', validUserId);
+    }
 
     // Create basic tenant settings with minimal configuration
+    console.log('🔧 Creating TenantSettings instance...');
     const tenantSettings = new TenantSettings({
-      userId,
+      userId: validUserId,
       tenantInfo: {
         name: name,
         description: description,
@@ -306,6 +330,7 @@ router.post('/', [
         autoResponses: []
       }
     });
+    console.log('✅ TenantSettings instance created successfully');
 
     console.log('🆔 Generating tenant ID...');
     // Generate unique tenant ID

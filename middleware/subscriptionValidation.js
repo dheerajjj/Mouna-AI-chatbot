@@ -22,8 +22,23 @@ const canCreateTenant = async (req, res, next) => {
     // Get user from database
     const DatabaseService = require('../services/DatabaseService');
     console.log('🔍 [canCreateTenant] Fetching user from database...');
+    console.log('🔍 [canCreateTenant] UserId type:', typeof userId, 'Value:', userId);
+    
+    // Initialize DatabaseService if not already done
+    if (!DatabaseService.isMongoConnected && !DatabaseService.mockDB) {
+      await DatabaseService.initialize();
+    }
+    
     const user = await DatabaseService.findUserById(userId);
     console.log('🔍 [canCreateTenant] Fetched user:', user ? 'Found' : 'Not found');
+    if (user) {
+      console.log('🔍 [canCreateTenant] User details:', {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        subscription: user.subscription
+      });
+    }
     
     if (!user) {
       console.log('❌ [canCreateTenant] User not found in database');
