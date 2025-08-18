@@ -58,7 +58,10 @@
     "stripe": "^18.3.0",
     "transliteration": "^2.3.5",
     "twilio": "^5.8.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "puppeteer": "^22.0.0",
+    "robots-parser": "^3.0.1",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "jest": "^30.0.5",
