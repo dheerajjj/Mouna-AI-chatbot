@@ -200,6 +200,48 @@ async function validateApiKey(req, res, next) {
   }
 }
 
+// JWT token validation middleware
+const jwt = require('jsonwebtoken');
+const authenticateJWT = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ error: 'Access token required' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', async (err, decoded) => {
+      if (err) {
+        if (err.name === 'TokenExpiredError') {
+          return res.status(401).json({ error: 'Token has expired' });
+        } else if (err.name === 'JsonWebTokenError') {
+          return res.status(401).json({ error: 'Invalid token' });
+        }
+        return res.status(403).json({ error: 'Token verification failed' });
+      }
+      
+      // Get full user data from database
+      try {
+        const user = await DatabaseService.findUserById(decoded.userId);
+        if (!user) {
+          return res.status(401).json({ error: 'User not found' });
+        }
+        
+        req.user = user;
+        req.token = token;
+        next();
+      } catch (dbError) {
+        console.error('Database error in JWT auth:', dbError);
+        return res.status(500).json({ error: 'Authentication error' });
+      }
+    });
+  } catch (error) {
+    console.error('JWT authentication error:', error);
+    res.status(500).json({ error: 'Authentication error' });
+  }
+};
+
 // Initialize Knowledge Base Service
 const KnowledgeBaseService = require('./services/KnowledgeBaseService');
 const knowledgeService = new KnowledgeBaseService();
@@ -738,7 +780,7 @@ async function startServer() {
     });
     
     // Chat configuration -- Save comprehensive chat settings
-    app.put('/api/chat-config', validateApiKey, async (req, res) => {
+    app.put('/api/chat-config', authenticateJWT, async (req, res) => {
       try {
         const userId = req.user._id;
         const {
@@ -783,7 +825,7 @@ async function startServer() {
     });
     
     // Get chat configuration
-    app.get('/api/chat-config', validateApiKey, async (req, res) => {
+    app.get('/api/chat-config', authenticateJWT, async (req, res) => {
       try {
         const userId = req.user._id;
         const user = await DatabaseService.findUserById(userId);
