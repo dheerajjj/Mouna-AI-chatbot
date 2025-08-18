@@ -890,6 +890,10 @@
                 window.location.href = '/login';
                 return;
             }
+            
+            // Initialize progress listeners for real-time updates
+            setupProgressListeners();
+            
             loadUserData(token);
         });
 
@@ -1173,6 +1177,36 @@
                 console.error('Error loading setup progress:', error);
                 // Continue with default progress display
             }
+        }
+        
+        // Listen for real-time progress updates from ProgressService
+        function setupProgressListeners() {
+            // Listen for progress update events from ProgressService
+            window.addEventListener('progressUpdated', (event) => {
+                const { steps, completionPercentage } = event.detail;
+                console.log('🔄 Real-time progress update received:', event.detail);
+                updateProgressDisplay(steps, completionPercentage);
+            });
+            
+            // Check for progress updates when the page becomes visible (user returns from other pages)
+            document.addEventListener('visibilitychange', async () => {
+                if (!document.hidden) {
+                    console.log('👁️ Page became visible, refreshing progress...');
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        await loadSetupProgress(token);
+                    }
+                }
+            });
+            
+            // Also refresh when window regains focus
+            window.addEventListener('focus', async () => {
+                console.log('🎯 Window focused, refreshing progress...');
+                const token = localStorage.getItem('authToken');
+                if (token) {
+                    await loadSetupProgress(token);
+                }
+            });
         }
         
         function updateProgressDisplay(progress, completionPercentage) {

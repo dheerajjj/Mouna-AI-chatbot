@@ -504,11 +504,19 @@
         </div>
     </div>
 
+    <!-- Include Progress Service -->
+    <script src="/utils/progressService.js"></script>
+    
     <script>
         // Check user's plan and show/hide upgrade banner
         document.addEventListener('DOMContentLoaded', function() {
             checkUserPlan();
             initializeCustomization();
+            
+            // Initialize progress tracking
+            if (window.ProgressService) {
+                window.ProgressService.initializeProgress();
+            }
         });
 
         async function checkUserPlan() {
@@ -650,12 +658,25 @@
         }
 
         async function saveCustomization() {
+            const saveBtn = document.querySelector('.btn');
+            const saveIcon = saveBtn.querySelector('i');
+            const originalText = 'Save Customization';
+            
             try {
                 const token = localStorage.getItem('authToken');
                 if (!token) {
-                    alert('Please log in to save customization');
+                    if (window.ProgressService) {
+                        window.ProgressService.showErrorNotification('Please log in to save customization');
+                    } else {
+                        alert('Please log in to save customization');
+                    }
                     return;
                 }
+
+                // Show loading state
+                saveBtn.disabled = true;
+                saveIcon.className = 'fas fa-spinner fa-spin';
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
                 const customization = {
                     primaryColor: document.getElementById('primary-color').value,
@@ -677,13 +698,56 @@
                 });
 
                 if (response.ok) {
-                    alert('🎉 Widget customization saved successfully!');
+                    // Show success state
+                    saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved Successfully!';
+                    
+                    // Update progress and redirect using ProgressService
+                    if (window.ProgressService) {
+                        await window.ProgressService.completeStepAndRedirect(
+                            'customize', 
+                            {
+                                customizationData: {
+                                    theme: 'custom',
+                                    colors: { primary: customization.primaryColor },
+                                    position: customization.position,
+                                    title: customization.title,
+                                    welcomeMessage: customization.welcomeMessage,
+                                    icon: customization.icon,
+                                    size: customization.size,
+                                    animation: customization.animation
+                                }
+                            },
+                            'welcome-dashboard',
+                            true // Auto redirect
+                        );
+                    } else {
+                        // Fallback if ProgressService is not available
+                        alert('🎉 Widget customization saved successfully!');
+                        setTimeout(() => {
+                            window.location.href = '/welcome-dashboard';
+                        }, 1500);
+                    }
                 } else {
                     throw new Error('Failed to save customization');
                 }
             } catch (error) {
                 console.error('Error saving customization:', error);
-                alert('Error saving customization. Please try again.');
+                
+                // Show error state
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Save Failed - Try Again';
+                
+                // Show error notification
+                if (window.ProgressService) {
+                    window.ProgressService.showErrorNotification('Failed to save customization. Please try again.');
+                } else {
+                    alert('Error saving customization. Please try again.');
+                }
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> ' + originalText;
+                }, 3000);
             }
         }
 
