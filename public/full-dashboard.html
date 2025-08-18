@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Dashboard - Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="/js/planFeatures.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+        
+        /* Add subtle grain overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.02"><circle cx="30" cy="30" r="1"/></g></g></svg>');
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem 0;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+        
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
+        }
+        
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: rgba(13, 123, 138, 0.1);
+            color: #0d7b8a;
+        }
+        
+        .nav-link.active {
+            background: #0d7b8a;
+            color: white;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
+        .logout-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .page-subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .card h3 {
+            margin-bottom: 1.5rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+        
+        .feature-list {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-list li {
+            padding: 0.5rem 0;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .feature-list li::before {
+            content: '✓';
+            color: #10b981;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 123, 138, 0.3);
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(135deg, #0a6b75, #3d0b57);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(13, 123, 138, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0d7b8a;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 1);
+            border-color: #0d7b8a;
+            box-shadow: 0 4px 15px rgba(13, 123, 138, 0.3);
+        }
+        
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .pro-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #f0f9ff;
+            border: 1px solid #e0f2fe;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .status-indicator.active {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+        
+        .status-indicator.warning {
+            background: #fffbeb;
+            border-color: #fed7aa;
+            color: #92400e;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .quick-actions {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .quick-actions h3 {
+            margin-bottom: 1.5rem;
+            color: #1e293b;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        .breadcrumb a {
+            color: #64748b;
+            text-decoration: none;
+        }
+        
+        .breadcrumb a:hover {
+            color: #0d7b8a;
+        }
+        
+        .breadcrumb .separator {
+            color: #cbd5e1;
+        }
+        
+        .breadcrumb .current {
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-menu {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/images/logo.png" alt="Mouna AI Logo">
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">AI ASSISTANT</div>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="/dashboard" class="nav-link">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="/full-dashboard" class="nav-link active">
+                    <i class="fas fa-th-large"></i> Full Dashboard
+                </a>
+                <a href="/integration" class="nav-link">
+                    <i class="fas fa-book"></i> Documentation
+                </a>
+                <a href="/pricing" class="nav-link">
+                    <i class="fas fa-credit-card"></i> Pricing
+                </a>
+            </div>
+            <div class="user-menu">
+                <span class="user-name" id="user-name">Loading...</span>
+                <button onclick="logout()" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+            <span class="separator">→</span>
+            <span class="current">Full Dashboard</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Full Dashboard</h1>
+            <p class="page-subtitle">Complete control center for your AI chatbot - manage, monitor, and optimize everything</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+            <div class="action-grid">
+                <button class="btn" onclick="testWidget()">
+                    <i class="fas fa-play"></i> Test Widget Live
+                </button>
+                <button class="btn btn-secondary" onclick="openBillingModal()">
+                    <i class="fas fa-receipt"></i> Billing Management
+                </button>
+                <a href="/configure-prompt" class="btn btn-secondary">
+                    <i class="fas fa-robot"></i> Configure AI Chat
+                </a>
+                <button class="btn btn-secondary" onclick="regenerateApiKey()">
+                    <i class="fas fa-sync"></i> Regenerate API Key
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Widget Management -->
+            <div class="card">
+                <h3>
+                    <div class="card-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    Widget Management
+                </h3>
+                
+                <div class="status-indicator active">
+                    <i class="fas fa-check-circle"></i>
+                    Widget Active & Ready
+                </div>
+                
+                <ul class="feature-list">
+                    <li>Test widget functionality in real-time</li>
+                    <li>Customize colors, position, and appearance</li>
+                    <li>Configure AI responses and personality</li>
+                    <li>Manage widget placement and behavior</li>
+                </ul>
+                
+                <div class="btn-grid">
+                    <button class="btn" onclick="testWidget()">
+                        <i class="fas fa-play"></i> Test Now
+                    </button>
+                    <a href="/customize-widget" class="btn btn-secondary">
+                        <i class="fas fa-palette"></i> Customize
+                    </a>
+                </div>
+            </div>
+
+            <!-- Analytics & Insights -->
+            <div class="card">
+                <h3>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    Analytics & Insights
+                    <span class="pro-badge">Pro</span>
+                </h3>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-conversations">-</div>
+                        <div class="stat-label">Total Conversations</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="monthly-usage">0/100</div>
+                        <div class="stat-label">This Month</div>
+                    </div>
+                </div>
+                
+                <ul class="feature-list">
+                    <li>Real-time usage statistics and trends</li>
+                    <li>Advanced analytics dashboard</li>
+                    <li>Export detailed reports (Pro)</li>
+                    <li>User behavior insights (Pro)</li>
+                </ul>
+                
+                <div class="btn-grid">
+                    <button class="btn" onclick="viewAnalytics()">
+                        <i class="fas fa-chart-bar"></i> View Analytics
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportReports()">
+                        <i class="fas fa-download"></i> Export Reports
+                    </button>
+                </div>
+            </div>
+
+            <!-- Setup & Integration -->
+            <div class="card">
+                <h3>
+                    <div class="card-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    Setup & Integration
+                </h3>
+                
+                <div class="status-indicator" id="integration-status">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="integration-text">Integration Ready</span>
+                </div>
+                
+                <ul class="feature-list">
+                    <li>Get widget integration code</li>
+                    <li>Manage API keys and security</li>
+                    <li>Access complete documentation</li>
+                    <li>Technical support and guides</li>
+                </ul>
+                
+                <div class="btn-grid">
+                    <button class="btn" onclick="copyIntegrationCode()">
+                        <i class="fas fa-code"></i> Get Code
+                    </button>
+                    <a href="/integration" class="btn btn-secondary">
+                        <i class="fas fa-book"></i> Documentation
+                    </a>
+                </div>
+            </div>
+
+            <!-- Account & Billing -->
+            <div class="card">
+                <h3>
+                    <div class="card-icon">
+                        <i class="fas fa-user-cog"></i>
+                    </div>
+                    Account & Billing
+                </h3>
+                
+                <div class="status-indicator active">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="plan-status-text">Free Plan Active</span>
+                </div>
+                
+                <ul class="feature-list">
+                    <li>View and change subscription plans</li>
+                    <li>Billing history and invoices</li>
+                    <li>Payment method management</li>
+                    <li>Profile and account settings</li>
+                </ul>
+                
+                <div class="btn-grid">
+                    <a href="/pricing" class="btn">
+                        <i class="fas fa-credit-card"></i> View Plans
+                    </a>
+                    <button class="btn btn-secondary" onclick="openBillingModal()">
+                        <i class="fas fa-receipt"></i> Billing
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Code Section -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <h3>
+                <div class="card-icon">
+                    <i class="fas fa-terminal"></i>
+                </div>
+                Widget Integration Code
+            </h3>
+            
+            <p style="margin-bottom: 1.5rem; color: #64748b;">
+                Copy and paste this code just before the closing &lt;/body&gt; tag on your website:
+            </p>
+            
+            <div style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 8px; position: relative; margin-bottom: 1rem; font-family: 'Courier New', monospace; overflow-x: auto;">
+                <button onclick="copyToClipboard('integration-code')" style="position: absolute; top: 1rem; right: 1rem; background: #0d7b8a; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                    Copy
+                </button>
+                <pre id="integration-code">&lt;script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="YOUR_API_KEY_HERE" data-primary-color="#667eea" data-position="bottom-right"&gt;&lt;/script&gt;</pre>
+            </div>
+            
+            <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <strong>📝 Your API Key:</strong>
+                <div style="background: #1e293b; color: #e2e8f0; padding: 0.75rem; border-radius: 6px; margin-top: 0.5rem; font-family: 'Courier New', monospace; position: relative;">
+                    <button onclick="copyToClipboard('api-key-display')" style="position: absolute; top: 0.5rem; right: 0.5rem; background: #0d7b8a; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">
+                        Copy
+                    </button>
+                    <span id="api-key-display">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the billing modal from dashboard.html -->
+    <!-- Billing Management Modal -->
+    <div class="modal-overlay" id="billing-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000;">
+        <div class="modal" style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+                <h2 class="modal-title" style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">Billing Management</h2>
+                <button class="close-btn" onclick="closeBillingModal()" style="background: none; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; padding: 0.5rem; border-radius: 50%; transition: all 0.2s ease;">&times;</button>
+            </div>
+            
+            <div class="billing-section" style="margin-bottom: 2rem;">
+                <div class="section-title" style="font-size: 1.1rem; font-weight: 600; color: #374151; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-credit-card"></i>
+                    Current Subscription
+                </div>
+                <div class="billing-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem;">
+                    <div class="billing-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span class="billing-label" style="color: #64748b; font-weight: 500;">Plan:</span>
+                        <span class="billing-value" id="modal-current-plan" style="color: #1e293b; font-weight: 600;">Loading...</span>
+                    </div>
+                    <div class="billing-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span class="billing-label" style="color: #64748b; font-weight: 500;">Status:</span>
+                        <span class="status-badge status-active" id="modal-plan-status" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; background: #dcfce7; color: #166534;">Active</span>
+                    </div>
+                    <div class="billing-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span class="billing-label" style="color: #64748b; font-weight: 500;">Next Billing Date:</span>
+                        <span class="billing-value" id="modal-next-billing" style="color: #1e293b; font-weight: 600;">Loading...</span>
+                    </div>
+                    <div class="billing-row" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="billing-label" style="color: #64748b; font-weight: 500;">Amount:</span>
+                        <span class="billing-value" id="modal-amount" style="color: #1e293b; font-weight: 600;">₹0/month</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <a href="/pricing" class="btn">Change Plan</a>
+                <button onclick="downloadInvoice()" class="btn btn-secondary">Download Invoice</button>
+                <button onclick="updatePaymentMethod()" class="btn btn-secondary">Update Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load user data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+        });
+
+        async function loadUserData() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const data = await response.json();
+                
+                if (data.user) {
+                    // Update user info
+                    document.getElementById('user-name').textContent = data.user.name;
+                    document.getElementById('api-key-display').textContent = data.user.apiKey;
+                    
+                    // Update plan status
+                    const currentPlan = data.user.plan?.current?.name || data.user.subscription?.plan || 'Free';
+                    document.getElementById('plan-status-text').textContent = `${currentPlan} Plan Active`;
+                    
+                    // Update usage stats
+                    const totalMessages = data.user.usage?.totalMessages || 0;
+                    const monthlyMessages = data.user.usage?.messagesThisMonth || 0;
+                    const planLimits = {
+                        free: 100,
+                        starter: 1000,
+                        professional: 5000,
+                        enterprise: 'unlimited'
+                    };
+                    const limit = planLimits[currentPlan.toLowerCase()] || 100;
+                    
+                    document.getElementById('total-conversations').textContent = totalMessages;
+                    document.getElementById('monthly-usage').textContent = limit === 'unlimited' ? `${monthlyMessages} / Unlimited` : `${monthlyMessages} / ${limit}`;
+                    
+                    // Update integration code with actual API key
+                    const integrationCode = document.getElementById('integration-code');
+                    integrationCode.innerHTML = integrationCode.innerHTML.replace('YOUR_API_KEY_HERE', data.user.apiKey);
+                    
+                    // Update modal data
+                    document.getElementById('modal-current-plan').textContent = currentPlan;
+                    document.getElementById('modal-next-billing').textContent = data.user.subscription?.nextBilling || 'N/A';
+                    
+                    // Update integration status
+                    const statusElement = document.getElementById('integration-status');
+                    const statusText = document.getElementById('integration-text');
+                    if (data.user.apiKey) {
+                        statusElement.className = 'status-indicator active';
+                        statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Integration Ready';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        // Widget Testing
+        async function testWidget() {
+            try {
+                const response = await fetch('/test-api-key');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Remove existing test widget
+                    const existingWidget = document.getElementById('test-widget');
+                    if (existingWidget) existingWidget.remove();
+                    
+                    // Load the widget
+                    const script = document.createElement('script');
+                    script.id = 'test-widget';
+                    script.src = '/widget-fixed.js';
+                    script.setAttribute('data-api-key', data.apiKey);
+                    script.setAttribute('data-primary-color', '#667eea');
+                    script.setAttribute('data-position', 'bottom-right');
+                    document.body.appendChild(script);
+                    
+                    alert('Test widget loaded! Check the bottom-right corner of your screen.');
+                } else {
+                    alert('Failed to load test widget. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error testing widget:', error);
+                alert('Error loading test widget. Please try again.');
+            }
+        }
+
+        // Copy to clipboard functionality
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success feedback
+                const button = element.parentElement.querySelector('button');
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = '#10b981';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#0d7b8a';
+                }, 2000);
+            });
+        }
+
+        // Copy integration code
+        function copyIntegrationCode() {
+            copyToClipboard('integration-code');
+        }
+
+        // Analytics functions
+        function viewAnalytics() {
+            alert('📊 Advanced Analytics Dashboard\n\nComing Soon! This will include:\n• Real-time conversation metrics\n• User engagement insights\n• Performance analytics\n• Custom reporting tools\n\nUpgrade to Pro for early access!');
+        }
+
+        function exportReports() {
+            alert('📈 Export Reports\n\nComing Soon! Export features:\n• PDF and Excel reports\n• Custom date ranges\n• Detailed conversation logs\n• Performance summaries\n\nThis is a Pro feature - upgrade to unlock!');
+        }
+
+        // Billing Modal Functions
+        function openBillingModal() {
+            document.getElementById('billing-modal').style.display = 'flex';
+        }
+
+        function closeBillingModal() {
+            document.getElementById('billing-modal').style.display = 'none';
+        }
+
+        function downloadInvoice() {
+            alert('📄 Download Invoice\n\nInvoice download functionality will be available once you have an active paid subscription.\n\nFor free plan users, no invoices are generated.');
+        }
+
+        function updatePaymentMethod() {
+            alert('💳 Update Payment Method\n\nTo update your payment method:\n\n1. Contact our support team\n2. Or upgrade/change your plan\n3. Use secure payment processing\n\nWe\'ll help you update your payment information safely.');
+        }
+
+        // API Key regeneration
+        async function regenerateApiKey() {
+            if (!confirm('Are you sure? This will invalidate your current API key and you\'ll need to update your website integration.')) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/regenerate-api-key', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.apiKey) {
+                    document.getElementById('api-key-display').textContent = data.apiKey;
+                    
+                    // Update integration code
+                    const integrationCode = document.getElementById('integration-code');
+                    const currentCode = integrationCode.innerHTML;
+                    const match = currentCode.match(/data-api-key="([^"]+)"/);
+                    if (match) {
+                        const newCode = currentCode.replace(match[1], data.apiKey);
+                        integrationCode.innerHTML = newCode;
+                    }
+                    
+                    alert('✅ API key regenerated successfully!\n\nPlease update your website integration with the new API key.');
+                } else {
+                    throw new Error(data.error || 'Failed to regenerate API key');
+                }
+            } catch (error) {
+                console.error('Error regenerating API key:', error);
+                alert('❌ Error regenerating API key: ' + error.message);
+            }
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (token) {
+                    await fetch('/api/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                localStorage.removeItem('authToken');
+                window.location.href = '/get-started';
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('billing-modal');
+            if (event.target === modal) {
+                closeBillingModal();
+            }
+        }
+    </script>
+</body>
+</html>

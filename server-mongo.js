@@ -1774,6 +1774,11 @@ app.get('/email-validation-test', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'welcome-dashboard.html'));
     });
 
+    // Full dashboard with all management features
+    app.get('/full-dashboard', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'full-dashboard.html'));
+    });
+
     // OTP verification page
     app.get('/verify-otp', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'verify-otp.html'));
