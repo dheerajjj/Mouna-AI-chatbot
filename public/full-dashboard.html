@@ -700,43 +700,80 @@
                 const data = await response.json();
                 
                 if (data.user) {
+                    console.log('👤 User data received:', data.user);
+                    console.log('📊 Plan data:', data.user.plan);
+                    console.log('📈 Usage data:', data.user.usage);
+                    
                     // Update user info
                     document.getElementById('user-name').textContent = data.user.name;
                     document.getElementById('api-key-display').textContent = data.user.apiKey;
                     
-                    // Update plan status
-                    const currentPlan = data.user.plan?.current?.name || data.user.subscription?.plan || 'Free';
-                    document.getElementById('plan-status-text').textContent = `${currentPlan} Plan Active`;
+                    // Get current plan information (improved detection)
+                    const currentPlan = data.user.plan?.current?.id || data.user.subscription?.plan || 'free';
+                    const planName = data.user.plan?.current?.name || data.user.subscription?.planName || 'Free Plan';
+                    const planLimits = data.user.plan?.current?.limits || { messagesPerMonth: 100 };
                     
-                    // Update usage stats
+                    console.log('📋 Detected plan:', { currentPlan, planName, planLimits });
+                    
+                    // Update plan status
+                    document.getElementById('plan-status-text').textContent = `${planName} Active`;
+                    
+                    // Update usage stats with proper plan limits
                     const totalMessages = data.user.usage?.totalMessages || 0;
                     const monthlyMessages = data.user.usage?.messagesThisMonth || 0;
-                    const planLimits = {
-                        free: 100,
-                        starter: 1000,
-                        professional: 5000,
-                        enterprise: 'unlimited'
-                    };
-                    const limit = planLimits[currentPlan.toLowerCase()] || 100;
+                    const limit = planLimits.messagesPerMonth;
+                    
+                    console.log('📊 Usage stats:', { totalMessages, monthlyMessages, limit });
                     
                     document.getElementById('total-conversations').textContent = totalMessages;
-                    document.getElementById('monthly-usage').textContent = limit === 'unlimited' ? `${monthlyMessages} / Unlimited` : `${monthlyMessages} / ${limit}`;
+                    if (limit === 'unlimited' || limit === -1) {
+                        document.getElementById('monthly-usage').textContent = `${monthlyMessages} / Unlimited`;
+                    } else {
+                        document.getElementById('monthly-usage').textContent = `${monthlyMessages} / ${limit}`;
+                    }
                     
                     // Update integration code with actual API key
                     const integrationCode = document.getElementById('integration-code');
                     integrationCode.innerHTML = integrationCode.innerHTML.replace('YOUR_API_KEY_HERE', data.user.apiKey);
                     
                     // Update modal data
-                    document.getElementById('modal-current-plan').textContent = currentPlan;
-                    document.getElementById('modal-next-billing').textContent = data.user.subscription?.nextBilling || 'N/A';
+                    document.getElementById('modal-current-plan').textContent = planName;
+                    
+                    // Format next billing date
+                    const nextBilling = data.user.subscription?.nextBilling;
+                    let nextBillingText = 'N/A';
+                    if (nextBilling) {
+                        try {
+                            const date = new Date(nextBilling);
+                            nextBillingText = date.toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                            });
+                        } catch (e) {
+                            nextBillingText = nextBilling;
+                        }
+                    }
+                    document.getElementById('modal-next-billing').textContent = nextBillingText;
+                    
+                    // Update billing amount
+                    const planPrice = data.user.plan?.current?.price || 0;
+                    const currency = data.user.plan?.current?.currency || 'INR';
+                    const billingCycle = data.user.plan?.current?.billingCycle || 'monthly';
+                    document.getElementById('modal-amount').textContent = `${currency === 'INR' ? '₹' : '$'}${planPrice}/${billingCycle}`;
                     
                     // Update integration status
                     const statusElement = document.getElementById('integration-status');
-                    const statusText = document.getElementById('integration-text');
                     if (data.user.apiKey) {
                         statusElement.className = 'status-indicator active';
                         statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Integration Ready';
                     }
+                    
+                    // Store current plan globally for other functions
+                    window.currentUserPlan = currentPlan;
+                    
+                    // Apply plan-based feature restrictions
+                    applyPlanBasedFeatures(data.user);
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
@@ -796,14 +833,7 @@
             copyToClipboard('integration-code');
         }
 
-        // Analytics functions
-        function viewAnalytics() {
-            alert('📊 Advanced Analytics Dashboard\n\nComing Soon! This will include:\n• Real-time conversation metrics\n• User engagement insights\n• Performance analytics\n• Custom reporting tools\n\nUpgrade to Pro for early access!');
-        }
-
-        function exportReports() {
-            alert('📈 Export Reports\n\nComing Soon! Export features:\n• PDF and Excel reports\n• Custom date ranges\n• Detailed conversation logs\n• Performance summaries\n\nThis is a Pro feature - upgrade to unlock!');
-        }
+        // These functions will be replaced by the enhanced versions below
 
         // Billing Modal Functions
         function openBillingModal() {
@@ -883,6 +913,193 @@
             }
         }
 
+        // Apply plan-based feature restrictions and enhancements
+        function applyPlanBasedFeatures(user) {
+            console.log('🔧 Applying plan-based features for user:', user.plan?.current?.id);
+            
+            const currentPlan = user.plan?.current?.id || 'free';
+            const capabilities = user.capabilities || {};
+            const features = user.plan?.current?.features || {};
+            
+            // Update Pro badges based on plan
+            const proBadges = document.querySelectorAll('.pro-badge');
+            proBadges.forEach(badge => {
+                if (capabilities.canAccessAdvancedAnalytics) {
+                    badge.textContent = 'Available';
+                    badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                } else {
+                    badge.textContent = 'Pro';
+                    badge.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                }
+            });
+            
+            // Update analytics buttons based on plan access
+            const analyticsButtons = document.querySelectorAll('button[onclick="viewAnalytics()"], button[onclick="exportReports()"]');
+            analyticsButtons.forEach(button => {
+                if (capabilities.canAccessAnalytics) {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.cursor = 'pointer';
+                } else {
+                    // Add upgrade hint for free users
+                    if (button.onclick.toString().includes('viewAnalytics')) {
+                        button.onclick = function() {
+                            showUpgradePrompt('Analytics', 'starter');
+                        };
+                    } else if (button.onclick.toString().includes('exportReports')) {
+                        button.onclick = function() {
+                            showUpgradePrompt('Export Reports', 'professional');
+                        };
+                    }
+                }
+            });
+            
+            // Update widget customization access
+            const customizeButtons = document.querySelectorAll('a[href="/customize-widget"]');
+            customizeButtons.forEach(button => {
+                if (capabilities.canCustomizeBranding) {
+                    button.style.opacity = '1';
+                    button.style.pointerEvents = 'auto';
+                } else {
+                    button.onclick = function(e) {
+                        e.preventDefault();
+                        showUpgradePrompt('Widget Customization', 'starter');
+                    };
+                }
+            });
+            
+            console.log('✅ Plan-based features applied successfully');
+        }
+        
+        // Show upgrade prompt for restricted features
+        function showUpgradePrompt(featureName, requiredPlan) {
+            const planNames = {
+                starter: 'Starter Plan (₹499/month)',
+                professional: 'Professional Plan (₹1,499/month)',
+                enterprise: 'Enterprise Plan'
+            };
+            
+            const message = `${featureName} - Upgrade Required\n\n` +
+                          `This feature requires ${planNames[requiredPlan] || requiredPlan}.\n\n` +
+                          `Benefits of upgrading:\n` +
+                          `• Access to ${featureName}\n` +
+                          `• Higher message limits\n` +
+                          `• Priority support\n` +
+                          `• Advanced features\n\n` +
+                          `Would you like to view our pricing plans?`;
+            
+            if (confirm(message)) {
+                window.location.href = `/pricing?upgrade=${requiredPlan}&feature=${encodeURIComponent(featureName)}`;
+            }
+        }
+        
+        // Enhanced analytics with plan-specific content
+        function viewAnalytics() {
+            // Check if we have user data loaded
+            const currentPlan = window.currentUserPlan || 'free';
+            
+            if (currentPlan === 'free') {
+                const message = '📊 Analytics Dashboard\n\n' +
+                              'Analytics features are available with paid plans:\n\n' +
+                              '🎯 Starter Plan includes:\n' +
+                              '• Basic usage statistics\n' +
+                              '• Message volume tracking\n' +
+                              '• Simple reporting\n\n' +
+                              '🚀 Professional Plan includes:\n' +
+                              '• Advanced analytics dashboard\n' +
+                              '• User behavior insights\n' +
+                              '• Custom reports and exports\n' +
+                              '• Real-time metrics\n\n' +
+                              'Upgrade now to unlock these features!';
+                              
+                if (confirm(message + '\n\nView pricing plans?')) {
+                    window.location.href = '/pricing?feature=analytics';
+                }
+            } else {
+                // Paid plan users get analytics content
+                alert('📊 Advanced Analytics Dashboard\n\n' +
+                      'Coming Soon! Your plan includes:\n' +
+                      '• Real-time conversation metrics\n' +
+                      '• User engagement insights\n' +
+                      '• Performance analytics\n' +
+                      '• Custom reporting tools\n\n' +
+                      'This feature is being developed and will be available soon!');
+            }
+        }
+        
+        // Enhanced export reports with plan check
+        function exportReports() {
+            const currentPlan = window.currentUserPlan || 'free';
+            
+            if (currentPlan === 'free' || currentPlan === 'starter') {
+                showUpgradePrompt('Export Reports', 'professional');
+            } else {
+                alert('📈 Export Reports\n\n' +
+                      'Export features for Professional users:\n' +
+                      '• PDF and Excel reports\n' +
+                      '• Custom date ranges\n' +
+                      '• Detailed conversation logs\n' +
+                      '• Performance summaries\n\n' +
+                      'This feature is being developed and will be available soon!');
+            }
+        }
+        
+        // Store current plan globally for use in other functions
+        window.currentUserPlan = 'free'; // Default, will be updated when user data loads
+        
+        // Enhanced billing modal with proper plan detection
+        function openBillingModal() {
+            document.getElementById('billing-modal').style.display = 'flex';
+            updateBillingModalContent();
+        }
+        
+        function updateBillingModalContent() {
+            // This will be called when the modal opens to ensure fresh data
+            console.log('📋 Updating billing modal with current data');
+        }
+        
+        // Enhanced download invoice with plan-specific logic
+        function downloadInvoice() {
+            const currentPlan = window.currentUserPlan || 'free';
+            
+            if (currentPlan === 'free') {
+                alert('📄 Download Invoice\n\n' +
+                      'Invoice downloads are available for paid subscribers.\n\n' +
+                      'Free plan users don\'t have invoices since there are no charges.\n\n' +
+                      'Upgrade to a paid plan to access billing history and invoices.');
+            } else {
+                alert('📄 Download Invoice\n\n' +
+                      'Invoice download functionality is being developed.\n\n' +
+                      'For now, you can contact support at support@mouna-ai.com for invoice requests.\n\n' +
+                      'Include your email and billing period in your request.');
+            }
+        }
+        
+        // Enhanced update payment method
+        function updatePaymentMethod() {
+            const currentPlan = window.currentUserPlan || 'free';
+            
+            if (currentPlan === 'free') {
+                alert('💳 Update Payment Method\n\n' +
+                      'You are currently on the free plan and don\'t have any payment method set up.\n\n' +
+                      'To add a payment method, upgrade to a paid plan first.');
+            } else {
+                const message = `💳 Update Payment Method\n\n` +
+                              `To update your payment method for your ${currentPlan} plan:\n\n` +
+                              `1. Contact our support team at support@mouna-ai.com\n` +
+                              `2. Or upgrade/change your plan to set a new payment method\n` +
+                              `3. Include your current subscription details\n\n` +
+                              `We'll help you update your payment information securely.\n\n` +
+                              `Would you like to contact support now?`;
+                              
+                if (confirm(message)) {
+                    const subject = encodeURIComponent('Update Payment Method Request');
+                    const body = encodeURIComponent(`Hello,\n\nI would like to update my payment method for my ${currentPlan} plan.\n\nCurrent email: [Your email here]\n\nPlease help me update my payment information.\n\nThank you!`);
+                    window.location.href = `mailto:support@mouna-ai.com?subject=${subject}&body=${body}`;
+                }
+            }
+        }
+        
         // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('billing-modal');
