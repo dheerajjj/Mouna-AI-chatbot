@@ -597,6 +597,9 @@
                         document.getElementById('upgrade-banner').style.display = 'block';
                         // Disable inputs for free users
                         disableConfigurationForFreeUsers();
+                    } else {
+                        // Load existing configuration for premium users
+                        await loadExistingConfiguration();
                     }
                 } else {
                     // If unauthorized, redirect to login
@@ -606,6 +609,70 @@
                 console.error('Error checking user plan:', error);
                 // On error, redirect to login
                 window.location.href = '/login';
+            }
+        }
+
+        async function loadExistingConfiguration() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    console.warn('No token available for loading configuration');
+                    return;
+                }
+
+                const response = await fetch('/api/chat-config', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const { configuration } = await response.json();
+                    console.log('✅ Loaded existing configuration:', configuration);
+                    
+                    // Populate form fields with existing configuration
+                    if (configuration.preset) {
+                        // Update active preset
+                        document.querySelectorAll('.preset-option').forEach(opt => opt.classList.remove('active'));
+                        const activePreset = document.querySelector(`[data-preset="${configuration.preset}"]`);
+                        if (activePreset) {
+                            activePreset.classList.add('active');
+                        }
+                    }
+                    
+                    if (configuration.systemPrompt) {
+                        document.getElementById('system-prompt').value = configuration.systemPrompt;
+                    }
+                    
+                    if (configuration.welcomeMessage) {
+                        document.getElementById('welcome-msg').value = configuration.welcomeMessage;
+                    }
+                    
+                    if (configuration.fallbackResponse) {
+                        document.getElementById('fallback-response').value = configuration.fallbackResponse;
+                    }
+                    
+                    if (configuration.responseLength) {
+                        document.getElementById('response-length').value = configuration.responseLength;
+                    }
+                    
+                    if (configuration.languageStyle) {
+                        document.getElementById('language-style').value = configuration.languageStyle;
+                    }
+                    
+                    if (configuration.focusTopics) {
+                        document.getElementById('focus-topics').value = configuration.focusTopics;
+                    }
+                    
+                    // Update preview with loaded configuration
+                    updatePreview();
+                } else {
+                    console.warn('Failed to load configuration, using defaults');
+                }
+            } catch (error) {
+                console.error('Error loading existing configuration:', error);
+                // Continue with default values if loading fails
             }
         }
 

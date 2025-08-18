@@ -1139,4 +1139,118 @@ router.post('/resend-welcome-email', authenticateToken, async (req, res) => {
   }
 });
 
+// Chat Configuration Management
+
+// Get chat configuration
+router.get('/chat-config', authenticateToken, async (req, res) => {
+  try {
+    const user = await DatabaseService.findUserById(req.user.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Return chat configuration or defaults
+    const chatConfig = user.chatConfig || {
+      preset: 'professional',
+      systemPrompt: 'You are a helpful AI assistant. Be professional, concise, and always try to provide accurate information. If you don\'t know something, say so honestly.',
+      welcomeMessage: 'Hello! How can I help you today?',
+      fallbackResponse: 'I\'m sorry, I don\'t have enough information to answer that question accurately. Would you like me to connect you with a human agent?',
+      responseLength: 'medium',
+      languageStyle: 'casual',
+      focusTopics: 'general support, product information'
+    };
+
+    res.json({
+      success: true,
+      configuration: chatConfig
+    });
+
+  } catch (error) {
+    console.error('Get chat config error:', error);
+    res.status(500).json({ error: 'Failed to retrieve chat configuration' });
+  }
+});
+
+// Save chat configuration
+router.put('/chat-config', [
+  body('preset').optional().isIn(['professional', 'friendly', 'expert', 'custom']).withMessage('Invalid preset'),
+  body('systemPrompt').optional().isLength({ min: 10, max: 2000 }).withMessage('System prompt must be between 10-2000 characters'),
+  body('welcomeMessage').optional().isLength({ min: 5, max: 200 }).withMessage('Welcome message must be between 5-200 characters'),
+  body('fallbackResponse').optional().isLength({ min: 10, max: 500 }).withMessage('Fallback response must be between 10-500 characters'),
+  body('responseLength').optional().isIn(['short', 'medium', 'long']).withMessage('Invalid response length'),
+  body('languageStyle').optional().isIn(['formal', 'casual', 'technical']).withMessage('Invalid language style'),
+  body('focusTopics').optional().isLength({ max: 200 }).withMessage('Focus topics must be under 200 characters')
+], authenticateToken, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+    }
+
+    const user = await DatabaseService.findUserById(req.user.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if user has premium access for custom configurations
+    const userPlan = user.subscription?.plan || 'free';
+    if (userPlan === 'free') {
+      return res.status(403).json({ 
+        error: 'Premium feature required',
+        message: 'Chat configuration is available for premium plan users only',
+        upgradeUrl: '/pricing'
+      });
+    }
+
+    const {
+      preset,
+      systemPrompt,
+      welcomeMessage,
+      fallbackResponse,
+      responseLength,
+      languageStyle,
+      focusTopics
+    } = req.body;
+
+    // Build configuration object with only provided fields
+    const chatConfig = {};
+    if (preset !== undefined) chatConfig.preset = preset;
+    if (systemPrompt !== undefined) chatConfig.systemPrompt = systemPrompt;
+    if (welcomeMessage !== undefined) chatConfig.welcomeMessage = welcomeMessage;
+    if (fallbackResponse !== undefined) chatConfig.fallbackResponse = fallbackResponse;
+    if (responseLength !== undefined) chatConfig.responseLength = responseLength;
+    if (languageStyle !== undefined) chatConfig.languageStyle = languageStyle;
+    if (focusTopics !== undefined) chatConfig.focusTopics = focusTopics;
+    
+    // Add metadata
+    chatConfig.lastUpdated = new Date();
+    chatConfig.updatedBy = user._id;
+
+    // Update user's chat configuration
+    await DatabaseService.updateUser(user._id, { 
+      chatConfig: {
+        ...user.chatConfig,
+        ...chatConfig
+      }
+    });
+
+    console.log(`✅ Chat configuration updated for user: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Chat configuration saved successfully',
+      configuration: {
+        ...user.chatConfig,
+        ...chatConfig
+      }
+    });
+
+  } catch (error) {
+    console.error('Save chat config error:', error);
+    res.status(500).json({ error: 'Failed to save chat configuration' });
+  }
+});
+
 module.exports = { router, authenticateToken };
