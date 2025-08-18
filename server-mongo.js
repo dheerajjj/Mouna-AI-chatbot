@@ -879,6 +879,29 @@ async function startServer() {
       }
     });
     
+    // Widget Config endpoint for customize-widget page
+    app.put('/api/widget-config', validateApiKey, async (req, res) => {
+      try {
+        const userId = req.user._id;
+        const { primaryColor, title, welcomeMessage, position, icon, size, animation } = req.body;
+        const update = {
+          'widgetConfig.primaryColor': primaryColor,
+          'widgetConfig.title': title,
+          'widgetConfig.welcomeMessage': welcomeMessage,
+          'widgetConfig.position': position,
+          'widgetConfig.icon': icon,
+          'widgetConfig.size': size,
+          'widgetConfig.animation': animation,
+          'widgetConfig.lastUpdated': new Date()
+        };
+        await DatabaseService.updateUser(userId, update);
+        res.json({ success: true, message: "Widget configuration saved successfully!" });
+      } catch (error) {
+        console.error('Widget config save error:', error);
+        res.status(500).json({ error: 'Failed to save widget configuration.' });
+      }
+    });
+    
     // Get Widget Configuration -- Including advanced settings
     app.get('/api/widget/config', validateApiKey, async (req, res) => {
       try {

@@ -94,7 +94,7 @@ router.put('/setup-progress', async (req, res) => {
     const { step, completed = true, additionalData = {}, redirectSource } = req.body;
     
     // Validate step name
-    const validSteps = ['signup', 'plan', 'customize', 'embed', 'live'];
+    const validSteps = ['signup', 'plan', 'appearance', 'customize', 'embed', 'live'];
     if (!validSteps.includes(step)) {
       return res.status(400).json({
         success: false,
@@ -154,7 +154,7 @@ router.post('/setup-progress/bulk-update', async (req, res) => {
     }
     
     // Validate all steps first
-    const validSteps = ['signup', 'plan', 'customize', 'embed', 'live'];
+    const validSteps = ['signup', 'plan', 'appearance', 'customize', 'embed', 'live'];
     for (const update of updates) {
       if (!validSteps.includes(update.step)) {
         return res.status(400).json({
@@ -211,7 +211,7 @@ router.post('/setup-progress/complete-step-and-redirect', async (req, res) => {
     const { step, additionalData = {}, redirectTo = 'welcome-dashboard' } = req.body;
     
     // Validate step name
-    const validSteps = ['signup', 'plan', 'customize', 'embed', 'live'];
+    const validSteps = ['signup', 'plan', 'appearance', 'customize', 'embed', 'live'];
     if (!validSteps.includes(step)) {
       return res.status(400).json({
         success: false,

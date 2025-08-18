@@ -17,13 +17,32 @@ const userProgressSchema = new mongoose.Schema({
       completedAt: { type: Date, default: null },
       planType: { type: String, default: null } // free, starter, professional
     },
-    customize: {
+    appearance: {
       completed: { type: Boolean, default: false },
       completedAt: { type: Date, default: null },
       customizationData: {
         theme: { type: String, default: null },
         colors: { type: Object, default: null },
-        position: { type: String, default: null }
+        position: { type: String, default: null },
+        primaryColor: { type: String, default: null },
+        title: { type: String, default: null },
+        welcomeMessage: { type: String, default: null },
+        icon: { type: String, default: null },
+        size: { type: String, default: null },
+        animation: { type: String, default: null }
+      }
+    },
+    customize: {
+      completed: { type: Boolean, default: false },
+      completedAt: { type: Date, default: null },
+      customizationData: {
+        preset: { type: String, default: null },
+        systemPrompt: { type: String, default: null },
+        welcomeMessage: { type: String, default: null },
+        fallbackResponse: { type: String, default: null },
+        responseLength: { type: String, default: null },
+        languageStyle: { type: String, default: null },
+        focusTopics: { type: String, default: null }
       }
     },
     embed: {
@@ -40,7 +59,7 @@ const userProgressSchema = new mongoose.Schema({
   },
   completionPercentage: {
     type: Number,
-    default: 20, // signup is 20%
+    default: 16, // signup is 16% (100/6 steps)
     min: 0,
     max: 100
   },
@@ -60,11 +79,12 @@ const userProgressSchema = new mongoose.Schema({
 userProgressSchema.methods.calculateCompletionPercentage = function() {
   const steps = this.steps;
   const stepWeights = {
-    signup: 20,   // 20%
-    plan: 20,     // 20%
-    customize: 25, // 25%
-    embed: 25,    // 25%
-    live: 10      // 10%
+    signup: 16,      // 16%
+    plan: 16,        // 16%
+    appearance: 17,  // 17%
+    customize: 17,   // 17%
+    embed: 17,       // 17%
+    live: 17         // 17%
   };
   
   let totalCompleted = 0;
@@ -104,7 +124,7 @@ userProgressSchema.methods.getProgressSummary = function() {
   const summary = {
     userId: this.userId,
     completionPercentage: this.completionPercentage,
-    totalSteps: 5,
+    totalSteps: 6,
     completedSteps: 0,
     steps: {}
   };
@@ -136,6 +156,7 @@ userProgressSchema.statics.updateUserProgress = async function(userId, stepName,
         steps: {
           signup: { completed: true, completedAt: new Date() },
           plan: { completed: false },
+          appearance: { completed: false },
           customize: { completed: false },
           embed: { completed: false },
           live: { completed: false }
@@ -165,6 +186,7 @@ userProgressSchema.statics.getUserProgress = async function(userId) {
         steps: {
           signup: { completed: true, completedAt: new Date() },
           plan: { completed: false },
+          appearance: { completed: false },
           customize: { completed: false },
           embed: { completed: false },
           live: { completed: false }
