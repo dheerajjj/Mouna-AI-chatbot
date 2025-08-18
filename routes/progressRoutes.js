@@ -1,7 +1,39 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const UserProgress = require('../models/UserProgress');
-const { authenticateToken } = require('../middleware/auth'); // Assuming you have auth middleware
+
+// Token blacklist for logout functionality (shared)
+const tokenBlacklist = new Set();
+
+// JWT authentication middleware (copied from auth routes)
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  // Check if token is blacklisted
+  if (tokenBlacklist.has(token)) {
+    return res.status(401).json({ error: 'Token has been invalidated' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token has expired' });
+      } else if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+      return res.status(403).json({ error: 'Token verification failed' });
+    }
+    req.user = user;
+    req.token = token;
+    next();
+  });
+};
 
 // Middleware to authenticate all progress routes
 router.use(authenticateToken);
@@ -12,7 +44,7 @@ router.use(authenticateToken);
  */
 router.get('/setup-progress', async (req, res) => {
   try {
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user.userId; // From auth middleware
     
     const progress = await UserProgress.getUserProgress(userId);
     
@@ -40,7 +72,7 @@ router.get('/setup-progress', async (req, res) => {
  */
 router.put('/setup-progress', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { step, completed = true, additionalData = {}, redirectSource } = req.body;
     
     // Validate step name

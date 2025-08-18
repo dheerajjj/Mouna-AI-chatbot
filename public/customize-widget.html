@@ -573,92 +573,150 @@
         }
 
         function initializeCustomization() {
-            // Color picker event listeners
-            const colorInput = document.getElementById('primary-color');
-            const colorHex = document.getElementById('primary-color-hex');
-            
-            colorInput.addEventListener('change', function() {
-                colorHex.value = this.value;
-                updatePreview();
-            });
-            
-            colorHex.addEventListener('input', function() {
-                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
-                    colorInput.value = this.value;
-                    updatePreview();
+            try {
+                // Color picker event listeners
+                const colorInput = document.getElementById('primary-color');
+                const colorHex = document.getElementById('primary-color-hex');
+                
+                if (colorInput && colorHex) {
+                    colorInput.addEventListener('change', function() {
+                        if (colorHex) {
+                            colorHex.value = this.value;
+                        }
+                        updatePreview();
+                    });
+                    
+                    colorHex.addEventListener('input', function() {
+                        if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                            if (colorInput) {
+                                colorInput.value = this.value;
+                            }
+                            updatePreview();
+                        }
+                    });
                 }
-            });
 
-            // Text input event listeners
-            document.getElementById('widget-title').addEventListener('input', updatePreview);
-            document.getElementById('welcome-message').addEventListener('input', updatePreview);
+                // Text input event listeners
+                const widgetTitle = document.getElementById('widget-title');
+                const welcomeMessage = document.getElementById('welcome-message');
+                
+                if (widgetTitle) {
+                    widgetTitle.addEventListener('input', updatePreview);
+                }
+                if (welcomeMessage) {
+                    welcomeMessage.addEventListener('input', updatePreview);
+                }
 
-            // Position selector
-            document.querySelectorAll('.select-option[data-position]').forEach(option => {
-                option.addEventListener('click', function() {
-                    document.querySelectorAll('.select-option[data-position]').forEach(opt => opt.classList.remove('active'));
-                    this.classList.add('active');
-                    updatePreview();
+                // Position selector
+                document.querySelectorAll('.select-option[data-position]').forEach(option => {
+                    option.addEventListener('click', function() {
+                        document.querySelectorAll('.select-option[data-position]').forEach(opt => opt.classList.remove('active'));
+                        this.classList.add('active');
+                        updatePreview();
+                    });
                 });
-            });
 
-            // Icon selector
-            document.querySelectorAll('.select-option[data-icon]').forEach(option => {
-                option.addEventListener('click', function() {
-                    document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
-                    this.classList.add('active');
-                    updatePreview();
+                // Icon selector
+                document.querySelectorAll('.select-option[data-icon]').forEach(option => {
+                    option.addEventListener('click', function() {
+                        document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
+                        this.classList.add('active');
+                        updatePreview();
+                    });
                 });
-            });
 
-            // Widget preview click
-            document.getElementById('widget-preview').addEventListener('click', function() {
-                const chatBubble = document.getElementById('chat-bubble');
-                chatBubble.classList.toggle('show');
-            });
+                // Widget preview click
+                const widgetPreview = document.getElementById('widget-preview');
+                if (widgetPreview) {
+                    widgetPreview.addEventListener('click', function() {
+                        const chatBubble = document.getElementById('chat-bubble');
+                        if (chatBubble) {
+                            chatBubble.classList.toggle('show');
+                        }
+                    });
+                }
 
-            updatePreview();
+                updatePreview();
+            } catch (error) {
+                console.error('Error initializing customization:', error);
+                // Don't fail silently - show user-friendly error
+                if (window.ProgressService) {
+                    window.ProgressService.showErrorNotification('Failed to initialize page. Please refresh and try again.');
+                }
+            }
         }
 
         function updatePreview() {
-            const primaryColor = document.getElementById('primary-color').value;
-            const title = document.getElementById('widget-title').value;
-            const message = document.getElementById('welcome-message').value;
-            const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
-            const icon = document.querySelector('.select-option[data-icon].active')?.dataset.icon || 'chat';
+            try {
+                const primaryColorEl = document.getElementById('primary-color');
+                const titleEl = document.getElementById('widget-title');
+                const messageEl = document.getElementById('welcome-message');
+                
+                const primaryColor = primaryColorEl ? primaryColorEl.value : '#667eea';
+                const title = titleEl ? titleEl.value : 'Hi! How can I help you?';
+                const message = messageEl ? messageEl.value : 'Welcome! I\'m here to help you with any questions you might have.';
+                const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
+                const icon = document.querySelector('.select-option[data-icon].active')?.dataset.icon || 'chat';
 
-            // Update widget preview
-            const widgetPreview = document.getElementById('widget-preview');
-            widgetPreview.style.setProperty('--widget-color', primaryColor);
-            
-            // Update icon
-            const iconClass = icon === 'robot' ? 'fas fa-robot' : 'fas fa-comments';
-            widgetPreview.innerHTML = `<i class="${iconClass}"></i>`;
+                // Update widget preview
+                const widgetPreview = document.getElementById('widget-preview');
+                if (widgetPreview) {
+                    widgetPreview.style.setProperty('--widget-color', primaryColor);
+                    
+                    // Update icon
+                    const iconClass = icon === 'robot' ? 'fas fa-robot' : 'fas fa-comments';
+                    widgetPreview.innerHTML = `<i class="${iconClass}"></i>`;
 
-            // Update position
-            widgetPreview.style.bottom = position.includes('bottom') ? '20px' : 'auto';
-            widgetPreview.style.top = position.includes('top') ? '20px' : 'auto';
-            widgetPreview.style.right = position.includes('right') ? '20px' : 'auto';
-            widgetPreview.style.left = position.includes('left') ? '20px' : 'auto';
+                    // Update position
+                    widgetPreview.style.bottom = position.includes('bottom') ? '20px' : 'auto';
+                    widgetPreview.style.top = position.includes('top') ? '20px' : 'auto';
+                    widgetPreview.style.right = position.includes('right') ? '20px' : 'auto';
+                    widgetPreview.style.left = position.includes('left') ? '20px' : 'auto';
+                }
 
-            // Update chat bubble
-            document.getElementById('preview-title').textContent = title;
-            document.getElementById('preview-message').textContent = message;
+                // Update chat bubble
+                const previewTitle = document.getElementById('preview-title');
+                const previewMessage = document.getElementById('preview-message');
+                
+                if (previewTitle) {
+                    previewTitle.textContent = title;
+                }
+                if (previewMessage) {
+                    previewMessage.textContent = message;
+                }
 
-            // Update integration code
-            updateIntegrationCode();
+                // Update integration code
+                updateIntegrationCode();
+            } catch (error) {
+                console.error('Error updating preview:', error);
+            }
         }
 
         function updateIntegrationCode() {
-            const primaryColor = document.getElementById('primary-color').value;
-            const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
-            
-            const code = `&lt;script src="https://your-domain.com/widget.js" data-api-key="your-api-key" data-color="${primaryColor}" data-position="${position}"&gt;&lt;/script&gt;`;
-            document.getElementById('integration-code').innerHTML = code;
+            try {
+                const primaryColorEl = document.getElementById('primary-color');
+                const integrationCodeEl = document.getElementById('integration-code');
+                
+                const primaryColor = primaryColorEl ? primaryColorEl.value : '#667eea';
+                const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
+                
+                const code = `&lt;script src="https://your-domain.com/widget.js" data-api-key="your-api-key" data-color="${primaryColor}" data-position="${position}"&gt;&lt;/script&gt;`;
+                
+                if (integrationCodeEl) {
+                    integrationCodeEl.innerHTML = code;
+                }
+            } catch (error) {
+                console.error('Error updating integration code:', error);
+            }
         }
 
         async function saveCustomization() {
             const saveBtn = document.querySelector('.btn');
+            if (!saveBtn) {
+                console.error('Save button not found');
+                return;
+            }
+            
             const saveIcon = saveBtn.querySelector('i');
             const originalText = 'Save Customization';
             
@@ -675,7 +733,9 @@
 
                 // Show loading state
                 saveBtn.disabled = true;
-                saveIcon.className = 'fas fa-spinner fa-spin';
+                if (saveIcon) {
+                    saveIcon.className = 'fas fa-spinner fa-spin';
+                }
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
                 const customization = {
