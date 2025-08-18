@@ -1647,8 +1647,23 @@ app.get('/email-validation-test', (req, res) => {
     app.use('/api/demo-tenant', demoTenantRoutes);
     
     // Auto-training routes for website crawling and chatbot setup
-    const autoTrainingRoutes = require('./routes/autoTraining');
-    app.use('/api/tenant', autoTrainingRoutes);
+    try {
+      const autoTrainingRoutes = require('./routes/autoTraining');
+      app.use('/api/tenant', autoTrainingRoutes);
+      console.log('✅ Auto-training routes initialized successfully');
+    } catch (error) {
+      console.warn('⚠️ Auto-training routes could not be initialized:', error.message);
+      console.warn('💡 Auto-training features will be disabled. This may be due to missing Puppeteer dependencies.');
+      
+      // Register fallback routes for auto-training endpoints
+      app.all('/api/tenant/auto-training/*', (req, res) => {
+        res.status(503).json({
+          error: 'Auto-training service unavailable',
+          message: 'The auto-training feature requires additional system dependencies that are not available in this deployment.',
+          suggestion: 'Please contact support if you need auto-training functionality.'
+        });
+      });
+    }
     
     // Serve pages
     app.get('/', (req, res) => {
