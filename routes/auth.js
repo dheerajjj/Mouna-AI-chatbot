@@ -1253,4 +1253,124 @@ router.put('/chat-config', [
   }
 });
 
+// Setup Progress Tracking
+
+// Get user setup progress
+router.get('/setup-progress', authenticateToken, async (req, res) => {
+  try {
+    const user = await DatabaseService.findUserById(req.user.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Calculate progress based on user data
+    const progress = {
+      signup: true, // Always true since they're logged in
+      plan: user.subscription?.plan && user.subscription.plan !== 'free',
+      customize: !!user.widgetConfig?.customized || !!user.chatConfig,
+      embed: !!user.setupProgress?.embed || false,
+      live: !!user.setupProgress?.live || false
+    };
+
+    // Calculate completion percentage
+    const completedSteps = Object.values(progress).filter(Boolean).length;
+    const totalSteps = Object.keys(progress).length;
+    const completionPercentage = Math.round((completedSteps / totalSteps) * 100);
+
+    res.json({
+      success: true,
+      progress,
+      completionPercentage,
+      nextStep: getNextStep(progress)
+    });
+
+  } catch (error) {
+    console.error('Get setup progress error:', error);
+    res.status(500).json({ error: 'Failed to retrieve setup progress' });
+  }
+});
+
+// Update user setup progress
+router.put('/setup-progress', [
+  body('step').isIn(['signup', 'plan', 'customize', 'embed', 'live']).withMessage('Invalid step'),
+  body('completed').isBoolean().withMessage('Completed must be boolean')
+], authenticateToken, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+    }
+
+    const user = await DatabaseService.findUserById(req.user.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { step, completed } = req.body;
+
+    // Initialize setupProgress if it doesn't exist
+    const currentProgress = user.setupProgress || {};
+    currentProgress[step] = completed;
+    currentProgress.lastUpdated = new Date();
+
+    // Special handling for certain steps
+    if (step === 'customize' && completed) {
+      // Mark widget as customized
+      const widgetConfig = user.widgetConfig || {};
+      widgetConfig.customized = true;
+      await DatabaseService.updateUser(user._id, { 
+        setupProgress: currentProgress,
+        widgetConfig: widgetConfig
+      });
+    } else {
+      await DatabaseService.updateUser(user._id, { 
+        setupProgress: currentProgress
+      });
+    }
+
+    console.log(`✅ Progress updated for user ${user.email}: ${step} = ${completed}`);
+
+    // Return updated progress
+    const updatedProgress = {
+      signup: true,
+      plan: user.subscription?.plan && user.subscription.plan !== 'free',
+      customize: completed || !!user.widgetConfig?.customized || !!user.chatConfig,
+      embed: currentProgress.embed || false,
+      live: currentProgress.live || false
+    };
+
+    // Override with the step just updated
+    updatedProgress[step] = completed;
+
+    const completedSteps = Object.values(updatedProgress).filter(Boolean).length;
+    const totalSteps = Object.keys(updatedProgress).length;
+    const completionPercentage = Math.round((completedSteps / totalSteps) * 100);
+
+    res.json({
+      success: true,
+      message: `Setup progress updated: ${step}`,
+      progress: updatedProgress,
+      completionPercentage,
+      nextStep: getNextStep(updatedProgress)
+    });
+
+  } catch (error) {
+    console.error('Update setup progress error:', error);
+    res.status(500).json({ error: 'Failed to update setup progress' });
+  }
+});
+
+// Helper function to determine next step
+function getNextStep(progress) {
+  const steps = ['signup', 'plan', 'customize', 'embed', 'live'];
+  for (const step of steps) {
+    if (!progress[step]) {
+      return step;
+    }
+  }
+  return 'completed'; // All steps done
+}
+
 module.exports = { router, authenticateToken };

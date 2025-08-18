@@ -2335,10 +2335,38 @@
             }
         }
         
+        // Progress tracking function
+        async function updateSetupProgress(step, completed = true) {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+                
+                const response = await fetch('/api/setup-progress', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ step, completed })
+                });
+                
+                if (response.ok) {
+                    console.log(`✅ Progress updated: ${step} = ${completed}`);
+                } else {
+                    console.error('Failed to update setup progress');
+                }
+            } catch (error) {
+                console.error('Error updating setup progress:', error);
+            }
+        }
+        
         // Add some interactive animations
         document.addEventListener('DOMContentLoaded', function() {
             // Load user data on page load
             loadUserData();
+            
+            // Mark embed step as started when user visits integration page
+            updateSetupProgress('embed', true);
             
             // Tenant selection change handler
             document.getElementById('tenant-select').addEventListener('change', function(e) {

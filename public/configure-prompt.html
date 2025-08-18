@@ -805,12 +805,40 @@
 
                 if (response.ok) {
                     alert('🎉 Chat configuration saved successfully!');
+                    
+                    // Mark customize step as completed in progress
+                    await updateSetupProgress('customize', true);
                 } else {
                     throw new Error('Failed to save configuration');
                 }
             } catch (error) {
                 console.error('Error saving configuration:', error);
                 alert('Error saving configuration. Please try again.');
+            }
+        }
+        
+        // Progress tracking function
+        async function updateSetupProgress(step, completed = true) {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+                
+                const response = await fetch('/api/setup-progress', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ step, completed })
+                });
+                
+                if (response.ok) {
+                    console.log(`✅ Progress updated: ${step} = ${completed}`);
+                } else {
+                    console.error('Failed to update setup progress');
+                }
+            } catch (error) {
+                console.error('Error updating setup progress:', error);
             }
         }
         

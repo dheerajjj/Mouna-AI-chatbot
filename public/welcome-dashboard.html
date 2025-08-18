@@ -914,13 +914,13 @@
                     // Update API Key display with user's unique key
                     updateApiKeyDisplay(user);
 
+                    // Load and display real setup progress
+                    await loadSetupProgress(token);
+
                     // Check subscription status to update the plan banner and feature access
                     const userPlan = user.subscription?.plan || 'free';
                     if (userPlan !== 'free') {
                         document.getElementById('plan-banner').style.display = 'none';
-                        document.getElementById('progress-plan').classList.replace('pending', 'completed');
-                        document.getElementById('progress-plan').querySelector('.progress-indicator').innerHTML = '<i class="fas fa-check"></i>';
-                        
                         // Unlock premium features
                         unlockPremiumFeatures();
                     } else {
@@ -1144,6 +1144,117 @@
                 copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
                 setTimeout(() => copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
             });
+        }
+        
+        // Setup Progress Tracking Functions
+        async function loadSetupProgress(token) {
+            try {
+                const response = await fetch('/api/setup-progress', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const { progress, completionPercentage } = await response.json();
+                    console.log('✅ Setup progress loaded:', progress);
+                    
+                    // Update progress UI
+                    updateProgressDisplay(progress, completionPercentage);
+                } else {
+                    console.warn('Failed to load setup progress, using defaults');
+                }
+            } catch (error) {
+                console.error('Error loading setup progress:', error);
+                // Continue with default progress display
+            }
+        }
+        
+        function updateProgressDisplay(progress, completionPercentage) {
+            // Update each progress item
+            const steps = ['signup', 'plan', 'customize', 'embed', 'live'];
+            
+            steps.forEach(step => {
+                const element = document.getElementById(`progress-${step}`);
+                if (element) {
+                    const indicator = element.querySelector('.progress-indicator');
+                    
+                    if (progress[step]) {
+                        // Mark as completed
+                        element.classList.remove('pending');
+                        element.classList.add('completed');
+                        indicator.innerHTML = '<i class="fas fa-check"></i>';
+                    } else {
+                        // Mark as pending
+                        element.classList.remove('completed');
+                        element.classList.add('pending');
+                        indicator.innerHTML = '';
+                    }
+                }
+            });
+            
+            // Update plan banner progress bar
+            const progressBar = document.querySelector('.plan-banner div[style*="width"]');
+            const progressText = document.querySelector('.plan-banner p[style*="color: #6b7280"]');
+            
+            if (progressBar && progressText) {
+                progressBar.style.width = `${completionPercentage}%`;
+                progressText.textContent = `${completionPercentage}% Completed`;
+            }
+            
+            // Hide plan banner if plan step is completed
+            if (progress.plan) {
+                document.getElementById('plan-banner').style.display = 'none';
+            }
+        }
+        
+        // Function to update progress when user completes a step
+        async function updateSetupProgress(step, completed = true) {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+                
+                const response = await fetch('/api/setup-progress', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ step, completed })
+                });
+                
+                if (response.ok) {
+                    const { progress, completionPercentage } = await response.json();
+                    console.log(`✅ Progress updated: ${step} = ${completed}`);
+                    updateProgressDisplay(progress, completionPercentage);
+                } else {
+                    console.error('Failed to update setup progress');
+                }
+            } catch (error) {
+                console.error('Error updating setup progress:', error);
+            }
+        }
+        
+        // Override action functions to track progress
+        const originalCustomizeAppearance = customizeAppearance;
+        const originalConfigureChatPrompt = configureChatPrompt;
+        const originalAddWidget = addWidget;
+        
+        function customizeAppearance() {
+            originalCustomizeAppearance();
+            // Progress will be updated when user saves customization
+        }
+        
+        function configureChatPrompt() {
+            originalConfigureChatPrompt();
+            // Progress will be updated when user saves configuration
+        }
+        
+        function addWidget() {
+            originalAddWidget();
+            // Mark embed step as started (will be completed when user actually integrates)
+            updateSetupProgress('embed', true);
         }
         
         // Close modal when clicking outside
