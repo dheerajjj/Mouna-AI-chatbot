@@ -1482,8 +1482,26 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    allTenants = data.tenants || []; // Store all tenants
+                    const rawTenants = data.tenants || [];
+                    
+                    // Filter out debug tenants client-side (additional protection)
+                    allTenants = rawTenants.filter(tenant => {
+                        const debugPatterns = [
+                            /debug.*test.*tenant/i,
+                            /test.*debug.*tenant/i,
+                            /debug.*tenant/i,
+                            /test.*tenant.*debug/i
+                        ];
+                        
+                        const hasDebugName = debugPatterns.some(pattern => pattern.test(tenant.name));
+                        const hasDebugDescription = tenant.description && /debug.*tenant.*for.*testing/i.test(tenant.description);
+                        
+                        return !hasDebugName && !hasDebugDescription;
+                    });
+                    
                     tenants = [...allTenants]; // Initialize filtered tenants
+                    
+                    console.log(`✅ Loaded ${allTenants.length} valid tenants (filtered out debug tenants)`);
                     
                     // Populate tenant dropdown
                     populateTenantDropdown();
@@ -1491,13 +1509,18 @@
                     // Auto-select first tenant if available
                     if (tenants.length > 0) {
                         selectTenant(tenants[0]);
-                        tenantSelect.value = tenants[0].tenantId;
+                        document.getElementById('tenant-select').value = tenants[0].tenantId;
+                    } else {
+                        // Show helpful message if no tenants
+                        showNoTenantsMessage();
                     }
                 } else {
                     console.error('Failed to load tenants:', response.status);
+                    showTenantLoadError('Failed to load tenants. Please refresh the page.');
                 }
             } catch (error) {
                 console.error('Error loading tenants:', error);
+                showTenantLoadError('Network error loading tenants. Please check your connection.');
             }
         }
         
@@ -2109,6 +2132,207 @@
                     <small style="color: #64748b;">This tenant configuration will be used when customers interact with your chatbot on this website.</small>
                 </div>
             `;
+        }
+        
+        // Helper function to show no tenants message
+        function showNoTenantsMessage() {
+            const tenantSelect = document.getElementById('tenant-select');
+            tenantSelect.innerHTML = '<option value="">No tenants found - Create your first tenant!</option>';
+            
+            // Hide tenant info section
+            document.getElementById('selected-tenant-info').style.display = 'none';
+            
+            // Show helpful message
+            const tenantControls = document.querySelector('.tenant-controls');
+            const helpMessage = document.createElement('div');
+            helpMessage.id = 'no-tenants-message';
+            helpMessage.style.cssText = `
+                background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+                border: 1px solid #0284c7;
+                border-radius: 8px;
+                padding: 1rem;
+                margin-top: 1rem;
+                text-align: center;
+            `;
+            helpMessage.innerHTML = `
+                <div style="color: #0369a1; font-weight: 600; margin-bottom: 0.5rem;">
+                    <i class="fas fa-lightbulb" style="margin-right: 0.5rem;"></i>
+                    Ready to Get Started?
+                </div>
+                <p style="color: #0c4a6e; margin-bottom: 1rem;">Create your first tenant to enable specialized chatbot features for your website or clients.</p>
+                <p style="color: #0c4a6e; font-size: 0.9rem;">Click the "Create New Tenant" button to begin!</p>
+            `;
+            
+            // Remove existing message if any
+            const existingMessage = document.getElementById('no-tenants-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            tenantControls.parentNode.insertBefore(helpMessage, tenantControls.nextSibling);
+        }
+        
+        // Helper function to show tenant load error
+        function showTenantLoadError(message) {
+            const tenantSelect = document.getElementById('tenant-select');
+            tenantSelect.innerHTML = '<option value="">Error loading tenants</option>';
+            
+            // Show error message
+            const tenantControls = document.querySelector('.tenant-controls');
+            const errorMessage = document.createElement('div');
+            errorMessage.id = 'tenant-error-message';
+            errorMessage.style.cssText = `
+                background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
+                border: 1px solid #ef4444;
+                border-radius: 8px;
+                padding: 1rem;
+                margin-top: 1rem;
+                text-align: center;
+            `;
+            errorMessage.innerHTML = `
+                <div style="color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
+                    Unable to Load Tenants
+                </div>
+                <p style="color: #991b1b; margin-bottom: 1rem;">${message}</p>
+                <button onclick="loadTenants()" style="
+                    background: linear-gradient(135deg, #ef4444, #dc2626);
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 600;
+                ">Try Again</button>
+            `;
+            
+            // Remove existing error message if any
+            const existingError = document.getElementById('tenant-error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            tenantControls.parentNode.insertBefore(errorMessage, tenantControls.nextSibling);
+        }
+        
+        // Helper function to clear status messages
+        function clearStatusMessages() {
+            const noTenantsMessage = document.getElementById('no-tenants-message');
+            const errorMessage = document.getElementById('tenant-error-message');
+            
+            if (noTenantsMessage) noTenantsMessage.remove();
+            if (errorMessage) errorMessage.remove();
+        }
+        
+        // Enhanced create new tenant with better validation
+        async function createNewTenant() {
+            let tenantName;
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            do {
+                attempts++;
+                tenantName = prompt(
+                    attempts === 1 
+                        ? 'Enter tenant name (e.g., "Mario\'s Restaurant", "Downtown Clinic"):' 
+                        : `Please enter a descriptive business name (attempt ${attempts}/${maxAttempts}):`
+                );
+                
+                if (!tenantName) {
+                    return; // User cancelled
+                }
+                
+                tenantName = tenantName.trim();
+                
+                // Validate tenant name
+                const debugPatterns = [
+                    /debug.*test.*tenant/i,
+                    /test.*debug.*tenant/i,
+                    /debug.*tenant/i,
+                    /test.*tenant.*debug/i
+                ];
+                
+                const hasDebugName = debugPatterns.some(pattern => pattern.test(tenantName));
+                
+                if (hasDebugName) {
+                    alert('⚠️ Invalid tenant name. Please choose a descriptive business name instead of debug/test names.');
+                    continue;
+                }
+                
+                if (tenantName.length < 2) {
+                    alert('⚠️ Tenant name must be at least 2 characters long.');
+                    continue;
+                }
+                
+                break;
+                
+            } while (attempts < maxAttempts);
+            
+            if (attempts >= maxAttempts) {
+                alert('❌ Maximum attempts reached. Please try again later.');
+                return;
+            }
+            
+            const tenantDescription = prompt('Enter tenant description (optional):', '');
+            
+            // Validate description
+            if (tenantDescription && /debug.*tenant.*for.*testing/i.test(tenantDescription)) {
+                alert('⚠️ Please provide a meaningful description for your tenant.');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/tenant', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: tenantName,
+                        description: tenantDescription,
+                        type: 'client'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Show success message
+                    const toast = document.getElementById('toast');
+                    toast.querySelector('span').textContent = `Tenant "${data.tenant.name}" created successfully!`;
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 3000);
+                    
+                    // Clear any status messages
+                    clearStatusMessages();
+                    
+                    // Reload tenants and select the new one
+                    await loadTenants();
+                    
+                    // Select the newly created tenant
+                    const newTenant = tenants.find(t => t.tenantId === data.tenant.tenantId);
+                    if (newTenant) {
+                        selectTenant(newTenant);
+                        document.getElementById('tenant-select').value = newTenant.tenantId;
+                    }
+                } else {
+                    const error = await response.json();
+                    let errorMessage = error.message || 'Unknown error occurred';
+                    
+                    // Check for specific validation errors
+                    if (error.details && Array.isArray(error.details)) {
+                        const validationErrors = error.details.map(detail => detail.msg || detail.message).join(', ');
+                        errorMessage = validationErrors;
+                    }
+                    
+                    alert(`❌ Error creating tenant: ${errorMessage}`);
+                }
+            } catch (error) {
+                console.error('Error creating tenant:', error);
+                alert('❌ Network error creating tenant. Please check your connection and try again.');
+            }
         }
         
         // Add some interactive animations

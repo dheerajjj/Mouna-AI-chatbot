@@ -249,103 +249,42 @@ router.get('/personal-tenant-auth', authenticateToken, ensurePersonalTenant, (re
   });
 });
 
-/**
- * DEBUG ENDPOINT: Simple tenant creation test (temporary for debugging)
- * Bypasses complex validation to test basic functionality
- */
-router.post('/debug-create', authenticateToken, async (req, res) => {
-  try {
-    console.log('🐛 DEBUG: Starting simple tenant creation...');
-    console.log('🐛 DEBUG: User from JWT:', req.user);
-    console.log('🐛 DEBUG: Request body:', req.body);
-    
-    // Get basic user info
-    const userId = req.user.userId;
-    const { name = 'Debug Tenant', description = 'Debug tenant for testing', type = 'client' } = req.body;
-    
-    console.log('🐛 DEBUG: Extracted data:', { userId, name, description, type });
-    
-    if (!userId) {
-      console.log('🐛 DEBUG: No userId found');
-      return res.status(400).json({ error: 'No user ID found', debug: true });
-    }
-    
-    // Try to create tenant without middleware validation
-    console.log('🐛 DEBUG: Creating tenant settings...');
-    const tenantData = {
-      userId: userId,
-      tenantInfo: {
-        name: name,
-        description: description,
-        website: '',
-        domain: '',
-        contactEmail: '',
-        contactPhone: ''
-      },
-      isPersonalTenant: false,
-      enabledFeatures: {
-        bookings: false,
-        orders: false,
-        slots: false,
-        payments: false,
-        analytics: false
-      },
-      widgetCustomization: {
-        primaryColor: '#667eea',
-        welcomeMessage: '👋 Hi there! How can I help you today?',
-        businessHours: {
-          timezone: 'Asia/Kolkata',
-          message: 'We are currently closed. Please leave a message and we\'ll get back to you.'
-        },
-        autoResponses: []
-      }
-    };
-    
-    console.log('🐛 DEBUG: Tenant data prepared:', tenantData);
-    
-    const tenantSettings = new TenantSettings(tenantData);
-    console.log('🐛 DEBUG: TenantSettings instance created');
-    
-    // Generate tenant ID
-    tenantSettings.generateTenantId();
-    console.log('🐛 DEBUG: Tenant ID generated:', tenantSettings.tenantId);
-    
-    // Try to save
-    console.log('🐛 DEBUG: Attempting to save to database...');
-    const savedTenant = await tenantSettings.save();
-    console.log('🐛 DEBUG: Tenant saved successfully:', savedTenant.tenantId);
-    
-    res.status(201).json({
-      success: true,
-      debug: true,
-      message: 'Debug tenant created successfully',
-      tenant: {
-        tenantId: savedTenant.tenantId,
-        name: savedTenant.tenantInfo.name,
-        description: savedTenant.tenantInfo.description,
-        type: 'client',
-        createdAt: savedTenant.createdAt
-      }
-    });
-    
-  } catch (error) {
-    console.error('🐛 DEBUG: Error in debug tenant creation:', error);
-    res.status(500).json({
-      error: 'Debug tenant creation failed',
-      debug: true,
-      details: error.message,
-      stack: error.stack
-    });
-  }
-});
 
 /**
  * PROTECTED ENDPOINT: Create simple tenant (for integration page)
  * Creates a basic tenant configuration with minimal required data
  */
 router.post('/', [
-  body('name').notEmpty().trim().isLength({ min: 2, max: 100 }).withMessage('Tenant name is required (2-100 characters)'),
-  body('description').optional().trim().isLength({ max: 500 }).withMessage('Description cannot exceed 500 characters'),
+  body('name')
+    .notEmpty().trim().isLength({ min: 2, max: 100 })
+    .withMessage('Tenant name is required (2-100 characters)')
+    .custom((value) => {
+      // Prevent debug tenant names
+      const debugPatterns = [
+        /debug.*test.*tenant/i,
+        /test.*debug.*tenant/i,
+        /debug.*tenant/i,
+        /test.*tenant.*debug/i
+      ];
+      
+      for (const pattern of debugPatterns) {
+        if (pattern.test(value)) {
+          throw new Error('Invalid tenant name. Please choose a descriptive business name.');
+        }
+      }
+      
+      return true;
+    }),
+  body('description')
+    .optional().trim().isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters')
+    .custom((value) => {
+      // Prevent debug descriptions
+      if (value && /debug.*tenant.*for.*testing/i.test(value)) {
+        throw new Error('Please provide a meaningful description for your tenant.');
+      }
+      return true;
+    }),
   body('type').optional().isIn(['personal', 'client']).withMessage('Type must be personal or client')
 ], authenticateToken, canCreateTenant, async (req, res) => {
   try {
