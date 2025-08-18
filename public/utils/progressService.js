@@ -398,6 +398,7 @@ class ProgressService {
     try {
       // Listen for progress update events
       window.addEventListener('progressUpdated', (event) => {
+        console.log('📊 Progress update event received:', event.detail);
         this.updateProgressUI(event.detail);
       });
 
@@ -414,7 +415,9 @@ class ProgressService {
 }
 
 // Create global instance
-window.ProgressService = new ProgressService();
+if (typeof window !== 'undefined') {
+  window.ProgressService = new ProgressService();
+}
 
 // Export for use in modules
 if (typeof module !== 'undefined' && module.exports) {

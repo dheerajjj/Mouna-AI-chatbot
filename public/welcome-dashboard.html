@@ -7,6 +7,50 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <style>
+        /* Loading overlay to prevent flash */
+        .page-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .page-loading.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .main-content {
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+        
+        .main-content.loaded {
+            opacity: 1;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -645,6 +689,13 @@
     </style>
 </head>
 <body>
+    <!-- Loading overlay to prevent flash -->
+    <div class="page-loading" id="page-loading">
+        <div class="loading-spinner"></div>
+    </div>
+    
+    <!-- Main content wrapper -->
+    <div class="main-content" id="main-content">
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
@@ -884,6 +935,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize loading state management
+            initializePageLoading();
+            
             // Fetch and display user data when the page loads
             const token = localStorage.getItem('authToken');
             if (!token) {
@@ -894,8 +948,47 @@
             // Initialize progress listeners for real-time updates
             setupProgressListeners();
             
+            // Check if user is returning from config page and handle accordingly
+            handleReturningFromConfig();
+            
             loadUserData(token);
         });
+        
+        function initializePageLoading() {
+            // Ensure content is hidden initially
+            const mainContent = document.getElementById('main-content');
+            const loading = document.getElementById('page-loading');
+            
+            // Set initial state
+            mainContent.style.opacity = '0';
+            loading.style.opacity = '1';
+            
+            // Detect if user is coming from configuration pages (progress update)
+            const isReturningFromConfig = sessionStorage.getItem('returning_from_config');
+            if (isReturningFromConfig) {
+                console.log('🔄 User returning from configuration, checking progress updates...');
+                // Don't remove it here - let handleReturningFromConfig() handle it
+            }
+        }
+        
+        function showPageContent() {
+            // Smoothly transition from loading to content
+            const mainContent = document.getElementById('main-content');
+            const loading = document.getElementById('page-loading');
+            
+            // Start fade out loading overlay
+            loading.classList.add('fade-out');
+            
+            // Show main content
+            setTimeout(() => {
+                mainContent.classList.add('loaded');
+            }, 200);
+            
+            // Completely hide loading overlay
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 500);
+        }
 
         async function loadUserData(token) {
             try {
@@ -934,6 +1027,9 @@
 
                     // Update chatbot status display
                     document.getElementById('tokens-used').textContent = user.usage ? user.usage.totalMessages : 0;
+                    
+                    // All data loaded, show content
+                    showPageContent();
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -1229,6 +1325,73 @@
             });
         }
         
+        // Function to handle returning from config pages
+        function handleReturningFromConfig() {
+            const returningFrom = sessionStorage.getItem('returning_from_config');
+            if (returningFrom) {
+                console.log(`📍 User returning from: ${returningFrom}`);
+                
+                // Clear the marker
+                sessionStorage.removeItem('returning_from_config');
+                
+                // Show a brief success message after page loads
+                setTimeout(() => {
+                    const configName = returningFrom === 'customize-widget' ? 'Widget Customization' : 'Chat Configuration';
+                    showSuccessMessage(`✅ ${configName} saved successfully!`);
+                }, 1000); // Delay to ensure page is fully loaded
+                
+                // Force refresh progress UI after a short delay
+                setTimeout(async () => {
+                    console.log('🔄 Refreshing progress UI after config return');
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        await loadSetupProgress(token);
+                    }
+                }, 500);
+            }
+        }
+        
+        // Function to show success message
+        function showSuccessMessage(message) {
+            // Create success notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+                z-index: 1000;
+                font-weight: 500;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                font-family: 'Inter', sans-serif;
+                font-size: 0.9rem;
+                max-width: 300px;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Remove after 4 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+        
         function updateProgressDisplay(progress, completionPercentage) {
             // Update each progress item
             const steps = ['signup', 'plan', 'customize', 'embed', 'live'];
@@ -1339,6 +1502,7 @@
         </svg>
     </div>
 
+    </div> <!-- End main-content -->
 </body>
 </html>
 

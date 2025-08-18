@@ -843,6 +843,9 @@
                     
                     // Update progress and redirect using ProgressService
                     if (window.ProgressService) {
+                        // Mark that user is returning from config for smooth UI transition
+                        sessionStorage.setItem('returning_from_config', 'configure-prompt');
+                        
                         await window.ProgressService.completeStepAndRedirect(
                             'customize', 
                             {
