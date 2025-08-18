@@ -1629,6 +1629,10 @@ app.get('/email-validation-test', (req, res) => {
     const testTenantRoutes = require('./routes/testTenant');
     app.use('/api/test-tenant', testTenantRoutes);
     
+    // NEW: Demo tenant routes for preview system
+    const demoTenantRoutes = require('./routes/demoTenants');
+    app.use('/api/demo-tenant', demoTenantRoutes);
+    
     // Serve pages
     app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -1727,6 +1731,11 @@ app.get('/email-validation-test', (req, res) => {
     // Privacy Policy page
     app.get('/privacy', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+    });
+    
+    // Tenant Preview page
+    app.get('/tenant-preview', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'tenant-preview.html'));
     });
 
     // Terms of Service page

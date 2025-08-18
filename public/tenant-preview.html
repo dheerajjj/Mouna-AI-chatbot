@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Features Preview - Mouna AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .comparison-section {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 2rem 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+        
+        .comparison-card {
+            background: #f8f9ff;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .comparison-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .basic-chatbot {
+            border: 2px solid #e2e8f0;
+        }
+        
+        .tenant-chatbot {
+            border: 2px solid #667eea;
+            background: linear-gradient(135deg, #f8f9ff, #e6ecff);
+        }
+        
+        .features-list {
+            text-align: left;
+            margin: 1.5rem 0;
+        }
+        
+        .features-list li {
+            margin: 0.5rem 0;
+            padding-left: 2rem;
+            position: relative;
+        }
+        
+        .features-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .limited-features li::before {
+            content: '○';
+            color: #6b7280;
+        }
+        
+        .preview-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .preview-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .preview-btn.secondary {
+            background: #6b7280;
+        }
+        
+        .business-examples {
+            margin: 3rem 0;
+        }
+        
+        .business-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .business-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .business-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-color, #667eea);
+        }
+        
+        .business-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            border-color: var(--accent-color, #667eea);
+        }
+        
+        .restaurant-card { --accent-color: #f59e0b; }
+        .clinic-card { --accent-color: #10b981; }
+        .ecommerce-card { --accent-color: #8b5cf6; }
+        .service-card { --accent-color: #06b6d4; }
+        
+        .business-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .business-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .business-description {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .feature-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-tag {
+            background: var(--accent-color, #667eea);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .demo-conversations {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .conversation-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .message-demo {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-left: 4px solid var(--accent-color, #667eea);
+        }
+        
+        .user-message {
+            background: #e6ecff;
+            border-left-color: #667eea;
+        }
+        
+        .bot-message {
+            background: #f0fdf4;
+            border-left-color: #10b981;
+        }
+        
+        .interactive-demo {
+            background: linear-gradient(135deg, #f8f9ff, #e6ecff);
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 3rem 0;
+            text-align: center;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 1000px;
+            height: 80%;
+            max-height: 600px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            background: var(--demo-color, #667eea);
+            color: white;
+            padding: 1.5rem 2rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-body {
+            padding: 2rem;
+            height: calc(100% - 80px);
+            overflow-y: auto;
+        }
+        
+        .demo-website {
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 2px dashed #d1d5db;
+            text-align: center;
+        }
+        
+        .website-header {
+            background: var(--demo-color, #667eea);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .website-content {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .business-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .modal-content {
+                width: 95%;
+                height: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Tenant Features Preview</h1>
+        <p>See the difference between basic chatbots and tenant-powered intelligent assistants</p>
+    </div>
+    
+    <div class="container">
+        <!-- Comparison Section -->
+        <div class="comparison-section">
+            <h2 class="section-title">Basic vs Tenant-Enabled Chatbots</h2>
+            <div class="comparison-grid">
+                <div class="comparison-card basic-chatbot">
+                    <h3>🤖 Basic Chatbot</h3>
+                    <p>General-purpose AI assistant with standard responses</p>
+                    <ul class="features-list limited-features">
+                        <li>Generic greeting and responses</li>
+                        <li>Basic Q&A functionality</li>
+                        <li>Simple conversation flow</li>
+                        <li>One-size-fits-all approach</li>
+                        <li>Limited customization</li>
+                    </ul>
+                    <button class="preview-btn secondary" onclick="previewBasicBot()">
+                        <i class="fas fa-eye"></i>
+                        Preview Basic Bot
+                    </button>
+                </div>
+                
+                <div class="comparison-card tenant-chatbot">
+                    <h3>🎯 Tenant-Enabled Chatbot</h3>
+                    <p>Intelligent assistant tailored for specific business needs</p>
+                    <ul class="features-list">
+                        <li>Business-specific greetings and knowledge</li>
+                        <li>Booking and appointment scheduling</li>
+                        <li>Order tracking and management</li>
+                        <li>Custom forms and data collection</li>
+                        <li>Integration with business systems</li>
+                        <li>Personalized branding and colors</li>
+                        <li>Advanced analytics and insights</li>
+                    </ul>
+                    <button class="preview-btn" onclick="showTenantOptions()">
+                        <i class="fas fa-rocket"></i>
+                        Preview Tenant Features
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Business Examples -->
+        <div class="comparison-section business-examples">
+            <h2 class="section-title">Real Business Examples</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 2rem;">
+                See how different businesses use tenant features to provide specialized customer experiences
+            </p>
+            
+            <div class="business-grid">
+                <div class="business-card restaurant-card" onclick="previewTenantDemo('restaurant')">
+                    <span class="business-icon">🍽️</span>
+                    <h3 class="business-title">Restaurant & Food Service</h3>
+                    <p class="business-description">Perfect for restaurants, cafes, and food delivery services</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">Table Reservations</span>
+                        <span class="feature-tag">Menu Browsing</span>
+                        <span class="feature-tag">Order Taking</span>
+                        <span class="feature-tag">Delivery Tracking</span>
+                    </div>
+                    <div class="message-demo user-message">
+                        <strong>Customer:</strong> "I'd like to book a table for 4 people at 7 PM tonight"
+                    </div>
+                    <div class="message-demo bot-message">
+                        <strong>AI:</strong> "Perfect! I can help you reserve a table. Let me check our availability for 4 guests at 7 PM today..."
+                    </div>
+                </div>
+                
+                <div class="business-card clinic-card" onclick="previewTenantDemo('clinic')">
+                    <span class="business-icon">🏥</span>
+                    <h3 class="business-title">Medical & Healthcare</h3>
+                    <p class="business-description">Ideal for clinics, hospitals, and healthcare providers</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">Appointment Booking</span>
+                        <span class="feature-tag">Doctor Availability</span>
+                        <span class="feature-tag">Insurance Check</span>
+                        <span class="feature-tag">Service Info</span>
+                    </div>
+                    <div class="message-demo user-message">
+                        <strong>Patient:</strong> "I need to schedule an appointment with Dr. Smith"
+                    </div>
+                    <div class="message-demo bot-message">
+                        <strong>AI:</strong> "I'll help you schedule with Dr. Smith. What type of appointment do you need and when would you prefer?"
+                    </div>
+                </div>
+                
+                <div class="business-card ecommerce-card" onclick="previewTenantDemo('ecommerce')">
+                    <span class="business-icon">🛍️</span>
+                    <h3 class="business-title">E-commerce & Retail</h3>
+                    <p class="business-description">Great for online stores and retail businesses</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">Order Tracking</span>
+                        <span class="feature-tag">Product Search</span>
+                        <span class="feature-tag">Return Process</span>
+                        <span class="feature-tag">Support Tickets</span>
+                    </div>
+                    <div class="message-demo user-message">
+                        <strong>Customer:</strong> "Where is my order #12345?"
+                    </div>
+                    <div class="message-demo bot-message">
+                        <strong>AI:</strong> "Let me track order #12345 for you. Your order is currently being prepared and will ship tomorrow..."
+                    </div>
+                </div>
+                
+                <div class="business-card service-card" onclick="previewTenantDemo('service')">
+                    <span class="business-icon">💼</span>
+                    <h3 class="business-title">Professional Services</h3>
+                    <p class="business-description">Perfect for agencies, consultants, and service providers</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">Service Inquiry</span>
+                        <span class="feature-tag">Quote Requests</span>
+                        <span class="feature-tag">Project Updates</span>
+                        <span class="feature-tag">Lead Qualification</span>
+                    </div>
+                    <div class="message-demo user-message">
+                        <strong>Client:</strong> "I need a website for my business. What's your pricing?"
+                    </div>
+                    <div class="message-demo bot-message">
+                        <strong>AI:</strong> "I'd love to help you with a website! Let me gather some details about your business and requirements..."
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Interactive Demo Section -->
+        <div class="interactive-demo">
+            <h2 class="section-title">Try It Yourself</h2>
+            <p style="margin-bottom: 2rem; font-size: 1.1rem;">
+                Experience the power of tenant-enabled chatbots with our interactive demos
+            </p>
+            <button class="preview-btn" onclick="startInteractiveDemo()" style="font-size: 1.1rem; padding: 1.2rem 2.5rem;">
+                <i class="fas fa-play-circle"></i>
+                Launch Interactive Demo
+            </button>
+        </div>
+    </div>
+    
+    <!-- Demo Modal -->
+    <div id="demoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalTitle">Demo Preview</span>
+                <button class="modal-close" onclick="closeDemoModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Demo content will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const tenantConfigs = {
+            restaurant: {
+                title: '🍽️ Bella Vista Restaurant',
+                color: '#f59e0b',
+                headerColor: '#f59e0b',
+                welcomeMessage: 'Welcome to Bella Vista! I can help you make reservations, browse our menu, or answer any questions about our Italian cuisine.',
+                features: [
+                    'Table reservation system with date/time picker',
+                    'Interactive menu with dietary information',
+                    'Real-time availability checking',
+                    'Special events and private dining',
+                    'Takeout and delivery coordination'
+                ],
+                conversations: [
+                    {
+                        user: "I'd like to book a table for 4 people tonight at 8 PM",
+                        bot: "Perfect! I'd love to help you reserve a table for 4 guests at 8 PM tonight. Let me check our availability...\n\n✅ Great news! We have availability at 8:00 PM tonight. \n\n📋 To complete your reservation, I'll need:\n• Your name\n• Phone number\n• Any special requests or dietary requirements\n\nShall I proceed with the booking?"
+                    },
+                    {
+                        user: "What's on your menu tonight?",
+                        bot: "Tonight we have some wonderful specials! 🍝\n\n**Chef's Specials:**\n• Osso Buco with Risotto Milanese - $32\n• Fresh Lobster Ravioli in Sage Butter - $28\n• Grilled Branzino with Lemon Herbs - $26\n\n**Popular Dishes:**\n• Homemade Pappardelle Bolognese - $22\n• Margherita Pizza (wood-fired) - $18\n• Chicken Parmigiana - $24\n\nWould you like to see our full menu or need information about dietary restrictions?"
+                    }
+                ]
+            },
+            clinic: {
+                title: '🏥 City Medical Clinic',
+                color: '#10b981',
+                headerColor: '#10b981',
+                welcomeMessage: 'Welcome to City Medical Clinic! I can help you schedule appointments, provide information about our services, and answer questions about your healthcare needs.',
+                features: [
+                    'Appointment scheduling with doctor preferences',
+                    'Insurance verification and coverage check',
+                    'Symptom assessment and triage',
+                    'Prescription refill requests',
+                    'Test results and follow-up scheduling'
+                ],
+                conversations: [
+                    {
+                        user: "I need to schedule an appointment with Dr. Smith",
+                        bot: "I'd be happy to help you schedule with Dr. Smith! 👩‍⚕️\n\n**Dr. Sarah Smith - Internal Medicine**\n• Available: Monday, Wednesday, Friday\n• Next available: Tomorrow at 10:30 AM or 2:15 PM\n\n📋 What I'll need:\n• Reason for visit (routine checkup, specific concern, follow-up)\n• Preferred date and time\n• Insurance information\n• Any symptoms or concerns\n\nWhat type of appointment would you like to schedule?"
+                    },
+                    {
+                        user: "Do you accept my insurance?",
+                        bot: "I can help verify your insurance coverage! 🏥\n\nPlease provide:\n• Insurance company name\n• Your member ID (if you have it handy)\n\nWe accept most major insurance plans including:\n✅ Blue Cross Blue Shield\n✅ Aetna\n✅ United Healthcare\n✅ Cigna\n✅ Medicare/Medicaid\n\nEven if I can't verify right now, our staff can always check when you call or arrive for your appointment. Would you like me to help schedule your appointment anyway?"
+                    }
+                ]
+            },
+            ecommerce: {
+                title: '🛍️ TechStore Pro',
+                color: '#8b5cf6',
+                headerColor: '#8b5cf6',
+                welcomeMessage: 'Welcome to TechStore Pro! I can help you track orders, find products, process returns, and provide technical support for your purchases.',
+                features: [
+                    'Real-time order tracking and updates',
+                    'Product search and recommendations',
+                    'Return and refund processing',
+                    'Technical support and troubleshooting',
+                    'Warranty and service information'
+                ],
+                conversations: [
+                    {
+                        user: "Where is my order #12345?",
+                        bot: "Let me track order #12345 for you! 📦\n\n**Order Status: In Transit**\n• Order Date: March 15, 2024\n• Items: MacBook Pro 16\", AirPods Pro\n• Tracking: UPS1234567890\n• Expected Delivery: Tomorrow by 6 PM\n\n🚚 **Current Location:** Out for delivery in your city\n\n📱 You'll receive SMS updates, and you can also:\n• Track directly with UPS using the tracking number\n• Reschedule delivery if needed\n• Request signature release\n\nIs there anything else about your order I can help with?"
+                    },
+                    {
+                        user: "I need to return my laptop",
+                        bot: "I can help you with your laptop return! 🔄\n\n**Return Process:**\n1️⃣ First, let me verify your order (order number or email)\n2️⃣ Check if it's within our 30-day return window\n3️⃣ Reason for return (defective, not as expected, etc.)\n4️⃣ Generate prepaid return label\n\n**What You'll Need:**\n• Original packaging (preferred)\n• All accessories and cables\n• Receipt or order confirmation\n\nCould you provide your order number or the email address used for the purchase?"
+                    }
+                ]
+            },
+            service: {
+                title: '💼 Digital Solutions Agency',
+                color: '#06b6d4',
+                headerColor: '#06b6d4',
+                welcomeMessage: 'Welcome to Digital Solutions Agency! I can help you learn about our services, get project quotes, check on current projects, and connect you with our team.',
+                features: [
+                    'Service inquiries and detailed information',
+                    'Project quote calculations and estimates',
+                    'Client portal access and project updates',
+                    'Lead qualification and consultation scheduling',
+                    'Portfolio showcase and case studies'
+                ],
+                conversations: [
+                    {
+                        user: "I need a website for my business. What's your pricing?",
+                        bot: "I'd love to help you with a website! 🌐 Our pricing varies based on your specific needs.\n\n**Quick Questions to provide accurate pricing:**\n• What type of business?\n• How many pages do you need?\n• Do you need e-commerce functionality?\n• Any specific features (booking, payments, etc.)?\n• Timeline for completion?\n\n**Our Website Packages:**\n💼 **Starter** (5 pages): $2,500 - $4,000\n🚀 **Professional** (10+ pages): $4,000 - $8,000\n⚡ **Enterprise** (custom): $8,000+\n\nWould you like me to schedule a free consultation to discuss your project in detail?"
+                    },
+                    {
+                        user: "Can I see examples of your work?",
+                        bot: "Absolutely! Here are some of our recent projects: 🎨\n\n**Recent Work:**\n\n🏥 **MedCare Clinic Website**\n• Patient portal, appointment booking\n• 300% increase in online appointments\n• [View Case Study]\n\n🍕 **Tony's Pizza Online Ordering**\n• Custom ordering system, delivery tracking\n• $50K additional monthly revenue\n• [View Live Site]\n\n💼 **Law Firm Professional Site**\n• Client portal, document management\n• 200% increase in consultation requests\n• [View Portfolio]\n\nWould you like to see more examples in your industry, or shall we discuss your specific project needs?"
+                    }
+                ]
+            }
+        };
+        
+        function previewBasicBot() {
+            const modal = document.getElementById('demoModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = '🤖 Basic Chatbot Demo';
+            modal.querySelector('.modal-header').style.background = '#6b7280';
+            
+            modalBody.innerHTML = `
+                <div class="demo-website">
+                    <div class="website-header" style="background: #6b7280;">Your Website</div>
+                    <div class="website-content">
+                        <p>This is a sample website with a basic chatbot. The chatbot provides general responses and doesn't know anything specific about your business.</p>
+                    </div>
+                </div>
+                
+                <div class="demo-conversations">
+                    <div class="conversation-title">
+                        <i class="fas fa-comments"></i>
+                        Sample Conversation with Basic Chatbot
+                    </div>
+                    
+                    <div class="message-demo user-message">
+                        <strong>Visitor:</strong> "What are your business hours?"
+                    </div>
+                    <div class="message-demo bot-message">
+                        <strong>Basic AI:</strong> "I'm here to help! However, I don't have specific information about business hours. You might want to check the website or contact us directly for that information."
+                    </div>
+                    
+                    <div class="message-demo user-message">
+                        <strong>Visitor:</strong> "Can I make a booking?"
+                    </div>
+                    <div class="message-demo bot-message">
+                        <strong>Basic AI:</strong> "I can provide general assistance, but I don't have access to booking systems. Please contact us through other means to make a reservation."
+                    </div>
+                    
+                    <div class="message-demo user-message">
+                        <strong>Visitor:</strong> "What services do you offer?"
+                    </div>
+                    <div class="message-demo bot-message">
+                        <strong>Basic AI:</strong> "I'd be happy to help, but I don't have detailed information about specific services. Please check the website or speak with a team member for detailed service information."
+                    </div>
+                </div>
+                
+                <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 2rem 0;">
+                    <strong>⚠️ Limitations of Basic Chatbots:</strong>
+                    <ul style="margin: 1rem 0; padding-left: 2rem;">
+                        <li>Cannot access business-specific information</li>
+                        <li>No integration with booking or ordering systems</li>
+                        <li>Generic responses that don't help customers</li>
+                        <li>Cannot perform actions like scheduling or processing orders</li>
+                        <li>Limited customization options</li>
+                    </ul>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        function previewTenantDemo(type) {
+            const config = tenantConfigs[type];
+            const modal = document.getElementById('demoModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = config.title + ' Demo';
+            modal.querySelector('.modal-header').style.background = config.headerColor;
+            modal.style.setProperty('--demo-color', config.color);
+            
+            let conversationsHtml = '';
+            config.conversations.forEach((conv, index) => {
+                conversationsHtml += `
+                    <div style="margin: 2rem 0;">
+                        <div class="message-demo user-message">
+                            <strong>Customer:</strong> "${conv.user}"
+                        </div>
+                        <div class="message-demo bot-message">
+                            <strong>Smart AI:</strong> ${conv.bot.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            let featuresHtml = config.features.map(feature => `<li>${feature}</li>`).join('');
+            
+            modalBody.innerHTML = `
+                <div class="demo-website">
+                    <div class="website-header" style="background: ${config.color};">${config.title}</div>
+                    <div class="website-content">
+                        <p>${config.welcomeMessage}</p>
+                    </div>
+                </div>
+                
+                <div style="background: #f0fdf4; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #10b981; margin: 2rem 0;">
+                    <strong>✨ Tenant-Enabled Features:</strong>
+                    <ul style="margin: 1rem 0; padding-left: 2rem;">
+                        ${featuresHtml}
+                    </ul>
+                </div>
+                
+                <div class="demo-conversations">
+                    <div class="conversation-title">
+                        <i class="fas fa-comments"></i>
+                        Sample Conversations with Tenant-Enabled AI
+                    </div>
+                    ${conversationsHtml}
+                </div>
+                
+                <div style="text-align: center; margin: 2rem 0;">
+                    <button class="preview-btn" onclick="launchLiveDemo('${type}')" style="font-size: 1.1rem;">
+                        <i class="fas fa-rocket"></i>
+                        Try Live Interactive Demo
+                    </button>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        function showTenantOptions() {
+            const modal = document.getElementById('demoModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = '🎯 Choose a Tenant Demo';
+            modal.querySelector('.modal-header').style.background = '#667eea';
+            
+            modalBody.innerHTML = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <p style="font-size: 1.1rem; color: #666;">Select a business type to see how tenant features transform the customer experience:</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div class="business-card restaurant-card" onclick="previewTenantDemo('restaurant')" style="margin: 0;">
+                        <span class="business-icon">🍽️</span>
+                        <h3 class="business-title">Restaurant Demo</h3>
+                        <p class="business-description">See table booking, menu browsing, and order management in action</p>
+                    </div>
+                    
+                    <div class="business-card clinic-card" onclick="previewTenantDemo('clinic')" style="margin: 0;">
+                        <span class="business-icon">🏥</span>
+                        <h3 class="business-title">Medical Clinic Demo</h3>
+                        <p class="business-description">Experience appointment scheduling and patient support features</p>
+                    </div>
+                    
+                    <div class="business-card ecommerce-card" onclick="previewTenantDemo('ecommerce')" style="margin: 0;">
+                        <span class="business-icon">🛍️</span>
+                        <h3 class="business-title">E-commerce Demo</h3>
+                        <p class="business-description">Try order tracking, returns, and customer support features</p>
+                    </div>
+                    
+                    <div class="business-card service-card" onclick="previewTenantDemo('service')" style="margin: 0;">
+                        <span class="business-icon">💼</span>
+                        <h3 class="business-title">Service Business Demo</h3>
+                        <p class="business-description">Explore lead qualification and project management tools</p>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        function startInteractiveDemo() {
+            showTenantOptions();
+        }
+        
+        function launchLiveDemo(type) {
+            // Close the current modal
+            closeDemoModal();
+            
+            // Create a new modal for the live demo
+            const liveModal = document.createElement('div');
+            liveModal.className = 'modal';
+            liveModal.style.display = 'flex';
+            liveModal.style.zIndex = '10001';
+            
+            const config = tenantConfigs[type];
+            
+            liveModal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header" style="background: ${config.headerColor};">
+                        <span>🚀 Live Demo: ${config.title}</span>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="background: #e0f2fe; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #0284c7;">
+                            <strong>💡 Interactive Demo:</strong>
+                            The chatbot will automatically open with tenant-specific features enabled. Try the sample conversations or ask your own questions!
+                        </div>
+                        <div id="demo-widget-container" style="height: 400px; background: #f3f4f6; border-radius: 10px; position: relative; border: 2px dashed #d1d5db;">
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                <p>Loading interactive demo...</p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <strong>Try these sample questions:</strong>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                                ${config.conversations.map(conv => 
+                                    `<button class="feature-tag" style="cursor: pointer; border: none;" onclick="sendDemoMessage('${conv.user.replace(/'/g, "\\'")}')">
+                                        "${conv.user.length > 30 ? conv.user.substring(0, 30) + '...' : conv.user}"
+                                    </button>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(liveModal);
+            
+            // Load the actual widget with tenant configuration
+            setTimeout(() => {
+                loadTenantWidget(type);
+            }, 1000);
+        }
+        
+        function loadTenantWidget(type) {
+            // Remove any existing widget
+            const existingWidget = document.querySelector('.ai-chatbot-widget');
+            if (existingWidget) {
+                existingWidget.remove();
+            }
+            
+            // Create demo script
+            fetch('/test-api-key')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.apiKey) {
+                        const script = document.createElement('script');
+                        script.src = '/widget-fixed.js';
+                        script.setAttribute('data-api-key', data.apiKey);
+                        script.setAttribute('data-tenant-id', `demo_${type}_tenant`);
+                        script.setAttribute('data-primary-color', tenantConfigs[type].color);
+                        script.setAttribute('data-position', 'bottom-right');
+                        
+                        script.onload = function() {
+                            setTimeout(() => {
+                                if (window.AIChatbotWidget && typeof window.AIChatbotWidget.open === 'function') {
+                                    window.AIChatbotWidget.open();
+                                }
+                            }, 1000);
+                        };
+                        
+                        document.head.appendChild(script);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading demo widget:', error);
+                });
+        }
+        
+        function sendDemoMessage(message) {
+            // This would send a message to the demo widget if it's loaded
+            if (window.AIChatbotWidget && typeof window.AIChatbotWidget.sendMessage === 'function') {
+                window.AIChatbotWidget.sendMessage(message);
+            }
+        }
+        
+        function closeDemoModal() {
+            document.getElementById('demoModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('demoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDemoModal();
+            }
+        });
+    </script>
+</body>
+</html>

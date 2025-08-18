@@ -600,6 +600,189 @@
             transform: translateX(0);
         }
         
+        /* Tenant Configuration Preview Styles */
+        .tenant-config-examples {
+            margin: 2rem 0;
+        }
+        
+        .config-examples-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .config-examples-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .config-examples-header p {
+            color: #64748b;
+            font-size: 1rem;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .config-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .config-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
+        }
+        
+        .config-card.restaurant-config:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.15);
+        }
+        
+        .config-card.clinic-config:hover {
+            border-color: #10b981;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.15);
+        }
+        
+        .config-card.portfolio-config:hover {
+            border-color: #8b5cf6;
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15);
+        }
+        
+        .config-card.ecommerce-config:hover {
+            border-color: #ef4444;
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.15);
+        }
+        
+        .config-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            line-height: 1;
+        }
+        
+        .config-content h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .config-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            justify-content: center;
+        }
+        
+        .feature-tag {
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+            color: #0369a1;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid rgba(3, 105, 161, 0.2);
+        }
+        
+        .restaurant-config .feature-tag {
+            background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
+            color: #d97706;
+            border-color: rgba(217, 119, 6, 0.2);
+        }
+        
+        .clinic-config .feature-tag {
+            background: linear-gradient(135deg, #d1fae5 0%, #f0fdf4 100%);
+            color: #059669;
+            border-color: rgba(5, 150, 105, 0.2);
+        }
+        
+        .portfolio-config .feature-tag {
+            background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%);
+            color: #7c3aed;
+            border-color: rgba(124, 58, 237, 0.2);
+        }
+        
+        .ecommerce-config .feature-tag {
+            background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+            color: #dc2626;
+            border-color: rgba(220, 38, 38, 0.2);
+        }
+        
+        .config-description {
+            font-size: 0.9rem;
+            color: #64748b;
+            text-align: center;
+            font-style: italic;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+        
+        .config-action {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            margin-top: auto;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .config-card:hover .config-action {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .restaurant-config:hover .config-action {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .clinic-config:hover .config-action {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .portfolio-config:hover .config-action {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+        
+        .ecommerce-config:hover .config-action {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .preview-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .preview-btn.primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .preview-btn.secondary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 0 1rem;
@@ -615,6 +798,20 @@
             
             .card {
                 padding: 1.5rem;
+            }
+            
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .preview-btn {
+                width: 100%;
+                max-width: 300px;
             }
         }
     </style>
@@ -807,13 +1004,88 @@
             <div class="card-icon">
                 <i class="fas fa-eye"></i>
             </div>
-            <h2 class="card-title">Preview Your Widget</h2>
-            <p style="color: #64748b; margin-bottom: 2rem;">See how your chatbot widget will look on your website before going live.</p>
+            <h2 class="card-title">Preview Your Widget & Tenant Configurations</h2>
+            <p style="color: #64748b; margin-bottom: 2rem;">See how different tenant configurations enable specialized features like bookings, orders, and appointments.</p>
             
-            <button class="preview-btn" onclick="previewWidget()">
-                <i class="fas fa-play-circle"></i>
-                Preview Widget
-            </button>
+            <div class="tenant-config-examples">
+                <div class="config-examples-header">
+                    <h3>🎯 Tenant Configurations - Real Business Examples</h3>
+                    <p>Each tenant can be configured with specialized features for different business types:</p>
+                </div>
+                
+                <div class="config-grid">
+                    <div class="config-card restaurant-config" onclick="previewTenantConfig('restaurant')">
+                        <div class="config-icon">🍽️</div>
+                        <div class="config-content">
+                            <h4>Restaurant Tenant</h4>
+                            <div class="config-features">
+                                <span class="feature-tag">Table Reservations</span>
+                                <span class="feature-tag">Menu Display</span>
+                                <span class="feature-tag">Order Taking</span>
+                                <span class="feature-tag">Hours & Location</span>
+                            </div>
+                            <p class="config-description">"Book a table for 4 people at 7 PM" - Handles reservations with date/time picker</p>
+                        </div>
+                        <div class="config-action">Click to Preview</div>
+                    </div>
+                    
+                    <div class="config-card clinic-config" onclick="previewTenantConfig('clinic')">
+                        <div class="config-icon">🏥</div>
+                        <div class="config-content">
+                            <h4>Medical Clinic Tenant</h4>
+                            <div class="config-features">
+                                <span class="feature-tag">Appointment Booking</span>
+                                <span class="feature-tag">Doctor Availability</span>
+                                <span class="feature-tag">Service Info</span>
+                                <span class="feature-tag">Insurance Check</span>
+                            </div>
+                            <p class="config-description">"Schedule an appointment with Dr. Smith" - Manages medical appointments</p>
+                        </div>
+                        <div class="config-action">Click to Preview</div>
+                    </div>
+                    
+                    <div class="config-card portfolio-config" onclick="previewTenantConfig('portfolio')">
+                        <div class="config-icon">💼</div>
+                        <div class="config-content">
+                            <h4>Portfolio/Agency Tenant</h4>
+                            <div class="config-features">
+                                <span class="feature-tag">Service Inquiry</span>
+                                <span class="feature-tag">Project Quotes</span>
+                                <span class="feature-tag">Portfolio Showcase</span>
+                                <span class="feature-tag">Contact Forms</span>
+                            </div>
+                            <p class="config-description">"I need a website for my business" - Qualifies leads and showcases work</p>
+                        </div>
+                        <div class="config-action">Click to Preview</div>
+                    </div>
+                    
+                    <div class="config-card ecommerce-config" onclick="previewTenantConfig('ecommerce')">
+                        <div class="config-icon">🛍️</div>
+                        <div class="config-content">
+                            <h4>E-commerce Store Tenant</h4>
+                            <div class="config-features">
+                                <span class="feature-tag">Product Search</span>
+                                <span class="feature-tag">Order Tracking</span>
+                                <span class="feature-tag">Support Tickets</span>
+                                <span class="feature-tag">Return Process</span>
+                            </div>
+                            <p class="config-description">"Where is my order #12345?" - Handles customer support and orders</p>
+                        </div>
+                        <div class="config-action">Click to Preview</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="preview-actions">
+                <button class="preview-btn primary" onclick="previewWidget()">
+                    <i class="fas fa-play-circle"></i>
+                    Preview Basic Widget
+                </button>
+                <button class="preview-btn secondary" onclick="showTenantGuide()">
+                    <i class="fas fa-lightbulb"></i>
+                    Tenant Setup Guide
+                </button>
+            </div>
             
             <div class="widget-mockup">
                 <img src="data:image/svg+xml,%3csvg width='300' height='400' xmlns='http://www.w3.org/2000/svg'%3e%3cg%3e%3crect width='300' height='400' fill='%23f3f4f6'/%3e%3crect x='20' y='20' width='260' height='40' rx='8' fill='%23667eea'/%3e%3ctext x='150' y='45' text-anchor='middle' fill='white' font-family='Inter, sans-serif' font-size='16' font-weight='600'%3eYour Website%3c/text%3e%3crect x='20' y='80' width='260' height='240' fill='white'/%3e%3ctext x='150' y='210' text-anchor='middle' fill='%23374151' font-family='Inter, sans-serif' font-size='14'%3eWebsite Content%3c/text%3e%3ccircle cx='260' cy='360' r='25' fill='%23667eea'/%3e%3ctext x='260' y='367' text-anchor='middle' fill='white' font-family='Inter, sans-serif' font-size='16'%3e💬%3c/text%3e%3c/g%3e%3c/svg%3e" alt="Widget Preview" style="width: 100%;">
@@ -894,9 +1166,13 @@
                 box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             `;
             
+            // Determine if we have a selected tenant and its type
+            const tenantTitle = selectedTenant ? `🎯 ${selectedTenant.name} Preview` : '🌐 Your Website Preview';
+            const tenantType = selectedTenant ? selectedTenant.type : null;
+            
             const header = document.createElement('div');
             header.style.cssText = `
-                background: #667eea;
+                background: ${selectedTenant ? getTenantColor(tenantType) : '#667eea'};
                 color: white;
                 padding: 1rem 2rem;
                 font-family: Inter, sans-serif;
@@ -907,7 +1183,7 @@
                 align-items: center;
             `;
             header.innerHTML = `
-                <span>🌐 Your Website Preview</span>
+                <span>${tenantTitle}</span>
                 <button onclick="this.closest('.preview-modal').remove()" style="
                     background: none;
                     border: none;
@@ -931,14 +1207,13 @@
                 height: calc(100% - 80px);
                 background: white;
                 position: relative;
+                overflow-y: auto;
             `;
             
-            content.innerHTML = `
-                <h1 style="color: #1f2937; margin-bottom: 1rem; font-family: Inter, sans-serif;">Welcome to Your Website</h1>
-                <p style="color: #6b7280; font-family: Inter, sans-serif; line-height: 1.6;">This is a preview of how your chatbot widget will appear on your website. The widget will be positioned in the bottom-right corner and visitors can click it to start a conversation.</p>
-                <br>
-                <p style="color: #6b7280; font-family: Inter, sans-serif; line-height: 1.6;">Try clicking the chat bubble to see the widget in action!</p>
-            `;
+            // Generate tenant-specific content
+            const tenantContent = generateTenantPreviewContent(selectedTenant);
+            
+            content.innerHTML = tenantContent;
             
             previewContainer.appendChild(header);
             previewContainer.appendChild(content);
@@ -1306,6 +1581,469 @@
                 console.error('🐛 Debug tenant creation error:', error);
                 alert('🐛 DEBUG: Network or parsing error - check console');
             }
+        }
+        
+        // Preview tenant configuration with specialized demo content
+        function previewTenantConfig(configType) {
+            const configs = {
+                restaurant: {
+                    title: '🍽️ Restaurant Chatbot Demo',
+                    headerColor: '#f59e0b',
+                    examples: [
+                        'I\'d like to book a table for 4 people at 7 PM tonight',
+                        'What\'s your special menu for today?',
+                        'Do you have vegetarian options?',
+                        'What are your opening hours?'
+                    ],
+                    features: 'Table reservations, menu browsing, dietary info, and location details'
+                },
+                clinic: {
+                    title: '🏥 Medical Clinic Chatbot Demo', 
+                    headerColor: '#10b981',
+                    examples: [
+                        'I need to schedule an appointment with Dr. Smith',
+                        'What insurance do you accept?',
+                        'What are your clinic hours?',
+                        'Do you offer telemedicine consultations?'
+                    ],
+                    features: 'Appointment booking, doctor availability, insurance verification, and service information'
+                },
+                portfolio: {
+                    title: '💼 Portfolio/Agency Chatbot Demo',
+                    headerColor: '#8b5cf6',
+                    examples: [
+                        'I need a website for my small business',
+                        'What\'s your pricing for logo design?',
+                        'Can you show me some of your previous work?',
+                        'How long does a typical project take?'
+                    ],
+                    features: 'Lead qualification, project quotes, portfolio showcase, and service inquiry'
+                },
+                ecommerce: {
+                    title: '🛍️ E-commerce Support Chatbot Demo',
+                    headerColor: '#ef4444',
+                    examples: [
+                        'Where is my order #12345?',
+                        'I want to return this product',
+                        'Do you have this item in size large?',
+                        'What\'s your shipping policy?'
+                    ],
+                    features: 'Order tracking, return processing, product search, and customer support'
+                }
+            };
+            
+            const config = configs[configType];
+            if (!config) return;
+            
+            // Create modal for tenant config demo
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(5px);
+            `;
+            
+            const previewContainer = document.createElement('div');
+            previewContainer.style.cssText = `
+                width: 90%;
+                max-width: 800px;
+                height: 80%;
+                background: #f3f4f6;
+                border-radius: 12px;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            `;
+            
+            const header = document.createElement('div');
+            header.style.cssText = `
+                background: ${config.headerColor};
+                color: white;
+                padding: 1rem 2rem;
+                font-family: Inter, sans-serif;
+                font-weight: 600;
+                font-size: 1.1rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            header.innerHTML = `
+                <span>${config.title}</span>
+                <button onclick="this.closest('.tenant-config-modal').remove()" style="
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: background 0.2s;
+                " onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='none'">×</button>
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                padding: 2rem;
+                height: calc(100% - 80px);
+                background: white;
+                position: relative;
+                overflow-y: auto;
+            `;
+            
+            content.innerHTML = `
+                <h2 style="color: #1f2937; margin-bottom: 1rem; font-family: Inter, sans-serif;">Specialized Tenant Configuration</h2>
+                <p style="color: #6b7280; font-family: Inter, sans-serif; line-height: 1.6; margin-bottom: 1.5rem;">
+                    This tenant is configured with specialized features: <strong style="color: ${config.headerColor};">${config.features}</strong>
+                </p>
+                
+                <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid ${config.headerColor};">
+                    <h3 style="color: #1f2937; margin-bottom: 1rem; font-size: 1.1rem;">Example Customer Queries:</h3>
+                    <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                        ${config.examples.map(example => `<li style="color: #374151; margin-bottom: 0.5rem;">"<em>${example}</em>"</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div style="background: #e0f2fe; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #0284c7;">
+                    <strong>💡 How This Works:</strong> When you create a tenant with this configuration, the chatbot automatically knows how to handle these specific business needs. You can customize the responses, integrate with booking systems, and train the AI on your specific business data.
+                </div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button onclick="this.closest('.tenant-config-modal').remove()" style="
+                        background: linear-gradient(135deg, ${config.headerColor}, ${config.headerColor}dd);
+                        color: white;
+                        border: none;
+                        padding: 0.75rem 2rem;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-family: Inter, sans-serif;
+                    ">Got It! Create My Tenant</button>
+                </div>
+            `;
+            
+            previewContainer.appendChild(header);
+            previewContainer.appendChild(content);
+            modal.appendChild(previewContainer);
+            modal.className = 'tenant-config-modal';
+            document.body.appendChild(modal);
+            
+            // Close on backdrop click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+        
+        // Show tenant setup guide
+        function showTenantGuide() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(5px);
+            `;
+            
+            const guideContainer = document.createElement('div');
+            guideContainer.style.cssText = `
+                width: 90%;
+                max-width: 700px;
+                height: 80%;
+                background: white;
+                border-radius: 12px;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            `;
+            
+            const header = document.createElement('div');
+            header.style.cssText = `
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 1rem 2rem;
+                font-family: Inter, sans-serif;
+                font-weight: 600;
+                font-size: 1.1rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            header.innerHTML = `
+                <span>💡 Tenant Setup Guide</span>
+                <button onclick="this.closest('.tenant-guide-modal').remove()" style="
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: background 0.2s;
+                " onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='none'">×</button>
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                padding: 2rem;
+                height: calc(100% - 80px);
+                overflow-y: auto;
+                line-height: 1.6;
+            `;
+            
+            content.innerHTML = `
+                <h2 style="color: #1f2937; margin-bottom: 1rem;">Setting Up Your Specialized Tenant</h2>
+                
+                <div style="background: #f0f9ff; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #0284c7;">
+                    <h3 style="color: #0284c7; margin-bottom: 1rem;">Step 1: Create Your Tenant</h3>
+                    <p>Click "Create New Tenant" and give it a descriptive name like "Mario's Pizza" or "Downtown Dental Clinic".</p>
+                </div>
+                
+                <div style="background: #f0fdf4; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #10b981;">
+                    <h3 style="color: #059669; margin-bottom: 1rem;">Step 2: Configure Specialized Features</h3>
+                    <p>In your dashboard, you can enable specific features for each tenant:</p>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>🍽️ <strong>Restaurants:</strong> Menu display, reservation system, dietary filters</li>
+                        <li>🏥 <strong>Medical:</strong> Appointment booking, doctor schedules, insurance info</li>
+                        <li>💼 <strong>Services:</strong> Portfolio showcase, project quotes, lead forms</li>
+                        <li>🛍️ <strong>E-commerce:</strong> Order tracking, product search, return processing</li>
+                    </ul>
+                </div>
+                
+                <div style="background: #fef3c7; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #f59e0b;">
+                    <h3 style="color: #d97706; margin-bottom: 1rem;">Step 3: Train Your Chatbot</h3>
+                    <p>Upload business-specific information:</p>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>Business hours and location</li>
+                        <li>Menu, services, or product catalogs</li>
+                        <li>Pricing information</li>
+                        <li>FAQ documents</li>
+                    </ul>
+                </div>
+                
+                <div style="background: #ede9fe; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #8b5cf6;">
+                    <h3 style="color: #7c3aed; margin-bottom: 1rem;">Step 4: Integrate & Test</h3>
+                    <p>Use the tenant-specific integration code and test with the specialized queries your customers will ask.</p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button onclick="this.closest('.tenant-guide-modal').remove()" style="
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: white;
+                        border: none;
+                        padding: 0.75rem 2rem;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-family: Inter, sans-serif;
+                    ">Start Creating My Tenant</button>
+                </div>
+            `;
+            
+            guideContainer.appendChild(header);
+            guideContainer.appendChild(content);
+            modal.appendChild(guideContainer);
+            modal.className = 'tenant-guide-modal';
+            document.body.appendChild(modal);
+            
+            // Close on backdrop click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+        
+        // Helper function to get tenant color based on type
+        function getTenantColor(tenantType) {
+            const colorMap = {
+                'restaurant': '#f59e0b',
+                'clinic': '#10b981',
+                'portfolio': '#8b5cf6',
+                'agency': '#8b5cf6',
+                'ecommerce': '#ef4444',
+                'client': '#667eea',
+                'default': '#667eea'
+            };
+            return colorMap[tenantType] || colorMap['default'];
+        }
+        
+        // Helper function to generate tenant-specific preview content
+        function generateTenantPreviewContent(tenant) {
+            if (!tenant) {
+                return `
+                    <h1 style="color: #1f2937; margin-bottom: 1rem; font-family: Inter, sans-serif;">Welcome to Your Website</h1>
+                    <p style="color: #6b7280; font-family: Inter, sans-serif; line-height: 1.6;">This is a preview of how your chatbot widget will appear on your website. The widget will be positioned in the bottom-right corner and visitors can click it to start a conversation.</p>
+                    <br>
+                    <p style="color: #6b7280; font-family: Inter, sans-serif; line-height: 1.6;">Try clicking the chat bubble to see the widget in action!</p>
+                    
+                    <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; border-left: 4px solid #667eea;">
+                        <h3 style="color: #1f2937; margin-bottom: 1rem;">💬 Basic Chatbot Features:</h3>
+                        <ul style="margin-left: 1.5rem; color: #374151; line-height: 1.8;">
+                            <li>General conversation capabilities</li>
+                            <li>FAQ responses</li>
+                            <li>Contact information</li>
+                            <li>Basic business information</li>
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            const tenantType = tenant.type;
+            const tenantColor = getTenantColor(tenantType);
+            
+            const tenantConfigs = {
+                restaurant: {
+                    businessName: 'Mario\'s Italian Restaurant',
+                    features: [
+                        'Table reservation system',
+                        'Menu browsing with dietary filters',
+                        'Daily specials and promotions',
+                        'Hours and location information',
+                        'Online ordering capabilities'
+                    ],
+                    sampleQueries: [
+                        '"I\'d like to book a table for 4 people tonight"',
+                        '"What vegetarian options do you have?"',
+                        '"What time do you close on Sundays?"',
+                        '"Can I see today\'s specials?"'
+                    ]
+                },
+                clinic: {
+                    businessName: 'Downtown Medical Clinic',
+                    features: [
+                        'Appointment scheduling system',
+                        'Doctor availability checking',
+                        'Insurance verification',
+                        'Service information',
+                        'Patient portal integration'
+                    ],
+                    sampleQueries: [
+                        '"I need to book an appointment with Dr. Johnson"',
+                        '"Do you accept Blue Cross insurance?"',
+                        '"What are your clinic hours?"',
+                        '"Do you offer telemedicine consultations?"'
+                    ]
+                },
+                portfolio: {
+                    businessName: 'Creative Design Agency',
+                    features: [
+                        'Lead qualification system',
+                        'Project quote calculator',
+                        'Portfolio showcase',
+                        'Service inquiry handling',
+                        'Contact form integration'
+                    ],
+                    sampleQueries: [
+                        '"I need a website for my business"',
+                        '"What\'s your pricing for logo design?"',
+                        '"Can you show me examples of your work?"',
+                        '"How long does a typical project take?"'
+                    ]
+                },
+                agency: {
+                    businessName: 'Creative Design Agency',
+                    features: [
+                        'Lead qualification system',
+                        'Project quote calculator',
+                        'Portfolio showcase',
+                        'Service inquiry handling',
+                        'Contact form integration'
+                    ],
+                    sampleQueries: [
+                        '"I need a website for my business"',
+                        '"What\'s your pricing for logo design?"',
+                        '"Can you show me examples of your work?"',
+                        '"How long does a typical project take?"'
+                    ]
+                },
+                ecommerce: {
+                    businessName: 'Online Store',
+                    features: [
+                        'Order tracking system',
+                        'Product search and recommendations',
+                        'Return and refund processing',
+                        'Customer support tickets',
+                        'Inventory inquiries'
+                    ],
+                    sampleQueries: [
+                        '"Where is my order #12345?"',
+                        '"I want to return this product"',
+                        '"Do you have this item in size large?"',
+                        '"What\'s your shipping policy?"'
+                    ]
+                }
+            };
+            
+            const config = tenantConfigs[tenantType] || {
+                businessName: tenant.name,
+                features: [
+                    'Custom chatbot responses',
+                    'Business information',
+                    'Contact handling',
+                    'FAQ management',
+                    'Lead generation'
+                ],
+                sampleQueries: [
+                    '"What services do you offer?"',
+                    '"How can I contact you?"',
+                    '"What are your business hours?"',
+                    '"Tell me more about your company"'
+                ]
+            };
+            
+            return `
+                <h1 style="color: #1f2937; margin-bottom: 1rem; font-family: Inter, sans-serif;">Welcome to ${config.businessName}</h1>
+                <p style="color: #6b7280; font-family: Inter, sans-serif; line-height: 1.6; margin-bottom: 1rem;">This tenant-specific chatbot is configured with specialized features for ${tenantType} businesses. The AI assistant understands your business context and can handle specialized queries.</p>
+                
+                <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; border-left: 4px solid ${tenantColor};">
+                    <h3 style="color: #1f2937; margin-bottom: 1rem;">🎯 Tenant-Specific Features:</h3>
+                    <ul style="margin-left: 1.5rem; color: #374151; line-height: 1.8;">
+                        ${config.features.map(feature => `<li>${feature}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, ${tenantColor}15, ${tenantColor}08); padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; border-left: 4px solid ${tenantColor};">
+                    <h3 style="color: #1f2937; margin-bottom: 1rem;">💬 Try These Sample Queries:</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        ${config.sampleQueries.map(query => `
+                            <div style="background: white; padding: 0.75rem 1rem; border-radius: 6px; color: #374151; font-style: italic; border: 1px solid ${tenantColor}30;">
+                                ${query}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div style="background: #e0f2fe; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #0284c7;">
+                    <strong>💡 Tenant ID:</strong> <code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">${tenant.tenantId}</code><br>
+                    <small style="color: #64748b;">This tenant configuration will be used when customers interact with your chatbot on this website.</small>
+                </div>
+            `;
         }
         
         // Add some interactive animations

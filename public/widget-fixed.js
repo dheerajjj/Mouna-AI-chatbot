@@ -355,7 +355,14 @@
         
         try {
             console.log(`Loading tenant configuration for: ${tenantId}`);
-            const response = await fetch(`${currentConfig.apiEndpoint}/api/tenant/config/${tenantId}`);
+            
+            // Check if it's a demo tenant first
+            let response;
+            if (tenantId.startsWith('demo_')) {
+                response = await fetch(`${currentConfig.apiEndpoint}/api/demo-tenant/config/${tenantId}`);
+            } else {
+                response = await fetch(`${currentConfig.apiEndpoint}/api/tenant/config/${tenantId}`);
+            }
             
             if (response.ok) {
                 const data = await response.json();
@@ -397,6 +404,14 @@
                 if (tenantConfig.autoResponses && tenantConfig.autoResponses.length > 0) {
                     currentConfig.autoResponses = tenantConfig.autoResponses;
                     console.log('✅ Auto responses configured:', currentConfig.autoResponses.length);
+                    
+                    // Store auto responses for quick matching
+                    currentConfig.autoResponsesMap = new Map();
+                    tenantConfig.autoResponses.forEach(response => {
+                        response.keywords.forEach(keyword => {
+                            currentConfig.autoResponsesMap.set(keyword.toLowerCase(), response.response);
+                        });
+                    });
                 }
                 
                 // WHITE-LABELING: Handle branding settings based on subscription plan
@@ -1074,12 +1089,38 @@
         // Show typing indicator
         showTyping();
         
+        // Check for auto responses first (tenant demo features)
+        let autoResponse = null;
+        if (currentConfig.autoResponsesMap) {
+            const messageLower = message.toLowerCase();
+            for (let [keyword, response] of currentConfig.autoResponsesMap) {
+                if (messageLower.includes(keyword)) {
+                    autoResponse = response;
+                    console.log(`🤖 Auto response matched for keyword: "${keyword}"`);
+                    break;
+                }
+            }
+        }
+        
         try {
-            console.log('Sending message with language:', currentLanguage);
-            const response = await sendMessage(message);
+            let response;
             
-            // Simulate typing delay
-            await new Promise(resolve => setTimeout(resolve, currentConfig.typingDelay));
+            if (autoResponse) {
+                // Use auto response for demo tenant features
+                console.log('Using demo tenant auto response');
+                
+                // Simulate API delay for realistic experience
+                await new Promise(resolve => setTimeout(resolve, currentConfig.typingDelay));
+                
+                response = { response: autoResponse };
+            } else {
+                // Make API call for regular AI responses
+                console.log('Sending message with language:', currentLanguage);
+                response = await sendMessage(message);
+                
+                // Simulate typing delay
+                await new Promise(resolve => setTimeout(resolve, currentConfig.typingDelay));
+            }
             
             hideTyping();
             
