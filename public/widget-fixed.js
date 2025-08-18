@@ -316,6 +316,7 @@
                     message: message,
                     sessionId: sessionId,
                     language: currentLanguage,
+                    tenantId: currentConfig.tenantId, // Include tenant ID for context
                     userAgent: navigator.userAgent,
                     referrer: document.referrer
                 })

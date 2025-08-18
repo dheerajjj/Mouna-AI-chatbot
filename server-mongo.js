@@ -1193,8 +1193,10 @@ async function startServer() {
     // Chat endpoint
     app.post('/ask', validateApiKey, checkUsageLimit('messagesPerMonth', 1), incrementUsage(DatabaseService), async (req, res) => {
       try {
-        const { message, sessionId, website, language } = req.body;
-        const user = req.user;
+      const { message, sessionId, website, language, tenantId } = req.body;
+      const user = req.user;
+      
+      console.log('🏢 Request includes tenant ID:', tenantId);
 
         if (!message || !sessionId) {
           return res.status(400).json({ error: 'Message and sessionId are required' });
@@ -1266,7 +1268,56 @@ async function startServer() {
           console.log('🧠 Using knowledge-based contextual prompt for domain:', domain);
         }
         
-        console.log('📝 System prompt preview:', systemPrompt.substring(0, 150) + '...');
+        // TENANT-SPECIFIC CONTEXT: Load and apply tenant configuration if available
+        let tenantContext = null;
+        if (tenantId) {
+          console.log('🏢 Loading tenant configuration for:', tenantId);
+          try {
+            const { TenantSettings } = require('./models/TenantSettings');
+            const tenantSettings = await TenantSettings.findOne({ 
+              tenantId: tenantId, 
+              isActive: true 
+            }).populate('owner');
+            
+            if (tenantSettings) {
+              console.log('✅ Tenant configuration found:', tenantSettings.name);
+              tenantContext = {
+                name: tenantSettings.name,
+                type: tenantSettings.type,
+                description: tenantSettings.description,
+                enabledFeatures: tenantSettings.enabledFeatures,
+                customSystemPrompt: tenantSettings.customSystemPrompt,
+                businessInfo: tenantSettings.businessInfo || {}
+              };
+              
+              // Apply tenant-specific system prompt if configured
+              if (tenantSettings.customSystemPrompt && tenantSettings.customSystemPrompt.trim()) {
+                console.log('🎯 Using tenant-specific system prompt');
+                systemPrompt = tenantSettings.customSystemPrompt;
+              } else {
+                // Enhance system prompt with tenant context
+                const tenantEnhancement = `\n\nTenant Context: You are assisting with "${tenantSettings.name}" - ${tenantSettings.description || 'a business'}. ` +
+                  `This is a ${tenantSettings.type} tenant. ` + 
+                  (tenantSettings.enabledFeatures?.bookings ? 'You can help with bookings and appointments. ' : '') +
+                  (tenantSettings.enabledFeatures?.orders ? 'You can help with orders and purchases. ' : '') +
+                  (tenantSettings.enabledFeatures?.slots ? 'You can help with slot management and scheduling. ' : '') +
+                  (tenantSettings.businessInfo?.hours ? `Business hours: ${tenantSettings.businessInfo.hours}. ` : '') +
+                  (tenantSettings.businessInfo?.location ? `Located at: ${tenantSettings.businessInfo.location}. ` : '') +
+                  'Provide relevant assistance based on this context.';
+                
+                systemPrompt += tenantEnhancement;
+                console.log('🔧 Enhanced system prompt with tenant context');
+              }
+            } else {
+              console.log('⚠️ Tenant not found or inactive:', tenantId);
+            }
+          } catch (tenantError) {
+            console.error('❌ Error loading tenant configuration:', tenantError);
+            // Continue with default prompt
+          }
+        }
+        
+        console.log('📝 Final system prompt preview:', systemPrompt.substring(0, 200) + '...');
         
         try {
           // Get OpenAI response
