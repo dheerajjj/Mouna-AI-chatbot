@@ -216,6 +216,19 @@ async function startServer() {
     
     console.log(`📊 Database: ${dbStatus.type} (${dbStatus.status})`);
     
+    // Initialize auto-training database schemas
+    if (mongoConnected) {
+      try {
+        const { AutoTrainingDB } = require('./models/AutoTrainingSchemas');
+        await AutoTrainingDB.initialize();
+        console.log('✅ Auto-training database schemas initialized successfully');
+      } catch (error) {
+        console.error('⚠️ Error initializing auto-training schemas:', error.message);
+      }
+    } else {
+      console.warn('⚠️ Auto-training system requires MongoDB. Mock DB not supported for auto-training.');
+    }
+    
     // Configure session middleware with proper store
     if (mongoConnected) {
       // Use MongoDB session store for production
@@ -1632,6 +1645,10 @@ app.get('/email-validation-test', (req, res) => {
     // NEW: Demo tenant routes for preview system
     const demoTenantRoutes = require('./routes/demoTenants');
     app.use('/api/demo-tenant', demoTenantRoutes);
+    
+    // Auto-training routes for website crawling and chatbot setup
+    const autoTrainingRoutes = require('./routes/autoTraining');
+    app.use('/api/tenant', autoTrainingRoutes);
     
     // Serve pages
     app.get('/', (req, res) => {

@@ -19,11 +19,26 @@ class DatabaseService {
         const { User, Subscription, MessageLog } = require('../models/User');
         const ChatSession = require('../models/ChatSession');
         
+        // Load auto-training models
+        const { 
+          TenantTrainingData, 
+          TrainingSession, 
+          CrawlJobMetrics, 
+          SchedulerMetrics, 
+          KnowledgeBaseItem 
+        } = require('../models/AutoTrainingSchemas');
+        
         this.models = {
           User,
           Subscription, 
           MessageLog,
-          ChatSession
+          ChatSession,
+          // Auto-training models
+          TenantTrainingData,
+          TrainingSession,
+          CrawlJobMetrics,
+          SchedulerMetrics,
+          KnowledgeBaseItem
         };
         
         console.log('✅ Database Service initialized with MongoDB');
@@ -402,6 +417,15 @@ class DatabaseService {
 
   async disconnect() {
     if (this.isMongoConnected) {
+      try {
+        // Clean up auto-training data before disconnecting
+        const { AutoTrainingDB } = require('../models/AutoTrainingSchemas');
+        await AutoTrainingDB.cleanup();
+        console.log('🧹 Auto-training database cleanup completed');
+      } catch (error) {
+        console.warn('⚠️ Auto-training cleanup error:', error.message);
+      }
+      
       await database.disconnect();
     }
   }
