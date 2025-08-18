@@ -980,13 +980,17 @@
 
         function customizeAppearance() {
             window.location.href = '/customize-widget';
+            // Progress will be updated when user saves customization
         }
 
         function configureChatPrompt() {
             window.location.href = '/configure-prompt';
+            // Progress will be updated when user saves configuration
         }
 
         function addWidget() {
+            // Mark embed step as started when user visits integration page
+            updateSetupProgress('embed', true);
             window.location.href = '/integration';
         }
         
@@ -1236,26 +1240,6 @@
             }
         }
         
-        // Override action functions to track progress
-        const originalCustomizeAppearance = customizeAppearance;
-        const originalConfigureChatPrompt = configureChatPrompt;
-        const originalAddWidget = addWidget;
-        
-        function customizeAppearance() {
-            originalCustomizeAppearance();
-            // Progress will be updated when user saves customization
-        }
-        
-        function configureChatPrompt() {
-            originalConfigureChatPrompt();
-            // Progress will be updated when user saves configuration
-        }
-        
-        function addWidget() {
-            originalAddWidget();
-            // Mark embed step as started (will be completed when user actually integrates)
-            updateSetupProgress('embed', true);
-        }
         
         // Close modal when clicking outside
         document.getElementById('upgrade-modal').addEventListener('click', function(e) {
