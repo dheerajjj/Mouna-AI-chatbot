@@ -880,7 +880,7 @@ async function startServer() {
     });
     
     // Widget Config endpoint for customize-widget page
-    app.put('/api/widget-config', validateApiKey, async (req, res) => {
+    app.put('/api/widget-config', authenticateJWT, async (req, res) => {
       try {
         const userId = req.user._id;
         const { primaryColor, title, welcomeMessage, position, icon, size, animation } = req.body;
