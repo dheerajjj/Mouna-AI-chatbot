@@ -1240,8 +1240,12 @@
                     
                     let isCompleted = false;
                     
+                    // CRITICAL: If user is logged in, signup MUST be completed
+                    if (step === 'signup') {
+                        isCompleted = true; // FORCE signup completion for logged-in users
+                    }
                     // Special handling for customize step - check both appearance and customize
-                    if (step === 'customize') {
+                    else if (step === 'customize') {
                         // Mark as completed if either appearance OR customize step is completed
                         isCompleted = (progress.appearance && progress.appearance.completed) || 
                                      (progress.customize && progress.customize.completed);
