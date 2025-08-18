@@ -525,6 +525,86 @@
             <p class="welcome-subtitle">Manage your AI chatbot and monitor performance from your personalized dashboard.</p>
         </div>
         
+        <!-- Quick Access Navigation -->
+        <div class="integration-section" style="margin-bottom: 2rem;">
+            <h3><i class="fas fa-rocket"></i> Quick Access Dashboard</h3>
+            <p style="margin-bottom: 1.5rem; color: #718096;">Access all your chatbot features and settings from here:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <!-- Widget Management -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-cogs"></i> Widget Management
+                    </h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button class="btn btn-secondary" onclick="testWidget()" style="width: 100%; justify-content: flex-start;">
+                            <i class="fas fa-play"></i> Test Widget
+                        </button>
+                        <button class="btn btn-secondary" onclick="customizeWidget()" style="width: 100%; justify-content: flex-start;">
+                            <i class="fas fa-palette"></i> Customize Appearance
+                        </button>
+                        <a href="/configure-prompt" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; text-decoration: none;">
+                            <i class="fas fa-robot"></i> Configure AI Chat
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Analytics & Insights -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-chart-line"></i> Analytics & Insights
+                    </h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <a href="#usage-stats" class="btn btn-secondary" onclick="document.querySelector('.dashboard-grid').scrollIntoView({behavior: 'smooth'});" style="width: 100%; justify-content: flex-start; text-decoration: none;">
+                            <i class="fas fa-chart-bar"></i> Usage Statistics
+                        </a>
+                        <button class="btn btn-secondary" onclick="alert('📊 Coming Soon: Advanced analytics dashboard with detailed chat insights, user behavior, and performance metrics!')" style="width: 100%; justify-content: flex-start;">
+                            <i class="fas fa-analytics"></i> Advanced Analytics <span style="background: #f59e0b; color: white; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.7rem; margin-left: auto;">Pro</span>
+                        </button>
+                        <button class="btn btn-secondary" onclick="alert('📈 Coming Soon: Export detailed reports of your chatbot performance and user interactions!')" style="width: 100%; justify-content: flex-start;">
+                            <i class="fas fa-download"></i> Export Reports <span style="background: #f59e0b; color: white; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.7rem; margin-left: auto;">Pro</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Setup & Integration -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-code"></i> Setup & Integration
+                    </h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <a href="/integration" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; text-decoration: none;">
+                            <i class="fas fa-book"></i> Documentation
+                        </a>
+                        <button class="btn btn-secondary" onclick="document.querySelector('.integration-section').scrollIntoView({behavior: 'smooth'});" style="width: 100%; justify-content: flex-start;">
+                            <i class="fas fa-code"></i> Get Integration Code
+                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('api-key').closest('.card').scrollIntoView({behavior: 'smooth'});" style="width: 100%; justify-content: flex-start;">
+                            <i class="fas fa-key"></i> Manage API Keys
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Account & Billing -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-user-cog"></i> Account & Billing
+                    </h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <a href="/pricing" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; text-decoration: none;">
+                            <i class="fas fa-credit-card"></i> View Plans & Pricing
+                        </a>
+                        <button class="btn btn-secondary" onclick="openBillingModal()" style="width: 100%; justify-content: flex-start;">
+                            <i class="fas fa-receipt"></i> Billing Management
+                        </button>
+                        <button class="btn btn-secondary" onclick="alert('👤 Coming Soon: Profile settings where you can update your personal information, preferences, and notification settings!')" style="width: 100%; justify-content: flex-start;">
+                            <i class="fas fa-user-edit"></i> Profile Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Upgrade Banner -->
         <div class="upgrade-banner" id="upgrade-banner" style="display: none;">
             <h3 id="upgrade-banner-title">🚀 Upgrade to Professional for More Features!</h3>
@@ -600,7 +680,7 @@
                 <strong>🎨 Customize:</strong> You can change the color (e.g., #ff6b6b for red) or position (bottom-left, top-right, etc.)
             </div>
 
-            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
                 <button class="btn" onclick="testWidget()">
                     <i class="fas fa-play"></i> Test Widget
                 </button>
