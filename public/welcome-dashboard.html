@@ -1171,11 +1171,31 @@
                     // Update progress UI
                     updateProgressDisplay(progress, completionPercentage);
                 } else {
-                    console.warn('Failed to load setup progress, using defaults');
+                    console.warn('Failed to load setup progress, creating fallback');
+                    // Use fallback progress - user is logged in so signup must be complete
+                    const fallbackProgress = {
+                        signup: { completed: true, completedAt: new Date() },
+                        plan: { completed: false },
+                        appearance: { completed: false },
+                        customize: { completed: false },
+                        embed: { completed: false },
+                        live: { completed: false }
+                    };
+                    updateProgressDisplay(fallbackProgress, 16); // 16% for signup completed
                 }
             } catch (error) {
                 console.error('Error loading setup progress:', error);
-                // Continue with default progress display
+                // Use fallback progress - user is logged in so signup must be complete
+                const fallbackProgress = {
+                    signup: { completed: true, completedAt: new Date() },
+                    plan: { completed: false },
+                    appearance: { completed: false },
+                    customize: { completed: false },
+                    embed: { completed: false },
+                    live: { completed: false }
+                };
+                updateProgressDisplay(fallbackProgress, 16); // 16% for signup completed
+                console.log('🔄 Using fallback progress state');
             }
         }
         

@@ -64,13 +64,43 @@ class DatabaseService {
       if (!user.apiKey) {
         user.generateApiKey();
       }
-      return await user.save();
+      const savedUser = await user.save();
+      
+      // Auto-create progress record for new user
+      try {
+        const UserProgress = require('../models/UserProgress');
+        await UserProgress.getUserProgress(savedUser._id); // This creates if doesn't exist
+        console.log(`✅ Progress record created for user: ${savedUser.email}`);
+      } catch (progressError) {
+        console.error('Warning: Failed to create progress record:', progressError.message);
+        // Don't fail user creation if progress creation fails
+      }
+      
+      return savedUser;
     } else {
       // Mock database fallback - use MockUser class
       const MockUser = this.mockDB.User;
       const user = new MockUser(userData);
       user.generateApiKey();
       await user.save();
+      
+      // Mock progress creation - add minimal progress tracking
+      if (!this.mockDB.userProgress) {
+        this.mockDB.userProgress = [];
+      }
+      this.mockDB.userProgress.push({
+        userId: user._id,
+        steps: {
+          signup: { completed: true, completedAt: new Date() },
+          plan: { completed: false },
+          appearance: { completed: false },
+          customize: { completed: false },
+          embed: { completed: false },
+          live: { completed: false }
+        },
+        completionPercentage: 16
+      });
+      
       return user;
     }
   }
