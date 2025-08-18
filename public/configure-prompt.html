@@ -72,6 +72,23 @@
             margin-top: -2px;
         }
         
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1e293b;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
         .back-btn {
             background: #6b7280;
             color: white;
@@ -89,6 +106,21 @@
         .back-btn:hover {
             background: #4b5563;
             transform: translateY(-1px);
+        }
+        
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: #dc2626;
         }
         
         .container {
@@ -345,10 +377,20 @@
                     <div class="logo-tagline">AI ASSISTANT</div>
                 </div>
             </div>
-            <a href="/welcome-dashboard" class="back-btn">
-                <i class="fas fa-arrow-left"></i>
-                Back to Dashboard
-            </a>
+            <div class="nav-actions">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="user-name" id="user-name">Loading...</span>
+                </div>
+                <a href="/welcome-dashboard" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Dashboard
+                </a>
+                <button onclick="logout()" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -545,6 +587,10 @@
 
                 if (response.ok) {
                     const { user } = await response.json();
+                    
+                    // Update user name in navigation
+                    document.getElementById('user-name').textContent = user.name;
+                    
                     const userPlan = user.subscription?.plan || 'free';
                     
                     if (userPlan === 'free') {
@@ -552,9 +598,14 @@
                         // Disable inputs for free users
                         disableConfigurationForFreeUsers();
                     }
+                } else {
+                    // If unauthorized, redirect to login
+                    window.location.href = '/login';
                 }
             } catch (error) {
                 console.error('Error checking user plan:', error);
+                // On error, redirect to login
+                window.location.href = '/login';
             }
         }
 
@@ -694,6 +745,13 @@
                 console.error('Error saving configuration:', error);
                 alert('Error saving configuration. Please try again.');
             }
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
         }
     </script>
 </body>

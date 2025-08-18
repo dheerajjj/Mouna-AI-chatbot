@@ -49,6 +49,23 @@
             align-items: center;
         }
         
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1e293b;
+            font-weight: 500;
+        }
+        
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+        
         .btn {
             padding: 0.5rem 1rem;
             border-radius: 6px;
@@ -438,12 +455,19 @@
         <div class="nav-content">
             <div class="logo">🤖 Mouna AI - Advanced Customization</div>
             <div class="nav-actions">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="user-name">Loading...</span>
+                </div>
                 <button id="save-all" class="btn btn-primary">
                     <i class="fas fa-save"></i> Save All Changes
                 </button>
                 <a href="/dashboard" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Dashboard
                 </a>
+                <button onclick="logout()" class="btn logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
         </div>
     </nav>
@@ -1363,8 +1387,48 @@
             }
         };
         
+        // Authentication check and user loading
+        async function checkUserAuth() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const { user } = await response.json();
+                    
+                    // Update user name in navigation
+                    document.getElementById('user-name').textContent = user.name;
+                } else {
+                    // If unauthorized, redirect to login
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Error checking user auth:', error);
+                // On error, redirect to login
+                window.location.href = '/login';
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+        
         // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkUserAuth();
             window.widgetCustomizer = new AdvancedWidgetCustomizer();
         });
         
