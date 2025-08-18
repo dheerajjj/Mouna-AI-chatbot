@@ -966,11 +966,6 @@
                     Create New Tenant
                 </button>
                 
-                <!-- Debug button - only shown in development mode -->
-                <button id="debug-create-tenant-btn" class="create-tenant-btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); margin-left: 10px; display: none;">
-                    <i class="fas fa-bug"></i>
-                    Debug Create
-                </button>
             </div>
             
             <div id="selected-tenant-info" class="tenant-info" style="display: none;">
@@ -1652,52 +1647,6 @@
             }
         }
         
-        // Debug tenant creation (bypasses validation)
-        async function createDebugTenant() {
-            console.log('🐛 Starting debug tenant creation...');
-            
-            try {
-                const token = localStorage.getItem('authToken');
-                console.log('🐛 Auth token:', token ? 'Found' : 'Not found');
-                
-                const response = await fetch('/api/tenant/debug-create', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        name: 'Debug Test Tenant',
-                        description: 'Debug tenant for testing issues',
-                        type: 'client'
-                    })
-                });
-                
-                console.log('🐛 Response status:', response.status);
-                const data = await response.json();
-                console.log('🐛 Response data:', data);
-                
-                if (response.ok && data.success) {
-                    alert(`🐛 DEBUG: Tenant "${data.tenant.name}" created successfully!`);
-                    
-                    // Reload tenants and select the new one
-                    await loadTenants();
-                    
-                    // Select the newly created tenant
-                    const newTenant = tenants.find(t => t.tenantId === data.tenant.tenantId);
-                    if (newTenant) {
-                        selectTenant(newTenant);
-                        document.getElementById('tenant-select').value = newTenant.tenantId;
-                    }
-                } else {
-                    alert(`🐛 DEBUG ERROR: ${data.error || 'Unknown error'}`);
-                    console.error('🐛 Debug creation failed:', data);
-                }
-            } catch (error) {
-                console.error('🐛 Debug tenant creation error:', error);
-                alert('🐛 DEBUG: Network or parsing error - check console');
-            }
-        }
         
         // Preview tenant configuration with specialized demo content
         function previewTenantConfig(configType) {
@@ -2164,11 +2113,6 @@
         
         // Add some interactive animations
         document.addEventListener('DOMContentLoaded', function() {
-            // Show debug button only in development mode
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                document.getElementById('debug-create-tenant-btn').style.display = 'flex';
-            }
-            
             // Load user data on page load
             loadUserData();
             
@@ -2189,9 +2133,6 @@
             
             // Create new tenant button handler
             document.getElementById('create-tenant-btn').addEventListener('click', createNewTenant);
-            
-            // Debug create tenant button handler
-            document.getElementById('debug-create-tenant-btn').addEventListener('click', createDebugTenant);
             
             // Tenant filter input handler
             document.getElementById('tenant-filter').addEventListener('input', filterTenants);
