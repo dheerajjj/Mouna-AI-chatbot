@@ -5,11 +5,25 @@
  * and builds a comprehensive knowledge base from web content.
  */
 
-const puppeteer = require('puppeteer');
+let puppeteer;
+try {
+    puppeteer = require('puppeteer');
+} catch (error) {
+    console.warn('⚠️ Puppeteer not available:', error.message);
+    puppeteer = null;
+}
+
 const cheerio = require('cheerio');
 const axios = require('axios');
 const { URL } = require('url');
-const robotsParser = require('robots-parser');
+
+let robotsParser;
+try {
+    robotsParser = require('robots-parser');
+} catch (error) {
+    console.warn('⚠️ robots-parser not available:', error.message);
+    robotsParser = null;
+}
 
 class WebsiteCrawler {
     constructor() {
@@ -26,6 +40,11 @@ class WebsiteCrawler {
      */
     async crawlWebsite(websiteUrl, options = {}) {
         console.log(`🕷️ Starting website crawl: ${websiteUrl}`);
+        
+        // Check if Puppeteer is available
+        if (!puppeteer) {
+            throw new Error('Puppeteer is not available. Cannot perform website crawling.');
+        }
         
         const baseUrl = this.normalizeUrl(websiteUrl);
         const crawlOptions = {
@@ -340,6 +359,11 @@ class WebsiteCrawler {
      */
     async checkRobotsTxt(baseUrl) {
         try {
+            if (!robotsParser) {
+                console.warn('⚠️ robots-parser not available, skipping robots.txt check');
+                return null;
+            }
+            
             const robotsUrl = new URL('/robots.txt', baseUrl).href;
             const response = await axios.get(robotsUrl, { timeout: 5000 });
             return robotsParser(robotsUrl, response.data);
