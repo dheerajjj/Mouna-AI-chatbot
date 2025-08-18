@@ -814,6 +814,58 @@
                 max-width: 300px;
             }
         }
+        
+        /* Tenant filter styles */
+        .tenant-filter-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .tenant-filter {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            padding-right: 2.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: white;
+            transition: border-color 0.2s;
+        }
+        
+        .tenant-filter:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .tenant-filter::placeholder {
+            color: #9ca3af;
+        }
+        
+        .clear-filter-btn {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50%;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        
+        .clear-filter-btn:hover {
+            color: #374151;
+            background: #f3f4f6;
+        }
     </style>
 </head>
 <body>
@@ -896,7 +948,14 @@
             
             <div class="tenant-controls">
                 <div class="tenant-dropdown-container">
-                    <label for="tenant-select">Select Tenant:</label>
+                    <label for="tenant-filter">Search Tenants:</label>
+                    <div class="tenant-filter-container">
+                        <input type="text" id="tenant-filter" class="tenant-filter" placeholder="Filter by name or type..." />
+                        <button id="clear-filter-btn" class="clear-filter-btn" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <label for="tenant-select" style="margin-top: 1rem;">Select Tenant:</label>
                     <select id="tenant-select" class="tenant-select">
                         <option value="">Loading tenants...</option>
                     </select>
@@ -1307,7 +1366,71 @@
         let userApiKey = null;
         let userSubscription = null;
         let tenants = [];
+        let allTenants = []; // Store all tenants for filtering
         let selectedTenant = null;
+        
+        // Populate tenant dropdown
+        function populateTenantDropdown() {
+            const tenantSelect = document.getElementById('tenant-select');
+            tenantSelect.innerHTML = '<option value="">Select a tenant...</option>';
+            
+            tenants.forEach(tenant => {
+                const option = document.createElement('option');
+                option.value = tenant.tenantId;
+                option.textContent = `${tenant.name} (${tenant.type})`;
+                tenantSelect.appendChild(option);
+            });
+        }
+        
+        // Filter tenants based on search input
+        function filterTenants() {
+            const filterInput = document.getElementById('tenant-filter');
+            const clearButton = document.getElementById('clear-filter-btn');
+            const searchTerm = filterInput.value.toLowerCase().trim();
+            
+            // Show/hide clear button
+            clearButton.style.display = searchTerm ? 'flex' : 'none';
+            
+            if (!searchTerm) {
+                // No filter - show all tenants
+                tenants = [...allTenants];
+            } else {
+                // Filter tenants by name or type
+                tenants = allTenants.filter(tenant => 
+                    tenant.name.toLowerCase().includes(searchTerm) ||
+                    tenant.type.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Update dropdown
+            populateTenantDropdown();
+            
+            // If current selection is no longer visible, clear it
+            if (selectedTenant && !tenants.find(t => t.tenantId === selectedTenant.tenantId)) {
+                selectedTenant = null;
+                document.getElementById('selected-tenant-info').style.display = 'none';
+                document.getElementById('tenant-select').value = '';
+                updateIntegrationCode();
+            }
+        }
+        
+        // Clear filter
+        function clearFilter() {
+            const filterInput = document.getElementById('tenant-filter');
+            const clearButton = document.getElementById('clear-filter-btn');
+            
+            filterInput.value = '';
+            clearButton.style.display = 'none';
+            
+            // Reset to show all tenants
+            tenants = [...allTenants];
+            populateTenantDropdown();
+            
+            // Re-select current tenant if it exists
+            if (selectedTenant) {
+                document.getElementById('tenant-select').value = selectedTenant.tenantId;
+            }
+        }
         
         // Load user subscription and tenant data
         async function loadUserData() {
@@ -1364,18 +1487,11 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    tenants = data.tenants || [];
+                    allTenants = data.tenants || []; // Store all tenants
+                    tenants = [...allTenants]; // Initialize filtered tenants
                     
                     // Populate tenant dropdown
-                    const tenantSelect = document.getElementById('tenant-select');
-                    tenantSelect.innerHTML = '<option value="">Select a tenant...</option>';
-                    
-                    tenants.forEach(tenant => {
-                        const option = document.createElement('option');
-                        option.value = tenant.tenantId;
-                        option.textContent = `${tenant.name} (${tenant.type})`;
-                        tenantSelect.appendChild(option);
-                    });
+                    populateTenantDropdown();
                     
                     // Auto-select first tenant if available
                     if (tenants.length > 0) {
@@ -2076,6 +2192,12 @@
             
             // Debug create tenant button handler
             document.getElementById('debug-create-tenant-btn').addEventListener('click', createDebugTenant);
+            
+            // Tenant filter input handler
+            document.getElementById('tenant-filter').addEventListener('input', filterTenants);
+            
+            // Clear filter button handler
+            document.getElementById('clear-filter-btn').addEventListener('click', clearFilter);
             
             const cards = document.querySelectorAll('.card');
             const observer = new IntersectionObserver((entries) => {
