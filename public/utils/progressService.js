@@ -382,7 +382,8 @@ class ProgressService {
     const displayNames = {
       signup: 'Sign-up',
       plan: 'Plan Selection',
-      customize: 'Customization',
+      appearance: 'Widget Appearance',
+      customize: 'Chat Configuration',
       embed: 'Integration',
       live: 'Go Live'
     };

@@ -1218,7 +1218,19 @@
                 if (element) {
                     const indicator = element.querySelector('.progress-indicator');
                     
-                    if (progress[step]) {
+                    let isCompleted = false;
+                    
+                    // Special handling for customize step - check both appearance and customize
+                    if (step === 'customize') {
+                        // Mark as completed if either appearance OR customize step is completed
+                        isCompleted = (progress.appearance && progress.appearance.completed) || 
+                                     (progress.customize && progress.customize.completed);
+                    } else {
+                        // For other steps, check normally
+                        isCompleted = progress[step] && progress[step].completed;
+                    }
+                    
+                    if (isCompleted) {
                         // Mark as completed
                         element.classList.remove('pending');
                         element.classList.add('completed');
@@ -1242,7 +1254,7 @@
             }
             
             // Hide plan banner if plan step is completed
-            if (progress.plan) {
+            if (progress.plan && progress.plan.completed) {
                 document.getElementById('plan-banner').style.display = 'none';
             }
         }
