@@ -564,7 +564,7 @@
     </div>
 
     <!-- Include Progress Service -->
-    <script src="./utils/progressService.js"></script>
+    <script src="/utils/progressService.js"></script>
     
     <script>
         // Check user's plan and show/hide upgrade banner
@@ -636,8 +636,9 @@
                 });
 
                 if (response.ok) {
-                    const { configuration } = await response.json();
-                    console.log('✅ Loaded existing configuration:', configuration);
+                    const { config } = await response.json();
+                    console.log('✅ Loaded existing configuration:', config);
+                    const configuration = config; // For backward compatibility
                     
                     // Populate form fields with existing configuration
                     if (configuration.preset) {
@@ -785,7 +786,13 @@
         }
 
         async function saveConfiguration() {
-            const saveBtn = document.querySelector('.btn');
+            const saveBtn = document.querySelector('button.btn');
+            if (!saveBtn) {
+                console.error('Save button not found');
+                alert('Error: Save button not found on page');
+                return;
+            }
+            
             const saveIcon = saveBtn.querySelector('i');
             const originalText = 'Save Configuration';
             
@@ -802,17 +809,23 @@
 
                 // Show loading state
                 saveBtn.disabled = true;
-                saveIcon.className = 'fas fa-spinner fa-spin';
+                if (saveIcon) saveIcon.className = 'fas fa-spinner fa-spin';
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
+                // Get active preset with null check
+                const activePreset = document.querySelector('.preset-option.active');
+                if (!activePreset) {
+                    throw new Error('No preset selected');
+                }
+
                 const configuration = {
-                    preset: document.querySelector('.preset-option.active').dataset.preset,
-                    systemPrompt: document.getElementById('system-prompt').value,
-                    welcomeMessage: document.getElementById('welcome-msg').value,
-                    fallbackResponse: document.getElementById('fallback-response').value,
-                    responseLength: document.getElementById('response-length').value,
-                    languageStyle: document.getElementById('language-style').value,
-                    focusTopics: document.getElementById('focus-topics').value
+                    preset: activePreset.dataset.preset,
+                    systemPrompt: document.getElementById('system-prompt')?.value || '',
+                    welcomeMessage: document.getElementById('welcome-msg')?.value || '',
+                    fallbackResponse: document.getElementById('fallback-response')?.value || '',
+                    responseLength: document.getElementById('response-length')?.value || 'medium',
+                    languageStyle: document.getElementById('language-style')?.value || 'casual',
+                    focusTopics: document.getElementById('focus-topics')?.value || ''
                 };
 
                 const response = await fetch('/api/chat-config', {
