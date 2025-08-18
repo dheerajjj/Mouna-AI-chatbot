@@ -9,7 +9,14 @@
  * - Error handling and retry logic
  */
 
-const cron = require('node-cron');
+let cron;
+try {
+    cron = require('node-cron');
+} catch (error) {
+    console.warn('⚠️ node-cron not available:', error.message);
+    cron = null;
+}
+
 const { EventEmitter } = require('events');
 const AutoTrainingService = require('./AutoTrainingService');
 const DatabaseService = require('./DatabaseService');
@@ -66,6 +73,11 @@ class CrawlingScheduler extends EventEmitter {
 
         if (!this.scheduleConfig.enabled) {
             console.log('⚠️ Auto-crawling is disabled via configuration');
+            return;
+        }
+
+        if (!cron) {
+            console.log('⚠️ node-cron not available, scheduler cannot start');
             return;
         }
 
