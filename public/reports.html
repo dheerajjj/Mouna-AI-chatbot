@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem 0;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+        
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
+        }
+        
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: rgba(13, 123, 138, 0.1);
+            color: #0d7b8a;
+        }
+        
+        .nav-link.active {
+            background: #0d7b8a;
+            color: white;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
+        .logout-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .page-subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        .breadcrumb a {
+            color: #64748b;
+            text-decoration: none;
+        }
+        
+        .breadcrumb a:hover {
+            color: #0d7b8a;
+        }
+        
+        .breadcrumb .separator {
+            color: #cbd5e1;
+        }
+        
+        .breadcrumb .current {
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .report-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .report-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .report-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .report-description {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 123, 138, 0.3);
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(135deg, #0a6b75, #3d0b57);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(13, 123, 138, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0d7b8a;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 1);
+            border-color: #0d7b8a;
+            box-shadow: 0 4px 15px rgba(13, 123, 138, 0.3);
+        }
+        
+        .pro-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            float: right;
+            margin-top: -0.5rem;
+        }
+        
+        .report-filters {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .filter-input {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .filter-input:focus {
+            outline: none;
+            border-color: #0d7b8a;
+            box-shadow: 0 0 0 3px rgba(13, 123, 138, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/images/logo.png" alt="Mouna AI Logo">
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">AI ASSISTANT</div>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="/dashboard" class="nav-link">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="/full-dashboard" class="nav-link">
+                    <i class="fas fa-th-large"></i> Full Dashboard
+                </a>
+                <a href="/analytics" class="nav-link">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+                <a href="/reports" class="nav-link active">
+                    <i class="fas fa-file-alt"></i> Reports
+                </a>
+                <a href="/pricing" class="nav-link">
+                    <i class="fas fa-credit-card"></i> Pricing
+                </a>
+            </div>
+            <div class="user-menu">
+                <span class="user-name" id="user-name">Loading...</span>
+                <button onclick="logout()" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+            <span class="separator">→</span>
+            <a href="/full-dashboard">Full Dashboard</a>
+            <span class="separator">→</span>
+            <a href="/analytics">Analytics</a>
+            <span class="separator">→</span>
+            <span class="current">Reports</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">📋 Export Reports</h1>
+            <p class="page-subtitle">Generate and download detailed reports about your chatbot's performance</p>
+        </div>
+
+        <!-- Report Filters -->
+        <div class="report-filters">
+            <h3 style="margin-bottom: 1rem; color: #1e293b;">
+                <i class="fas fa-filter"></i> Report Filters
+            </h3>
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label class="filter-label">Date Range</label>
+                    <select class="filter-input" id="date-range">
+                        <option value="7days">Last 7 days</option>
+                        <option value="30days">Last 30 days</option>
+                        <option value="90days">Last 90 days</option>
+                        <option value="custom">Custom range</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Report Type</label>
+                    <select class="filter-input" id="report-type">
+                        <option value="summary">Summary Report</option>
+                        <option value="detailed">Detailed Analytics</option>
+                        <option value="conversations">Conversation Logs</option>
+                        <option value="performance">Performance Metrics</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Format</label>
+                    <select class="filter-input" id="format">
+                        <option value="pdf">PDF Document</option>
+                        <option value="excel">Excel Spreadsheet</option>
+                        <option value="csv">CSV File</option>
+                        <option value="json">JSON Data</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn" onclick="generateReport()">
+                <i class="fas fa-file-export"></i> Generate Report
+            </button>
+        </div>
+
+        <!-- Available Reports -->
+        <div class="reports-grid">
+            <div class="report-card">
+                <span class="pro-badge">Available</span>
+                <div class="report-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="report-title">Usage Summary</div>
+                <div class="report-description">
+                    Overview of chatbot usage including message counts, user interactions, and basic performance metrics.
+                </div>
+                <button class="btn" onclick="downloadReport('usage')">
+                    <i class="fas fa-download"></i> Download Usage Report
+                </button>
+            </div>
+
+            <div class="report-card">
+                <span class="pro-badge">Available</span>
+                <div class="report-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="report-title">Conversation Logs</div>
+                <div class="report-description">
+                    Detailed logs of all conversations, including user messages, bot responses, and timestamps.
+                </div>
+                <button class="btn" onclick="downloadReport('conversations')">
+                    <i class="fas fa-download"></i> Download Conversation Logs
+                </button>
+            </div>
+
+            <div class="report-card">
+                <span class="pro-badge">Pro</span>
+                <div class="report-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <div class="report-title">Performance Analytics</div>
+                <div class="report-description">
+                    Advanced performance metrics including response times, user satisfaction rates, and engagement analytics.
+                </div>
+                <button class="btn" onclick="showUpgradePrompt('Performance Analytics', 'professional')">
+                    <i class="fas fa-crown"></i> Upgrade to Access
+                </button>
+            </div>
+
+            <div class="report-card">
+                <span class="pro-badge">Pro</span>
+                <div class="report-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="report-title">User Behavior Analysis</div>
+                <div class="report-description">
+                    Insights into user behavior patterns, popular queries, and interaction flows to optimize your chatbot.
+                </div>
+                <button class="btn" onclick="showUpgradePrompt('User Behavior Analysis', 'professional')">
+                    <i class="fas fa-crown"></i> Upgrade to Access
+                </button>
+            </div>
+        </div>
+
+        <!-- Back to Dashboard -->
+        <div style="text-align: center;">
+            <a href="/full-dashboard" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Full Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Load user data
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            checkPlanAccess();
+        });
+
+        async function loadUserData() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const data = await response.json();
+                
+                if (data.user) {
+                    document.getElementById('user-name').textContent = data.user.name;
+                    window.currentUser = data.user;
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        function checkPlanAccess() {
+            const user = window.currentUser;
+            if (!user) return;
+
+            const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
+            const proBadges = document.querySelectorAll('.pro-badge');
+            
+            proBadges.forEach(badge => {
+                if (currentPlan !== 'free' && currentPlan !== 'starter') {
+                    badge.textContent = 'Available';
+                    badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                }
+            });
+        }
+
+        function generateReport() {
+            const dateRange = document.getElementById('date-range').value;
+            const reportType = document.getElementById('report-type').value;
+            const format = document.getElementById('format').value;
+
+            const user = window.currentUser;
+            const currentPlan = user?.plan?.current?.id || user?.subscription?.plan || 'free';
+
+            if ((reportType === 'detailed' || reportType === 'performance') && (currentPlan === 'free' || currentPlan === 'starter')) {
+                showUpgradePrompt('Advanced Reports', 'professional');
+                return;
+            }
+
+            // Simulate report generation
+            const loadingMsg = `Generating ${reportType} report in ${format.toUpperCase()} format for ${dateRange}...`;
+            alert(`📊 ${loadingMsg}\n\nThis feature is being developed and will be available soon!\n\nYour report will include data from the selected date range with the specified format.`);
+        }
+
+        function downloadReport(reportType) {
+            const user = window.currentUser;
+            const currentPlan = user?.plan?.current?.id || user?.subscription?.plan || 'free';
+
+            if (reportType === 'usage' || reportType === 'conversations') {
+                // These are available to all plans
+                alert(`📄 Downloading ${reportType} report...\n\nReport generation is being developed.\n\nYour ${reportType} report will be downloaded shortly with:\n• Data from the last 30 days\n• PDF format\n• Detailed analytics`);
+            } else {
+                showUpgradePrompt(`${reportType} Report`, 'professional');
+            }
+        }
+
+        function showUpgradePrompt(featureName, requiredPlan) {
+            const planNames = {
+                starter: 'Starter Plan (₹499/month)',
+                professional: 'Professional Plan (₹1,499/month)',
+                enterprise: 'Enterprise Plan'
+            };
+            
+            const message = `${featureName} - Upgrade Required\n\n` +
+                          `This feature requires ${planNames[requiredPlan] || requiredPlan}.\n\n` +
+                          `Benefits of upgrading:\n` +
+                          `• Access to ${featureName}\n` +
+                          `• Advanced reporting capabilities\n` +
+                          `• Priority support\n` +
+                          `• Export in multiple formats\n\n` +
+                          `Would you like to view our pricing plans?`;
+            
+            if (confirm(message)) {
+                window.location.href = `/pricing?upgrade=${requiredPlan}&feature=${encodeURIComponent(featureName)}`;
+            }
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (token) {
+                    await fetch('/api/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                localStorage.removeItem('authToken');
+                window.location.href = '/get-started';
+            }
+        }
+    </script>
+</body>
+</html>

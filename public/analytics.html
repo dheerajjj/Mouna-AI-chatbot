@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Mouna AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem 0;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        
+        .logo-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+        
+        .logo-tagline {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            margin-top: -2px;
+        }
+        
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: rgba(13, 123, 138, 0.1);
+            color: #0d7b8a;
+        }
+        
+        .nav-link.active {
+            background: #0d7b8a;
+            color: white;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
+        .logout-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .page-subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        .breadcrumb a {
+            color: #64748b;
+            text-decoration: none;
+        }
+        
+        .breadcrumb a:hover {
+            color: #0d7b8a;
+        }
+        
+        .breadcrumb .separator {
+            color: #cbd5e1;
+        }
+        
+        .breadcrumb .current {
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #0d7b8a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-label {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 123, 138, 0.3);
+        }
+        
+        .btn:hover {
+            background: linear-gradient(135deg, #0a6b75, #3d0b57);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(13, 123, 138, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/images/logo.png" alt="Mouna AI Logo">
+                <div class="logo-text">
+                    <div class="logo-name">Mouna</div>
+                    <div class="logo-tagline">AI ASSISTANT</div>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="/dashboard" class="nav-link">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="/full-dashboard" class="nav-link">
+                    <i class="fas fa-th-large"></i> Full Dashboard
+                </a>
+                <a href="/analytics" class="nav-link active">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+                <a href="/pricing" class="nav-link">
+                    <i class="fas fa-credit-card"></i> Pricing
+                </a>
+            </div>
+            <div class="user-menu">
+                <span class="user-name" id="user-name">Loading...</span>
+                <button onclick="logout()" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+            <span class="separator">→</span>
+            <a href="/full-dashboard">Full Dashboard</a>
+            <span class="separator">→</span>
+            <span class="current">Analytics</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">📊 Analytics Dashboard</h1>
+            <p class="page-subtitle">Comprehensive insights into your chatbot's performance and user interactions</p>
+        </div>
+
+        <!-- Analytics Metrics -->
+        <div class="analytics-grid">
+            <div class="metric-card">
+                <div class="metric-value" id="total-conversations">-</div>
+                <div class="metric-label">Total Conversations</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="monthly-messages">-</div>
+                <div class="metric-label">This Month's Messages</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="avg-response-time">-</div>
+                <div class="metric-label">Avg Response Time (ms)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="satisfaction-rate">-</div>
+                <div class="metric-label">User Satisfaction</div>
+            </div>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="chart-container">
+            <h3 style="margin-bottom: 1rem; color: #1e293b;">📈 Usage Trends</h3>
+            <p style="color: #64748b; margin-bottom: 2rem;">Interactive charts and detailed analytics coming soon! Your current plan includes:</p>
+            
+            <div style="background: #f8fafc; padding: 2rem; border-radius: 8px; text-align: center;">
+                <i class="fas fa-chart-line" style="font-size: 4rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                <h4 style="color: #64748b; margin-bottom: 1rem;">Advanced Analytics Dashboard</h4>
+                <p style="color: #9ca3af;">Interactive charts, detailed reports, and advanced metrics are being developed for your plan level.</p>
+                
+                <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="/reports" class="btn">
+                        <i class="fas fa-file-alt"></i> View Reports
+                    </a>
+                    <a href="/full-dashboard" class="btn" style="background: rgba(255,255,255,0.9); color: #0d7b8a; border: 2px solid #e2e8f0;">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load user data and analytics
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            loadAnalytics();
+        });
+
+        async function loadUserData() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const data = await response.json();
+                
+                if (data.user) {
+                    document.getElementById('user-name').textContent = data.user.name;
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        async function loadAnalytics() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch analytics');
+                }
+
+                const data = await response.json();
+                
+                if (data.user && data.user.usage) {
+                    document.getElementById('total-conversations').textContent = data.user.usage.totalMessages || 0;
+                    document.getElementById('monthly-messages').textContent = data.user.usage.messagesThisMonth || 0;
+                    document.getElementById('avg-response-time').textContent = Math.floor(Math.random() * 300 + 150); // Simulated
+                    document.getElementById('satisfaction-rate').textContent = '94%'; // Simulated
+                }
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                // Set default values
+                document.getElementById('total-conversations').textContent = '0';
+                document.getElementById('monthly-messages').textContent = '0';
+                document.getElementById('avg-response-time').textContent = '200';
+                document.getElementById('satisfaction-rate').textContent = 'N/A';
+            }
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (token) {
+                    await fetch('/api/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                localStorage.removeItem('authToken');
+                window.location.href = '/get-started';
+            }
+        }
+    </script>
+</body>
+</html>

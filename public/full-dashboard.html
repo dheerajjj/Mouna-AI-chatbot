@@ -915,16 +915,46 @@
 
         // Apply plan-based feature restrictions and enhancements
         function applyPlanBasedFeatures(user) {
-            console.log('🔧 Applying plan-based features for user:', user.plan?.current?.id);
+            console.log('🔧 Applying plan-based features for user:', user.plan?.current?.id || user.subscription?.plan);
             
-            const currentPlan = user.plan?.current?.id || 'free';
+            // Get plan from multiple possible sources
+            const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
             const capabilities = user.capabilities || {};
-            const features = user.plan?.current?.features || {};
             
-            // Update Pro badges based on plan
+            // Set plan capabilities based on detected plan
+            const planCapabilities = {
+                free: {
+                    canAccessAnalytics: false,
+                    canAccessAdvancedAnalytics: false,
+                    canCustomizeBranding: false,
+                    canExportReports: false
+                },
+                starter: {
+                    canAccessAnalytics: true,
+                    canAccessAdvancedAnalytics: false,
+                    canCustomizeBranding: true,
+                    canExportReports: false
+                },
+                professional: {
+                    canAccessAnalytics: true,
+                    canAccessAdvancedAnalytics: true,
+                    canCustomizeBranding: true,
+                    canExportReports: true
+                },
+                enterprise: {
+                    canAccessAnalytics: true,
+                    canAccessAdvancedAnalytics: true,
+                    canCustomizeBranding: true,
+                    canExportReports: true
+                }
+            };
+            
+            const actualCapabilities = planCapabilities[currentPlan] || planCapabilities.free;
+            
+            // Update Pro badges based on actual plan
             const proBadges = document.querySelectorAll('.pro-badge');
             proBadges.forEach(badge => {
-                if (capabilities.canAccessAdvancedAnalytics) {
+                if (currentPlan !== 'free') {
                     badge.textContent = 'Available';
                     badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
                 } else {
@@ -933,42 +963,7 @@
                 }
             });
             
-            // Update analytics buttons based on plan access
-            const analyticsButtons = document.querySelectorAll('button[onclick="viewAnalytics()"], button[onclick="exportReports()"]');
-            analyticsButtons.forEach(button => {
-                if (capabilities.canAccessAnalytics) {
-                    button.disabled = false;
-                    button.style.opacity = '1';
-                    button.style.cursor = 'pointer';
-                } else {
-                    // Add upgrade hint for free users
-                    if (button.onclick.toString().includes('viewAnalytics')) {
-                        button.onclick = function() {
-                            showUpgradePrompt('Analytics', 'starter');
-                        };
-                    } else if (button.onclick.toString().includes('exportReports')) {
-                        button.onclick = function() {
-                            showUpgradePrompt('Export Reports', 'professional');
-                        };
-                    }
-                }
-            });
-            
-            // Update widget customization access
-            const customizeButtons = document.querySelectorAll('a[href="/customize-widget"]');
-            customizeButtons.forEach(button => {
-                if (capabilities.canCustomizeBranding) {
-                    button.style.opacity = '1';
-                    button.style.pointerEvents = 'auto';
-                } else {
-                    button.onclick = function(e) {
-                        e.preventDefault();
-                        showUpgradePrompt('Widget Customization', 'starter');
-                    };
-                }
-            });
-            
-            console.log('✅ Plan-based features applied successfully');
+            console.log('✅ Plan-based features applied successfully for plan:', currentPlan);
         }
         
         // Show upgrade prompt for restricted features
@@ -993,13 +988,13 @@
             }
         }
         
-        // Enhanced analytics with plan-specific content
+        // Enhanced analytics with plan-specific content and proper routing
         function viewAnalytics() {
-            // Check if we have user data loaded
             const currentPlan = window.currentUserPlan || 'free';
+            console.log('📊 Opening analytics for plan:', currentPlan);
             
             if (currentPlan === 'free') {
-                const message = '📊 Analytics Dashboard\n\n' +
+                const message = '📊 Analytics Dashboard - Upgrade Required\n\n' +
                               'Analytics features are available with paid plans:\n\n' +
                               '🎯 Starter Plan includes:\n' +
                               '• Basic usage statistics\n' +
@@ -1010,37 +1005,29 @@
                               '• User behavior insights\n' +
                               '• Custom reports and exports\n' +
                               '• Real-time metrics\n\n' +
-                              'Upgrade now to unlock these features!';
+                              'Would you like to upgrade or view pricing plans?';
                               
-                if (confirm(message + '\n\nView pricing plans?')) {
+                if (confirm(message)) {
                     window.location.href = '/pricing?feature=analytics';
                 }
             } else {
-                // Paid plan users get analytics content
-                alert('📊 Advanced Analytics Dashboard\n\n' +
-                      'Coming Soon! Your plan includes:\n' +
-                      '• Real-time conversation metrics\n' +
-                      '• User engagement insights\n' +
-                      '• Performance analytics\n' +
-                      '• Custom reporting tools\n\n' +
-                      'This feature is being developed and will be available soon!');
+                // Paid plan users get routed to the analytics page
+                console.log('✅ Routing to analytics page for', currentPlan, 'plan user');
+                window.location.href = '/analytics';
             }
         }
         
-        // Enhanced export reports with plan check
+        // Enhanced export reports with plan check and proper routing
         function exportReports() {
             const currentPlan = window.currentUserPlan || 'free';
+            console.log('📋 Opening reports for plan:', currentPlan);
             
             if (currentPlan === 'free' || currentPlan === 'starter') {
                 showUpgradePrompt('Export Reports', 'professional');
             } else {
-                alert('📈 Export Reports\n\n' +
-                      'Export features for Professional users:\n' +
-                      '• PDF and Excel reports\n' +
-                      '• Custom date ranges\n' +
-                      '• Detailed conversation logs\n' +
-                      '• Performance summaries\n\n' +
-                      'This feature is being developed and will be available soon!');
+                // Professional and Enterprise users get routed to reports page
+                console.log('✅ Routing to reports page for', currentPlan, 'plan user');
+                window.location.href = '/reports';
             }
         }
         

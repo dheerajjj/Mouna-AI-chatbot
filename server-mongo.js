@@ -737,6 +737,81 @@ async function startServer() {
       }
     });
     
+    // Chat configuration -- Save comprehensive chat settings
+    app.put('/api/chat-config', validateApiKey, async (req, res) => {
+      try {
+        const userId = req.user._id;
+        const {
+          preset,
+          systemPrompt,
+          welcomeMessage,
+          fallbackResponse,
+          responseLength,
+          languageStyle,
+          focusTopics
+        } = req.body;
+        
+        const chatConfig = {
+          preset: preset || 'professional',
+          systemPrompt: systemPrompt || 'You are a helpful AI assistant.',
+          welcomeMessage: welcomeMessage || 'Hello! How can I help you today?',
+          fallbackResponse: fallbackResponse || "I'm sorry, I don't have enough information to answer that question.",
+          responseLength: responseLength || 'medium',
+          languageStyle: languageStyle || 'casual',
+          focusTopics: focusTopics || 'general support',
+          lastUpdated: new Date()
+        };
+        
+        // Update both widget config and chat config for comprehensive coverage
+        const updateData = {
+          'widgetConfig.systemPrompt': systemPrompt,
+          'widgetConfig.welcomeMessage': welcomeMessage,
+          'chatConfig': chatConfig
+        };
+        
+        await DatabaseService.updateUser(userId, updateData);
+        
+        res.json({ 
+          success: true, 
+          message: 'Chat configuration saved successfully',
+          config: chatConfig
+        });
+      } catch (error) {
+        console.error('Chat config save error:', error);
+        res.status(500).json({ error: 'Failed to save chat configuration.' });
+      }
+    });
+    
+    // Get chat configuration
+    app.get('/api/chat-config', validateApiKey, async (req, res) => {
+      try {
+        const userId = req.user._id;
+        const user = await DatabaseService.findUserById(userId);
+        
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const chatConfig = user.chatConfig || {
+          preset: 'professional',
+          systemPrompt: 'You are a helpful AI assistant.',
+          welcomeMessage: 'Hello! How can I help you today?',
+          fallbackResponse: "I'm sorry, I don't have enough information to answer that question.",
+          responseLength: 'medium',
+          languageStyle: 'casual',
+          focusTopics: 'general support'
+        };
+        
+        res.json({
+          success: true,
+          config: chatConfig
+        });
+      } catch (error) {
+        console.error('Chat config fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch chat configuration.' });
+      }
+    });
+    
     // Advanced Widget Customization -- Save comprehensive configuration
     app.post('/api/widget/customize-advanced', validateApiKey, async (req, res) => {
       try {
@@ -1777,6 +1852,16 @@ app.get('/email-validation-test', (req, res) => {
     // Full dashboard with all management features
     app.get('/full-dashboard', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'full-dashboard.html'));
+    });
+    
+    // Analytics dashboard page
+    app.get('/analytics', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'analytics.html'));
+    });
+    
+    // Reports page
+    app.get('/reports', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'reports.html'));
     });
 
     // OTP verification page
