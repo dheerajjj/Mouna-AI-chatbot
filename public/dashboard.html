@@ -678,8 +678,8 @@
         // Store current plan globally for use in other functions
         window.currentUserPlan = 'free'; // Default, will be updated when user data loads
         
-        // Enhanced analytics with plan-specific content and proper routing
-        function viewAnalytics() {
+        // Make functions globally accessible by attaching to window
+        window.viewAnalytics = function() {
             const currentPlan = window.currentUserPlan || 'free';
             console.log('📊 Opening analytics for plan:', currentPlan);
             
@@ -704,10 +704,9 @@
                 console.log('✅ Routing to analytics page for', currentPlan, 'plan user');
                 window.location.href = '/analytics';
             }
-        }
+        };
         
-        // Enhanced export reports with plan check and proper routing
-        function exportReports() {
+        window.exportReports = function() {
             const currentPlan = window.currentUserPlan || 'free';
             console.log('📋 Opening reports for plan:', currentPlan);
             
@@ -728,7 +727,7 @@
                 console.log('✅ Routing to reports page for', currentPlan, 'plan user');
                 window.location.href = '/reports';
             }
-        }
+        };
 
         // Load user data on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -958,10 +957,15 @@
             });
         }
 
-        // Load personal tenant and update integration code
+        // Load personal tenant and update integration code with enhanced error handling
         async function loadPersonalTenantAndUpdateCode(apiKey) {
             // Always update integration code with API key first
             const integrationCode = document.getElementById('integration-code');
+            if (!integrationCode) {
+                console.warn('⚠️ Integration code element not found');
+                return;
+            }
+            
             const basicCode = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
             integrationCode.innerHTML = basicCode;
             
@@ -969,14 +973,25 @@
                 console.log('🔍 Attempting to load user personal tenant...');
                 const token = localStorage.getItem('authToken');
                 
-                // Try to fetch user's personal tenant - but don't fail if endpoint doesn't exist
+                if (!token) {
+                    console.log('ℹ️ No auth token available, using basic configuration');
+                    return;
+                }
+                
+                // Try to fetch user's personal tenant with timeout and better error handling
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                
                 const response = await fetch('/api/tenant/personal-tenant', {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'X-API-Key': apiKey,
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -987,25 +1002,35 @@
                         const tenantCode = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-tenant-id="${tenantId}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
                         integrationCode.innerHTML = tenantCode;
                         
-                        // Update description
-                        const descriptionElement = integrationCode.parentElement.previousElementSibling;
+                        // Update description safely
+                        const descriptionElement = integrationCode.parentElement?.previousElementSibling;
                         if (descriptionElement && descriptionElement.tagName === 'P') {
                             descriptionElement.innerHTML = `🏢 Personal tenant integration code (Tenant ID: ${tenantId})`;
                         }
                         
                         // Store tenant ID globally for testing widget
                         window.userPersonalTenantId = tenantId;
+                    } else {
+                        console.log('ℹ️ No tenant ID in response, using default configuration');
                     }
                 } else if (response.status === 404) {
-                    console.log('ℹ️ No personal tenant found for this API key, using default configuration');
+                    console.log('ℹ️ Personal tenant endpoint not found (404), using default configuration');
+                } else if (response.status === 401) {
+                    console.log('⚠️ Authentication failed for personal tenant, using default configuration');
                 } else {
-                    console.log('⚠️ Failed to load personal tenant:', response.status, 'using default configuration');
+                    console.log(`⚠️ Failed to load personal tenant (${response.status}), using default configuration`);
                 }
                 
                 console.log('✅ Integration code updated successfully');
                 
             } catch (error) {
-                console.log('ℹ️ No personal tenant found for this API key, using default configuration');
+                if (error.name === 'AbortError') {
+                    console.log('⏰ Personal tenant request timed out, using default configuration');
+                } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    console.log('🌐 Network error loading personal tenant, using default configuration');
+                } else {
+                    console.log('ℹ️ Error loading personal tenant, using default configuration:', error.message);
+                }
                 // Integration code already set to basic version above
             }
         }
