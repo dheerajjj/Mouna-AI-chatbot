@@ -735,9 +735,8 @@
                         document.getElementById('monthly-usage').textContent = `${monthlyMessages} / ${limit}`;
                     }
                     
-                    // Update integration code with actual API key
-                    const integrationCode = document.getElementById('integration-code');
-                    integrationCode.innerHTML = integrationCode.innerHTML.replace('YOUR_API_KEY_HERE', data.user.apiKey);
+                    // Load personal tenant and update integration code with actual API key and tenant ID
+                    await loadPersonalTenantAndUpdateCode(data.user.apiKey);
                     
                     // Update modal data
                     document.getElementById('modal-current-plan').textContent = planName;
@@ -835,6 +834,12 @@
                 script.setAttribute('data-position', 'bottom-left'); // Use bottom-left to avoid conflicts
                 script.setAttribute('data-test-mode', 'true');
                 
+                // Include tenant ID if available for proper testing
+                if (window.userPersonalTenantId) {
+                    script.setAttribute('data-tenant-id', window.userPersonalTenantId);
+                    console.log('🏢 Testing widget with personal tenant ID:', window.userPersonalTenantId);
+                }
+                
                 // Add script load handlers
                 script.onload = function() {
                     if (testBtn) {
@@ -897,6 +902,73 @@
                     button.style.background = '#0d7b8a';
                 }, 2000);
             });
+        }
+
+        // Load personal tenant and update integration code
+        async function loadPersonalTenantAndUpdateCode(apiKey) {
+            try {
+                console.log('🔍 Loading personal tenant for integration code...');
+                const token = localStorage.getItem('authToken');
+                
+                // Try to fetch user's personal tenant
+                const response = await fetch('/api/tenant/personal-tenant', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'X-API-Key': apiKey,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                let tenantId = null;
+                let integrationDescription = 'Copy and paste this code just before the closing </body> tag on your website:';
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    tenantId = data.personalTenant?.tenantId;
+                    console.log('✅ Personal tenant loaded:', tenantId);
+                    
+                    if (tenantId) {
+                        integrationDescription = `🏢 Personal tenant integration code (Tenant ID: ${tenantId})`;
+                    }
+                } else if (response.status === 404) {
+                    console.log('ℹ️ No personal tenant found, using basic integration code');
+                    integrationDescription += ' Note: Consider upgrading to paid plans for tenant-specific features.';
+                } else {
+                    console.warn('⚠️ Failed to load personal tenant:', response.status);
+                }
+                
+                // Update integration code
+                const integrationCode = document.getElementById('integration-code');
+                let codeSnippet;
+                
+                if (tenantId) {
+                    // Include tenant ID in the integration code
+                    codeSnippet = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-tenant-id="${tenantId}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
+                } else {
+                    // Basic integration code without tenant ID
+                    codeSnippet = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
+                }
+                
+                integrationCode.innerHTML = codeSnippet;
+                
+                // Update the description above the code
+                const descriptionElement = integrationCode.parentElement.previousElementSibling;
+                if (descriptionElement && descriptionElement.tagName === 'P') {
+                    descriptionElement.innerHTML = integrationDescription;
+                }
+                
+                // Store tenant ID globally for testing widget
+                window.userPersonalTenantId = tenantId;
+                
+                console.log('✅ Integration code updated with', tenantId ? 'personal tenant ID' : 'basic configuration');
+                
+            } catch (error) {
+                console.error('❌ Error loading personal tenant:', error);
+                // Fallback to basic integration code with just API key
+                const integrationCode = document.getElementById('integration-code');
+                const basicCode = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
+                integrationCode.innerHTML = basicCode;
+            }
         }
 
         // Copy integration code
