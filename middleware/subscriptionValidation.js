@@ -70,6 +70,21 @@ const canCreateTenant = async (req, res, next) => {
     // Get current CLIENT tenant count from database (exclude personal tenants)
     const TenantSettings = require('../models/TenantSettings');
     console.log('🔍 [canCreateTenant] Counting existing CLIENT tenants for user...');
+    console.log('🔍 [canCreateTenant] User ID for query:', user._id);
+    console.log('🔍 [canCreateTenant] Query conditions:', { 
+      userId: user._id, 
+      status: { $ne: 'suspended' },
+      isPersonalTenant: { $ne: true }
+    });
+    
+    // Count ALL tenants for debugging
+    const allTenantCount = await TenantSettings.countDocuments({ 
+      userId: user._id, 
+      status: { $ne: 'suspended' }
+    });
+    console.log('🔍 [canCreateTenant] Total tenant count (including personal):', allTenantCount);
+    
+    // Count only CLIENT tenants
     const currentTenantCount = await TenantSettings.countDocuments({ 
       userId: user._id, 
       status: { $ne: 'suspended' },
@@ -77,6 +92,17 @@ const canCreateTenant = async (req, res, next) => {
     });
     console.log('🔍 [canCreateTenant] Current CLIENT tenant count:', currentTenantCount);
     console.log('🔍 [canCreateTenant] Max tenants allowed:', limits.tenants);
+    
+    // Additional debugging - list actual tenants
+    const actualTenants = await TenantSettings.find({ 
+      userId: user._id, 
+      status: { $ne: 'suspended' }
+    }).select('tenantId tenantInfo.name isPersonalTenant');
+    console.log('🔍 [canCreateTenant] Actual tenants found:');
+    actualTenants.forEach((tenant, index) => {
+      const type = tenant.isPersonalTenant ? 'PERSONAL' : 'CLIENT';
+      console.log(`  ${index + 1}. [${type}] ${tenant.tenantInfo.name} (${tenant.tenantId})`);
+    });
     
     // Check if user has reached tenant limit
     if (limits.tenants !== 'unlimited' && currentTenantCount >= limits.tenants) {
