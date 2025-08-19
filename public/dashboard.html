@@ -681,7 +681,21 @@
         // Define ALL functions globally to prevent ReferenceErrors
         function viewAnalytics() {
             console.log('📊 Analytics clicked');
-            window.location.href = '/pricing?feature=analytics';
+            
+            // Check if user has analytics access
+            const currentPlan = window.currentUserPlan || 'free';
+            console.log('🔍 Current user plan for analytics:', currentPlan);
+            
+            // Plans with analytics access: starter, professional, enterprise
+            const analyticsPlans = ['starter', 'professional', 'enterprise'];
+            
+            if (analyticsPlans.includes(currentPlan)) {
+                console.log('✅ User has analytics access, redirecting to analytics');
+                window.location.href = '/analytics';
+            } else {
+                console.log('❌ User needs to upgrade for analytics access');
+                window.location.href = '/pricing?feature=analytics&upgrade=starter';
+            }
         }
         
         function exportReports() {
@@ -883,14 +897,25 @@
             // Get plan from multiple possible sources
             const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
             
-            // Update Pro badges based on actual plan
+            // Update Pro badges based on actual plan and feature availability
             const proBadges = document.querySelectorAll('.pro-badge');
             proBadges.forEach(badge => {
-                if (currentPlan !== 'free') {
+                // Check what feature this badge is for
+                const card = badge.closest('.card');
+                const cardTitle = card?.querySelector('h3')?.textContent || '';
+                
+                // Analytics is available for starter, professional, enterprise
+                const analyticsPlans = ['starter', 'professional', 'enterprise'];
+                
+                if (cardTitle.includes('Analytics') && analyticsPlans.includes(currentPlan)) {
+                    badge.textContent = 'Available';
+                    badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                } else if (currentPlan !== 'free' && !cardTitle.includes('Analytics')) {
+                    // Other features that are truly "Pro" only
                     badge.textContent = 'Available';
                     badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
                 } else {
-                    badge.textContent = 'Pro';
+                    badge.textContent = cardTitle.includes('Analytics') ? 'Starter+' : 'Pro';
                     badge.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
                 }
             });
