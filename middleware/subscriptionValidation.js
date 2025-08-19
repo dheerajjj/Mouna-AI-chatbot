@@ -5,14 +5,9 @@ const { USAGE_LIMITS } = require('../config/pricing');
  */
 const canCreateTenant = async (req, res, next) => {
   try {
-    console.log('🔍 [canCreateTenant] Starting validation...');
-    console.log('🔍 [canCreateTenant] Request user object:', req.user);
-    
     const userId = req.user.userId;
-    console.log('🔍 [canCreateTenant] User ID:', userId);
     
     if (!userId) {
-      console.log('❌ [canCreateTenant] No user ID found');
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
@@ -21,8 +16,6 @@ const canCreateTenant = async (req, res, next) => {
 
     // Get user from database
     const DatabaseService = require('../services/DatabaseService');
-    console.log('🔍 [canCreateTenant] Fetching user from database...');
-    console.log('🔍 [canCreateTenant] UserId type:', typeof userId, 'Value:', userId);
     
     // Initialize DatabaseService if not already done
     if (!DatabaseService.isMongoConnected && !DatabaseService.mockDB) {
@@ -30,30 +23,16 @@ const canCreateTenant = async (req, res, next) => {
     }
     
     const user = await DatabaseService.findUserById(userId);
-    console.log('🔍 [canCreateTenant] Fetched user:', user ? 'Found' : 'Not found');
-    if (user) {
-      console.log('🔍 [canCreateTenant] User details:', {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        subscription: user.subscription
-      });
-    }
     
     if (!user) {
-      console.log('❌ [canCreateTenant] User not found in database');
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    console.log('🔍 [canCreateTenant] User subscription:', user.subscription);
     const currentPlan = user.subscription?.plan || 'free';
-    console.log('🔍 [canCreateTenant] Current plan:', currentPlan);
-    
     const limits = USAGE_LIMITS[currentPlan];
-    console.log('🔍 [canCreateTenant] Plan limits:', limits);
     
     // Check if plan supports additional tenants
     if (limits.personalTenantOnly) {

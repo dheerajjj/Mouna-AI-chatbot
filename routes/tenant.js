@@ -286,17 +286,7 @@ router.post('/', [
       return true;
     }),
   body('type').optional().isIn(['personal', 'client']).withMessage('Type must be personal or client')
-], (req, res, next) => {
-  console.log('🔍 [POST /tenant] Received request:');
-  console.log('  - Headers:', req.headers);
-  console.log('  - Body:', req.body);
-  console.log('  - User from token:', req.user);
-  next();
-}, authenticateToken, (req, res, next) => {
-  console.log('🔍 [POST /tenant] After authentication:');
-  console.log('  - Authenticated user:', req.user);
-  next();
-}, canCreateTenant, async (req, res) => {
+], authenticateToken, canCreateTenant, async (req, res) => {
   try {
     console.log('🚀 Starting tenant creation process...');
     console.log('👤 Request user object:', req.user);
