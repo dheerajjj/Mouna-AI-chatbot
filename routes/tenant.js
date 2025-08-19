@@ -311,7 +311,7 @@ router.post('/', [
       });
     }
 
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId;
     const { name, description = '', type = 'client' } = req.body;
 
     console.log('🔧 Creating tenant with:', { userId, name, description, type });
@@ -319,6 +319,7 @@ router.post('/', [
     // Validate userId exists and is valid
     if (!userId) {
       console.error('❌ UserId is missing or undefined');
+      console.error('❌ User object keys:', Object.keys(req.user));
       return res.status(400).json({
         error: 'User ID is required',
         details: 'Authentication failed - no user ID found'
@@ -439,7 +440,7 @@ router.post('/', [
  */
 router.get('/list', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId;
     
     const tenantSettings = await TenantSettings.find({ 
       userId,
