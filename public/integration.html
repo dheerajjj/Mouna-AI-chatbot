@@ -1451,8 +1451,11 @@
                     
                     console.log('User subscription:', userSubscription);
                     
-                    // Show tenant selection for paid plans
-                    if (userSubscription && userSubscription.plan !== 'free') {
+                    // Show tenant selection for Starter and paid plans
+                    const planType = userSubscription?.plan || 'free';
+                    console.log('User plan detected:', planType);
+                    
+                    if (planType !== 'free') {
                         document.getElementById('tenant-selection-card').style.display = 'block';
                         await loadTenants();
                         
