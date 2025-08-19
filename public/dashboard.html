@@ -786,31 +786,99 @@
 
         // Widget Testing
         async function testWidget() {
+            const testBtn = document.querySelector('button[onclick="testWidget()"]');
+            const originalText = testBtn ? testBtn.innerHTML : 'Test Widget Live';
+            
             try {
-                const response = await fetch('/test-api-key');
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Remove existing test widget
-                    const existingWidget = document.getElementById('test-widget');
-                    if (existingWidget) existingWidget.remove();
-                    
-                    // Load the widget
-                    const script = document.createElement('script');
-                    script.id = 'test-widget';
-                    script.src = '/widget-fixed.js';
-                    script.setAttribute('data-api-key', data.apiKey);
-                    script.setAttribute('data-primary-color', '#667eea');
-                    script.setAttribute('data-position', 'bottom-right');
-                    document.body.appendChild(script);
-                    
-                    alert('Test widget loaded! Check the bottom-right corner of your screen.');
-                } else {
-                    alert('Failed to load test widget. Please try again.');
+                // Show loading state
+                if (testBtn) {
+                    testBtn.disabled = true;
+                    testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading Widget...';
                 }
+                
+                // Get user's API key from the display
+                const apiKeyDisplay = document.getElementById('api-key-display');
+                let apiKey = apiKeyDisplay ? apiKeyDisplay.textContent.trim() : null;
+                
+                // If no API key in display, try to get test API key
+                if (!apiKey || apiKey === 'Loading...') {
+                    const response = await fetch('/test-api-key');
+                    const data = await response.json();
+                    
+                    if (data.success || data.apiKey) {
+                        apiKey = data.apiKey;
+                    } else {
+                        throw new Error('No API key available for testing');
+                    }
+                }
+                
+                // Remove existing test widget
+                const existingWidget = document.getElementById('test-widget');
+                if (existingWidget) {
+                    existingWidget.remove();
+                }
+                
+                // Remove any existing widget containers
+                const existingContainers = document.querySelectorAll('[id*="chatbot"], [id*="widget"], .ai-chatbot-widget');
+                existingContainers.forEach(container => {
+                    if (container.id !== 'test-widget') {
+                        container.remove();
+                    }
+                });
+                
+                // Create and load the widget script
+                const script = document.createElement('script');
+                script.id = 'test-widget';
+                script.src = '/widget-fixed.js';
+                script.setAttribute('data-api-key', apiKey);
+                script.setAttribute('data-primary-color', '#667eea');
+                script.setAttribute('data-position', 'bottom-left'); // Use bottom-left to avoid conflicts
+                script.setAttribute('data-test-mode', 'true');
+                
+                // Add script load handlers
+                script.onload = function() {
+                    if (testBtn) {
+                        testBtn.disabled = false;
+                        testBtn.innerHTML = '<i class="fas fa-check"></i> Widget Loaded!';
+                        setTimeout(() => {
+                            testBtn.innerHTML = originalText;
+                        }, 3000);
+                    }
+                    
+                    // Show success message
+                    const message = 'Test widget loaded successfully! 🎉\n\n' +
+                                  'You should see a chat widget in the bottom-left corner.\n' +
+                                  'Click it to test the functionality.\n\n' +
+                                  'The widget is using your API key: ' + apiKey.substring(0, 8) + '...';
+                    alert(message);
+                };
+                
+                script.onerror = function() {
+                    throw new Error('Failed to load widget script');
+                };
+                
+                document.head.appendChild(script);
+                
             } catch (error) {
                 console.error('Error testing widget:', error);
-                alert('Error loading test widget. Please try again.');
+                
+                // Reset button state
+                if (testBtn) {
+                    testBtn.disabled = false;
+                    testBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Test Failed';
+                    setTimeout(() => {
+                        testBtn.innerHTML = originalText;
+                    }, 3000);
+                }
+                
+                // Show error message
+                const errorMessage = 'Widget Test Failed ❌\n\n' +
+                                   'Error: ' + error.message + '\n\n' +
+                                   'Please try the following:\n' +
+                                   '1. Refresh the page and try again\n' +
+                                   '2. Check your API key is valid\n' +
+                                   '3. Ensure widget script is accessible';
+                alert(errorMessage);
             }
         }
 

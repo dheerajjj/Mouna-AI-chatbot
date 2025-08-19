@@ -352,7 +352,7 @@
                     <i class="fas fa-user-circle"></i>
                     <span class="user-name" id="user-name">Loading...</span>
                 </div>
-                <a href="/welcome-dashboard" class="back-btn">
+                <a href="/dashboard" class="back-btn">
                     <i class="fas fa-arrow-left"></i>
                     Back to Dashboard
                 </a>
@@ -780,14 +780,14 @@
                                     animation: customization.animation
                                 }
                             },
-                            'welcome-dashboard',
+                            'dashboard',
                             true // Auto redirect
                         );
                     } else {
                         // Fallback if ProgressService is not available
                         alert('🎉 Widget customization saved successfully!');
                         setTimeout(() => {
-                            window.location.href = '/welcome-dashboard';
+                            window.location.href = '/dashboard';
                         }, 1500);
                     }
                 } else {
