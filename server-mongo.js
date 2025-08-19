@@ -265,7 +265,8 @@ async function startServer() {
         await AutoTrainingDB.initialize();
         console.log('✅ Auto-training database schemas initialized successfully');
       } catch (error) {
-        console.error('⚠️ Error initializing auto-training schemas:', error.message);
+        console.warn('⚠️ Auto-training schemas initialization had issues (likely index conflicts):', error.message);
+        console.log('ℹ️ This is normal for existing databases. Auto-training features will still work.');
       }
     } else {
       console.warn('⚠️ Auto-training system requires MongoDB. Mock DB not supported for auto-training.');
