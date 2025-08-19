@@ -42,9 +42,7 @@ const BASE_PRICING_PLANS = {
       responseTime: 'fast'
     },
     description: 'Great for small businesses and startups',
-    popular: true,
-    stripeProductId: 'prod_starter_india', // Will be created in Stripe
-    stripePriceId: 'price_starter_monthly_india'
+    popular: true
   },
   
   professional: {
@@ -65,9 +63,7 @@ const BASE_PRICING_PLANS = {
       apiAccess: true
     },
     description: 'Perfect for growing businesses',
-    popular: false,
-    stripeProductId: 'prod_professional_india',
-    stripePriceId: 'price_professional_monthly_india'
+    popular: false
   },
   
   enterprise: {
@@ -90,9 +86,7 @@ const BASE_PRICING_PLANS = {
       sla: '99.9%'
     },
     description: 'For large enterprises with high volume',
-    popular: false,
-    stripeProductId: 'prod_enterprise_india',
-    stripePriceId: 'price_enterprise_monthly_india'
+    popular: false
   }
 };
 
@@ -152,9 +146,7 @@ const PRICING_PLANS = {
       'Dashboard access'
     ],
     description: 'Great for small businesses and startups',
-    popular: true,
-    stripeProductId: 'prod_starter_india',
-    stripePriceId: 'price_starter_monthly_india'
+    popular: true
   },
   
   professional: {
@@ -185,9 +177,7 @@ const PRICING_PLANS = {
       'Shared billing'
     ],
     description: 'Perfect for freelancers and small agencies',
-    popular: true,
-    stripeProductId: 'prod_professional_india',
-    stripePriceId: 'price_professional_monthly_india'
+    popular: true
   },
   
   enterprise: {
@@ -221,9 +211,7 @@ const PRICING_PLANS = {
       'Custom deployment options'
     ],
     description: 'For digital agencies and large organizations',
-    popular: false,
-    stripeProductId: 'prod_enterprise_india',
-    stripePriceId: 'price_enterprise_monthly_india'
+    popular: false
   }
 };
 

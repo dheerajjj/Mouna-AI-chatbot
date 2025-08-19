@@ -1,60 +1,20 @@
-// Multi-currency utility for Stripe payment processing
+// Currency utility for Razorpay payment processing (INR only)
 const axios = require('axios');
 
-// Supported currencies with their configurations
+// Supported currencies (focusing on INR for Razorpay)
 const SUPPORTED_CURRENCIES = {
   'INR': {
     symbol: '₹',
     locale: 'en-IN',
     name: 'Indian Rupee',
-    stripeMinAmount: 50, // Minimum 50 paise (₹0.50)
+    razorpayMinAmount: 100, // Minimum ₹1.00 (100 paise)
     region: 'IN'
-  },
-  'USD': {
-    symbol: '$',
-    locale: 'en-US',
-    name: 'US Dollar',
-    stripeMinAmount: 50, // Minimum 50 cents ($0.50)
-    region: 'US'
-  },
-  'EUR': {
-    symbol: '€',
-    locale: 'de-DE',
-    name: 'Euro',
-    stripeMinAmount: 50, // Minimum 50 cents (€0.50)
-    region: 'EU'
-  },
-  'GBP': {
-    symbol: '£',
-    locale: 'en-GB',
-    name: 'British Pound',
-    stripeMinAmount: 30, // Minimum 30 pence (£0.30)
-    region: 'GB'
-  },
-  'CAD': {
-    symbol: 'C$',
-    locale: 'en-CA',
-    name: 'Canadian Dollar',
-    stripeMinAmount: 50, // Minimum 50 cents (C$0.50)
-    region: 'CA'
-  },
-  'AUD': {
-    symbol: 'A$',
-    locale: 'en-AU',
-    name: 'Australian Dollar',
-    stripeMinAmount: 50, // Minimum 50 cents (A$0.50)
-    region: 'AU'
   }
 };
 
-// Static exchange rates (can be replaced with live API)
+// Since we're only using Razorpay with INR, we don't need exchange rates
 const EXCHANGE_RATES = {
-  'INR': 1.0,        // Base currency
-  'USD': 0.012,      // 1 INR = 0.012 USD
-  'EUR': 0.011,      // 1 INR = 0.011 EUR
-  'GBP': 0.0095,     // 1 INR = 0.0095 GBP
-  'CAD': 0.016,      // 1 INR = 0.016 CAD
-  'AUD': 0.018       // 1 INR = 0.018 AUD
+  'INR': 1.0        // Base currency - INR only
 };
 
 /**
@@ -92,54 +52,35 @@ function convertPrice(inrPrice, targetCurrency, rates = EXCHANGE_RATES) {
 }
 
 /**
- * Convert price to Stripe's smallest unit (cents/paise)
- * @param {number} price - Price in major currency unit
- * @param {string} currency - Currency code
- * @returns {number} Price in smallest unit
+ * Convert price to Razorpay's smallest unit (paise)
+ * @param {number} price - Price in rupees
+ * @returns {number} Price in paise
  */
-function toStripeAmount(price, currency) {
-  // Some currencies don't use decimal places (e.g., JPY, KRW)
-  const zeroDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP'];
-  
-  if (zeroDecimalCurrencies.includes(currency.toUpperCase())) {
-    return Math.round(price);
-  }
-  
+function toRazorpayAmount(price) {
   return Math.round(price * 100);
 }
 
 /**
- * Convert from Stripe's smallest unit to major currency unit
- * @param {number} stripeAmount - Amount in smallest unit
- * @param {string} currency - Currency code
- * @returns {number} Price in major unit
+ * Convert from Razorpay's smallest unit to major currency unit
+ * @param {number} razorpayAmount - Amount in paise
+ * @returns {number} Price in rupees
  */
-function fromStripeAmount(stripeAmount, currency) {
-  const zeroDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP'];
-  
-  if (zeroDecimalCurrencies.includes(currency.toUpperCase())) {
-    return stripeAmount;
-  }
-  
-  return stripeAmount / 100;
+function fromRazorpayAmount(razorpayAmount) {
+  return razorpayAmount / 100;
 }
 
 /**
- * Format currency for display
- * @param {number} amount - Amount to format
- * @param {string} currency - Currency code
+ * Format INR currency for display
+ * @param {number} amount - Amount to format in INR
  * @returns {string} Formatted currency string
  */
-function formatCurrency(amount, currency) {
-  const config = SUPPORTED_CURRENCIES[currency];
-  if (!config) {
-    return `${amount} ${currency}`;
-  }
+function formatCurrency(amount) {
+  const config = SUPPORTED_CURRENCIES['INR'];
   
   try {
     return new Intl.NumberFormat(config.locale, {
       style: 'currency',
-      currency: currency,
+      currency: 'INR',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(amount);
@@ -149,86 +90,58 @@ function formatCurrency(amount, currency) {
 }
 
 /**
- * Get user's currency based on their location/IP
- * @param {string} countryCode - ISO country code
- * @returns {string} Currency code
+ * Get user's currency - always INR since we only support Razorpay
+ * @param {string} countryCode - ISO country code (ignored)
+ * @returns {string} Currency code - always INR
  */
 function getCurrencyByCountry(countryCode) {
-  const countryToCurrency = {
-    'IN': 'INR',
-    'US': 'USD',
-    'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR',
-    'GB': 'GBP',
-    'CA': 'CAD',
-    'AU': 'AUD'
-  };
-  
-  return countryToCurrency[countryCode] || 'USD'; // Default to USD
+  return 'INR'; // Always return INR since we only support Razorpay
 }
 
 /**
- * Validate if currency is supported
+ * Validate if currency is supported (only INR)
  * @param {string} currency - Currency code
  * @returns {boolean} Whether currency is supported
  */
 function isSupportedCurrency(currency) {
-  return SUPPORTED_CURRENCIES.hasOwnProperty(currency.toUpperCase());
+  return currency.toUpperCase() === 'INR';
 }
 
 /**
- * Get pricing for all supported currencies
+ * Get INR pricing (since we only support Razorpay)
  * @param {Object} basePricing - Pricing in INR
- * @param {Object} rates - Exchange rates
- * @returns {Object} Multi-currency pricing
+ * @returns {Object} INR pricing with Razorpay amounts
  */
-async function getMultiCurrencyPricing(basePricing, useLiveRates = false) {
-  const rates = useLiveRates ? await getLiveExchangeRates() : EXCHANGE_RATES;
-  const multiCurrencyPricing = {};
+async function getINRPricing(basePricing) {
+  const inrPricing = {};
   
-  for (const [currency, config] of Object.entries(SUPPORTED_CURRENCIES)) {
-    multiCurrencyPricing[currency] = {};
-    
-    for (const [planId, plan] of Object.entries(basePricing)) {
-      if (plan.price) {
-        const convertedPrice = convertPrice(plan.price, currency, rates);
-        
-        multiCurrencyPricing[currency][planId] = {
-          ...plan,
-          price: convertedPrice,
-          currency: currency,
-          formattedPrice: formatCurrency(convertedPrice, currency),
-          stripeAmount: toStripeAmount(convertedPrice, currency)
-        };
-      } else {
-        // Free plan
-        multiCurrencyPricing[currency][planId] = {
-          ...plan,
-          currency: currency,
-          formattedPrice: formatCurrency(0, currency)
-        };
-      }
+  for (const [planId, plan] of Object.entries(basePricing)) {
+    if (plan.price) {
+      inrPricing[planId] = {
+        ...plan,
+        currency: 'INR',
+        formattedPrice: formatCurrency(plan.price),
+        razorpayAmount: toRazorpayAmount(plan.price)
+      };
+    } else {
+      // Free plan
+      inrPricing[planId] = {
+        ...plan,
+        currency: 'INR',
+        formattedPrice: formatCurrency(0)
+      };
     }
   }
   
-  return multiCurrencyPricing;
+  return inrPricing;
 }
 
 /**
- * Get supported payment methods by currency/country
- * @param {string} currency - Currency code
+ * Get supported payment methods for Razorpay (INR only)
  * @returns {Array} Supported payment methods
  */
-function getSupportedPaymentMethods(currency) {
-  const paymentMethods = {
-    'INR': ['card', 'netbanking', 'wallet', 'upi'],
-    'USD': ['card', 'apple_pay', 'google_pay'],
-    'EUR': ['card', 'sepa_debit', 'giropay', 'ideal'],
-    'GBP': ['card', 'bacs_debit'],
-    'CAD': ['card'],
-    'AUD': ['card', 'au_becs_debit']
-  };
-  
-  return paymentMethods[currency] || ['card'];
+function getSupportedPaymentMethods() {
+  return ['card', 'netbanking', 'wallet', 'upi'];
 }
 
 module.exports = {
@@ -236,11 +149,11 @@ module.exports = {
   EXCHANGE_RATES,
   getLiveExchangeRates,
   convertPrice,
-  toStripeAmount,
-  fromStripeAmount,
+  toRazorpayAmount,
+  fromRazorpayAmount,
   formatCurrency,
   getCurrencyByCountry,
   isSupportedCurrency,
-  getMultiCurrencyPricing,
+  getINRPricing,
   getSupportedPaymentMethods
 };

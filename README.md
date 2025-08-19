@@ -12,10 +12,10 @@ A production-ready, embeddable AI chatbot widget powered by OpenAI GPT models. F
 - 🔒 **Secure**: API key authentication and rate limiting
 
 ### Business Features
-- 💳 **Stripe Payments**: Multi-currency subscription billing
+- 💳 **Razorpay Payments**: INR subscription billing
 - 👥 **User Management**: Registration, authentication, and profiles
 - 📊 **Analytics**: Message tracking, user engagement, and revenue insights
-- 🌍 **Multi-Currency**: Support for INR, USD, EUR, GBP, CAD, AUD
+- 🇮🇳 **INR Support**: Indian Rupee pricing with Razorpay integration
 - 📈 **Usage Limits**: Tiered plans with message quotas
 
 ### Technical Features
@@ -29,7 +29,7 @@ A production-ready, embeddable AI chatbot widget powered by OpenAI GPT models. F
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/ai-chatbot-widget.git
+git clone https://github.com/dheerajjj/Mouna-AI-chatbot.git
 cd ai-chatbot-widget
 ```
 
@@ -52,9 +52,9 @@ OPENAI_MODEL=gpt-4o-mini
 # Database
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
 
-# Stripe (for payments)
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
-STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
+# Razorpay (for payments)
+RAZORPAY_KEY_ID=rzp_test_your_razorpay_key_id_here
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret_here
 
 # Security
 JWT_SECRET=your_secure_jwt_secret_here
@@ -85,7 +85,7 @@ Add this script tag to your website:
 - Node.js 16+ 
 - MongoDB Atlas account or local MongoDB
 - OpenAI API key
-- Stripe account (for payments)
+- Razorpay account (for payments)
 
 ## 🔧 Configuration
 
@@ -131,11 +131,11 @@ ai-chatbot-widget/
 │   └── ChatSession.js       # Chat session schema
 ├── routes/
 │   ├── auth.js              # Authentication routes
-│   └── payments.js          # Stripe payment routes
+│   └── payments.js          # Razorpay payment routes
 ├── services/
 │   └── DatabaseService.js   # Database abstraction layer
 ├── utils/
-│   └── currency.js          # Multi-currency utilities
+│   └── currency.js          # INR currency utilities
 ├── public/
 │   └── widget-fixed.js      # Main widget script
 ├── server-mongo.js          # Main server file
@@ -267,7 +267,8 @@ NODE_ENV=production
 PORT=3000
 MONGODB_URI=mongodb+srv://...
 OPENAI_API_KEY=sk-...
-STRIPE_SECRET_KEY=sk_live_...
+RAZORPAY_KEY_ID=rzp_live_...
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 JWT_SECRET=your_production_jwt_secret
 ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
@@ -330,9 +331,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Review server logs
 
 **Payment issues?**
-- Verify Stripe keys
+- Verify Razorpay keys
 - Check webhook configuration
-- Review Stripe dashboard
+- Review Razorpay dashboard
 
 ### Getting Help
 - 📧 Email: support@your-domain.com

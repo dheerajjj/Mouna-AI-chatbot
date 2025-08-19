@@ -313,13 +313,6 @@ class DatabaseService {
     }
   }
 
-  async findSubscriptionByStripeId(stripeSubscriptionId) {
-    if (this.isMongoConnected) {
-      return await this.models.Subscription.findOne({ stripeSubscriptionId });
-    } else {
-      return this.mockDB.subscriptions.find(s => s.stripeSubscriptionId === stripeSubscriptionId);
-    }
-  }
 
   // Usage tracking operations
   async incrementUserUsage(userId, limitType, increment = 1) {
