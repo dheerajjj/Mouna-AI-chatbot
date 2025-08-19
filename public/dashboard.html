@@ -418,7 +418,7 @@
                     <i class="fas fa-chart-line"></i> Analytics
                 </a>
                 <a href="javascript:void(0)" onclick="exportReports()" class="nav-link">
-                    <i class="fas fa-file-chart"></i> Reports
+                    <i class="fas fa-file-export"></i> Reports
                 </a>
                 <a href="/integration" class="nav-link">
                     <i class="fas fa-book"></i> Documentation
@@ -981,23 +981,18 @@
             }, 1000); // Small delay to show the copy success feedback
         }
 
-        // These functions will be replaced by the enhanced versions below
-
         // Billing Modal Functions
         function openBillingModal() {
             document.getElementById('billing-modal').style.display = 'flex';
+            updateBillingModalContent();
         }
 
         function closeBillingModal() {
             document.getElementById('billing-modal').style.display = 'none';
         }
-
-        function downloadInvoice() {
-            alert('📄 Download Invoice\n\nInvoice download functionality will be available once you have an active paid subscription.\n\nFor free plan users, no invoices are generated.');
-        }
-
-        function updatePaymentMethod() {
-            alert('💳 Update Payment Method\n\nTo update your payment method:\n\n1. Contact our support team\n2. Or upgrade/change your plan\n3. Use secure payment processing\n\nWe\'ll help you update your payment information safely.');
+        
+        function updateBillingModalContent() {
+            console.log('📋 Updating billing modal with current data');
         }
 
         // API Key regeneration
@@ -1067,37 +1062,6 @@
             
             // Get plan from multiple possible sources
             const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
-            const capabilities = user.capabilities || {};
-            
-            // Set plan capabilities based on detected plan
-            const planCapabilities = {
-                free: {
-                    canAccessAnalytics: false,
-                    canAccessAdvancedAnalytics: false,
-                    canCustomizeBranding: false,
-                    canExportReports: false
-                },
-                starter: {
-                    canAccessAnalytics: true,
-                    canAccessAdvancedAnalytics: false,
-                    canCustomizeBranding: true,
-                    canExportReports: false
-                },
-                professional: {
-                    canAccessAnalytics: true,
-                    canAccessAdvancedAnalytics: true,
-                    canCustomizeBranding: true,
-                    canExportReports: true
-                },
-                enterprise: {
-                    canAccessAnalytics: true,
-                    canAccessAdvancedAnalytics: true,
-                    canCustomizeBranding: true,
-                    canExportReports: true
-                }
-            };
-            
-            const actualCapabilities = planCapabilities[currentPlan] || planCapabilities.free;
             
             // Update Pro badges based on actual plan
             const proBadges = document.querySelectorAll('.pro-badge');
@@ -1112,28 +1076,6 @@
             });
             
             console.log('✅ Plan-based features applied successfully for plan:', currentPlan);
-        }
-        
-        // Show upgrade prompt for restricted features
-        function showUpgradePrompt(featureName, requiredPlan) {
-            const planNames = {
-                starter: 'Starter Plan (₹499/month)',
-                professional: 'Professional Plan (₹1,499/month)',
-                enterprise: 'Enterprise Plan'
-            };
-            
-            const message = `${featureName} - Upgrade Required\n\n` +
-                          `This feature requires ${planNames[requiredPlan] || requiredPlan}.\n\n` +
-                          `Benefits of upgrading:\n` +
-                          `• Access to ${featureName}\n` +
-                          `• Higher message limits\n` +
-                          `• Priority support\n` +
-                          `• Advanced features\n\n` +
-                          `Would you like to view our pricing plans?`;
-            
-            if (confirm(message)) {
-                window.location.href = `/pricing?upgrade=${requiredPlan}&feature=${encodeURIComponent(featureName)}`;
-            }
         }
         
         // Enhanced analytics with plan-specific content and proper routing
@@ -1159,7 +1101,6 @@
                     window.location.href = '/pricing?feature=analytics';
                 }
             } else {
-                // Paid plan users get routed to the analytics page
                 console.log('✅ Routing to analytics page for', currentPlan, 'plan user');
                 window.location.href = '/analytics';
             }
@@ -1171,9 +1112,19 @@
             console.log('📋 Opening reports for plan:', currentPlan);
             
             if (currentPlan === 'free' || currentPlan === 'starter') {
-                showUpgradePrompt('Export Reports', 'professional');
+                const message = 'Export Reports - Upgrade Required\n\n' +
+                              'This feature requires Professional Plan (₹1,499/month).\n\n' +
+                              'Benefits of upgrading:\n' +
+                              '• Access to Export Reports\n' +
+                              '• Higher message limits\n' +
+                              '• Priority support\n' +
+                              '• Advanced features\n\n' +
+                              'Would you like to view our pricing plans?';
+                              
+                if (confirm(message)) {
+                    window.location.href = '/pricing?upgrade=professional&feature=Export%20Reports';
+                }
             } else {
-                // Professional and Enterprise users get routed to reports page
                 console.log('✅ Routing to reports page for', currentPlan, 'plan user');
                 window.location.href = '/reports';
             }
@@ -1181,17 +1132,6 @@
         
         // Store current plan globally for use in other functions
         window.currentUserPlan = 'free'; // Default, will be updated when user data loads
-        
-        // Enhanced billing modal with proper plan detection
-        function openBillingModal() {
-            document.getElementById('billing-modal').style.display = 'flex';
-            updateBillingModalContent();
-        }
-        
-        function updateBillingModalContent() {
-            // This will be called when the modal opens to ensure fresh data
-            console.log('📋 Updating billing modal with current data');
-        }
         
         // Enhanced download invoice with plan-specific logic
         function downloadInvoice() {
