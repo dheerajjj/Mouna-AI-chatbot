@@ -751,18 +751,152 @@
             window.location.href = '/integration';
         }
 
-        // Basic user data loading without complex features
+        // Load user data on page load
         document.addEventListener('DOMContentLoaded', function() {
-            try {
-                const userName = document.getElementById('user-name');
-                if (userName) {
-                    userName.textContent = 'User';
-                }
-                console.log('✅ Dashboard loaded successfully');
-            } catch (error) {
-                console.error('Error loading dashboard:', error);
-            }
+            loadUserData();
         });
+
+        async function loadUserData() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const data = await response.json();
+                
+                if (data.user) {
+                    console.log('👤 User data received:', data.user);
+                    console.log('📊 Plan data:', data.user.plan);
+                    console.log('📈 Usage data:', data.user.usage);
+                    
+                    // Update user info
+                    const userNameElement = document.getElementById('user-name');
+                    if (userNameElement) {
+                        userNameElement.textContent = data.user.name || 'User';
+                    }
+                    
+                    // Get current plan information
+                    const currentPlan = data.user.plan?.current?.id || data.user.subscription?.plan || 'free';
+                    const planName = data.user.plan?.current?.name || data.user.subscription?.planName || 'Free Plan';
+                    const planLimits = data.user.plan?.current?.limits || { messagesPerMonth: 100 };
+                    
+                    console.log('📋 Detected plan:', { currentPlan, planName, planLimits });
+                    
+                    // Update plan status
+                    const planStatusElement = document.getElementById('plan-status-text');
+                    if (planStatusElement) {
+                        planStatusElement.textContent = `${planName} Active`;
+                    }
+                    
+                    // Update usage stats
+                    const totalMessages = data.user.usage?.totalMessages || 0;
+                    const monthlyMessages = data.user.usage?.messagesThisMonth || 0;
+                    const limit = planLimits.messagesPerMonth;
+                    
+                    console.log('📊 Usage stats:', { totalMessages, monthlyMessages, limit });
+                    
+                    const totalConversationsElement = document.getElementById('total-conversations');
+                    if (totalConversationsElement) {
+                        totalConversationsElement.textContent = totalMessages;
+                    }
+                    
+                    const monthlyUsageElement = document.getElementById('monthly-usage');
+                    if (monthlyUsageElement) {
+                        if (limit === 'unlimited' || limit === -1) {
+                            monthlyUsageElement.textContent = `${monthlyMessages} / Unlimited`;
+                        } else {
+                            monthlyUsageElement.textContent = `${monthlyMessages} / ${limit}`;
+                        }
+                    }
+                    
+                    // Update billing modal data
+                    const modalCurrentPlan = document.getElementById('modal-current-plan');
+                    if (modalCurrentPlan) {
+                        modalCurrentPlan.textContent = planName;
+                    }
+                    
+                    // Format next billing date
+                    const nextBilling = data.user.subscription?.nextBilling;
+                    let nextBillingText = 'N/A';
+                    if (nextBilling) {
+                        try {
+                            const date = new Date(nextBilling);
+                            nextBillingText = date.toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                            });
+                        } catch (e) {
+                            nextBillingText = nextBilling;
+                        }
+                    }
+                    const modalNextBilling = document.getElementById('modal-next-billing');
+                    if (modalNextBilling) {
+                        modalNextBilling.textContent = nextBillingText;
+                    }
+                    
+                    // Update billing amount
+                    const planPrice = data.user.plan?.current?.price || 0;
+                    const currency = data.user.plan?.current?.currency || 'INR';
+                    const billingCycle = data.user.plan?.current?.billingCycle || 'monthly';
+                    const modalAmount = document.getElementById('modal-amount');
+                    if (modalAmount) {
+                        modalAmount.textContent = `${currency === 'INR' ? '₹' : '$'}${planPrice}/${billingCycle}`;
+                    }
+                    
+                    // Store current plan globally for other functions
+                    window.currentUserPlan = currentPlan;
+                    
+                    // Apply plan-based feature restrictions
+                    applyPlanBasedFeatures(data.user);
+                    
+                    console.log('✅ Dashboard loaded successfully with user data');
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                // Don't redirect to login on error, just show fallback
+                const userNameElement = document.getElementById('user-name');
+                if (userNameElement) {
+                    userNameElement.textContent = 'User';
+                }
+                console.log('⚠️ Using fallback user data due to error');
+            }
+        }
+
+        // Apply plan-based feature restrictions and enhancements
+        function applyPlanBasedFeatures(user) {
+            console.log('🔧 Applying plan-based features for user:', user.plan?.current?.id || user.subscription?.plan);
+            
+            // Get plan from multiple possible sources
+            const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
+            
+            // Update Pro badges based on actual plan
+            const proBadges = document.querySelectorAll('.pro-badge');
+            proBadges.forEach(badge => {
+                if (currentPlan !== 'free') {
+                    badge.textContent = 'Available';
+                    badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                } else {
+                    badge.textContent = 'Pro';
+                    badge.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                }
+            });
+            
+            console.log('✅ Plan-based features applied successfully for plan:', currentPlan);
+        }
 
         // Close modal when clicking outside
         window.onclick = function(event) {
