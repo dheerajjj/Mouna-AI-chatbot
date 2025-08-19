@@ -605,28 +605,28 @@
                     <div class="card-icon">
                         <i class="fas fa-terminal"></i>
                     </div>
-                    Widget Integration Code
+                    Widget Integration
                 </h3>
                 
-                <p style="margin-bottom: 1.5rem; color: #64748b;">
-                    Copy and paste this code just before the closing &lt;/body&gt; tag on your website:
-                </p>
-                
-                <div style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 8px; position: relative; margin-bottom: 1rem; font-family: 'Courier New', monospace; overflow-x: auto;">
-                    <button onclick="copyToClipboard('integration-code')" style="position: absolute; top: 1rem; right: 1rem; background: #0d7b8a; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
-                        Copy
-                    </button>
-                    <pre id="integration-code">&lt;script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="YOUR_API_KEY_HERE" data-primary-color="#667eea" data-position="bottom-right"&gt;&lt;/script&gt;</pre>
+                <div class="status-indicator active">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="integration-status-text">Ready for Integration</span>
                 </div>
                 
-                <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                    <strong>📝 Your API Key:</strong>
-                    <div style="background: #1e293b; color: #e2e8f0; padding: 0.75rem; border-radius: 6px; margin-top: 0.5rem; font-family: 'Courier New', monospace; position: relative;">
-                        <button onclick="copyToClipboard('api-key-display')" style="position: absolute; top: 0.5rem; right: 0.5rem; background: #0d7b8a; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">
-                            Copy
-                        </button>
-                        <span id="api-key-display">Loading...</span>
-                    </div>
+                <ul class="feature-list">
+                    <li>Your widget is configured and ready</li>
+                    <li>Secure API key authentication</li>
+                    <li>Professional integration support</li>
+                    <li>Complete documentation available</li>
+                </ul>
+                
+                <div class="btn-grid">
+                    <button class="btn" onclick="showIntegrationCode()">
+                        <i class="fas fa-code"></i> Get Integration Code
+                    </button>
+                    <a href="/integration" class="btn btn-secondary">
+                        <i class="fas fa-book"></i> View Documentation
+                    </a>
                 </div>
             </div>
         </div>
@@ -1184,6 +1184,18 @@
                     window.location.href = `mailto:support@mouna-ai.com?subject=${subject}&body=${body}`;
                 }
             }
+        }
+        
+        // Show integration code in a professional modal
+        function showIntegrationCode() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Please log in to get your integration code.');
+                return;
+            }
+            
+            // Navigate to the integration page for a professional experience
+            window.location.href = '/integration';
         }
         
         // Close modal when clicking outside
