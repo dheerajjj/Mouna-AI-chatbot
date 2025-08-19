@@ -901,7 +901,13 @@
 
         // Copy integration code
         function copyIntegrationCode() {
+            // First copy the code to clipboard
             copyToClipboard('integration-code');
+            
+            // Then navigate to the integration page for full documentation
+            setTimeout(() => {
+                window.location.href = '/integration';
+            }, 1000); // Small delay to show the copy success feedback
         }
 
         // These functions will be replaced by the enhanced versions below
