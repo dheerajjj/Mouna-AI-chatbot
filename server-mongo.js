@@ -1884,8 +1884,9 @@ app.get('/email-validation-test', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'login.html'));
     });
     
+    // Main dashboard (streamlined architecture - serves full dashboard functionality)
     app.get('/dashboard', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+        res.sendFile(path.join(__dirname, 'public', 'new-dashboard.html'));
     });
     
     app.get('/pricing', (req, res) => {
@@ -1914,9 +1915,9 @@ app.get('/email-validation-test', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'welcome-dashboard.html'));
     });
 
-    // Full dashboard with all management features
+    // Legacy route redirect for backward compatibility
     app.get('/full-dashboard', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public', 'full-dashboard.html'));
+        res.redirect(301, '/dashboard');
     });
     
     // Analytics dashboard page
