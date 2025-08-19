@@ -371,15 +371,15 @@ router.post('/', [
     await tenantSettings.save();
     console.log('✅ Tenant saved successfully');
     
-    // Increment user's tenant count (if not personal tenant)
-    if (!tenantSettings.isPersonalTenant) {
-      console.log('📊 Incrementing user tenant count...');
-      // Update tenant count in the database
-      const DatabaseService = require('../services/DatabaseService');
-      await DatabaseService.updateUser(req.user._id, {
-        $inc: { 'tenantLimits.currentTenants': 1 }
-      });
-      console.log('📊 Tenant count updated');
+    // Note: We don't need to manually increment tenant count anymore
+    // The validation middleware counts directly from the database
+    console.log('📊 Tenant created - count will be validated from database on next request');
+    
+    // Log the tenant type for debugging
+    if (tenantSettings.isPersonalTenant) {
+      console.log('🏠 Created personal tenant (not counted toward limits)');
+    } else {
+      console.log('🏢 Created client tenant (counts toward plan limits)');
     }
 
     console.log(`✅ Simple tenant created: ${tenantSettings.tenantId} for user ${userId}`);

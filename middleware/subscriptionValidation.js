@@ -67,14 +67,15 @@ const canCreateTenant = async (req, res, next) => {
       });
     }
     
-    // Get current tenant count from database
+    // Get current CLIENT tenant count from database (exclude personal tenants)
     const TenantSettings = require('../models/TenantSettings');
-    console.log('🔍 [canCreateTenant] Counting existing tenants for user...');
+    console.log('🔍 [canCreateTenant] Counting existing CLIENT tenants for user...');
     const currentTenantCount = await TenantSettings.countDocuments({ 
       userId: user._id, 
-      status: { $ne: 'suspended' }
+      status: { $ne: 'suspended' },
+      isPersonalTenant: { $ne: true } // Only count client tenants
     });
-    console.log('🔍 [canCreateTenant] Current tenant count:', currentTenantCount);
+    console.log('🔍 [canCreateTenant] Current CLIENT tenant count:', currentTenantCount);
     console.log('🔍 [canCreateTenant] Max tenants allowed:', limits.tenants);
     
     // Check if user has reached tenant limit
