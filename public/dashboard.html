@@ -675,6 +675,61 @@
     </div>
 
     <script>
+        // Store current plan globally for use in other functions
+        window.currentUserPlan = 'free'; // Default, will be updated when user data loads
+        
+        // Enhanced analytics with plan-specific content and proper routing
+        function viewAnalytics() {
+            const currentPlan = window.currentUserPlan || 'free';
+            console.log('📊 Opening analytics for plan:', currentPlan);
+            
+            if (currentPlan === 'free') {
+                const message = '📊 Analytics Dashboard - Upgrade Required\n\n' +
+                              'Analytics features are available with paid plans:\n\n' +
+                              '🎯 Starter Plan includes:\n' +
+                              '• Basic usage statistics\n' +
+                              '• Message volume tracking\n' +
+                              '• Simple reporting\n\n' +
+                              '🚀 Professional Plan includes:\n' +
+                              '• Advanced analytics dashboard\n' +
+                              '• User behavior insights\n' +
+                              '• Custom reports and exports\n' +
+                              '• Real-time metrics\n\n' +
+                              'Would you like to upgrade or view pricing plans?';
+                              
+                if (confirm(message)) {
+                    window.location.href = '/pricing?feature=analytics';
+                }
+            } else {
+                console.log('✅ Routing to analytics page for', currentPlan, 'plan user');
+                window.location.href = '/analytics';
+            }
+        }
+        
+        // Enhanced export reports with plan check and proper routing
+        function exportReports() {
+            const currentPlan = window.currentUserPlan || 'free';
+            console.log('📋 Opening reports for plan:', currentPlan);
+            
+            if (currentPlan === 'free' || currentPlan === 'starter') {
+                const message = 'Export Reports - Upgrade Required\n\n' +
+                              'This feature requires Professional Plan (₹1,499/month).\n\n' +
+                              'Benefits of upgrading:\n' +
+                              '• Access to Export Reports\n' +
+                              '• Higher message limits\n' +
+                              '• Priority support\n' +
+                              '• Advanced features\n\n' +
+                              'Would you like to view our pricing plans?';
+                              
+                if (confirm(message)) {
+                    window.location.href = '/pricing?upgrade=professional&feature=Export%20Reports';
+                }
+            } else {
+                console.log('✅ Routing to reports page for', currentPlan, 'plan user');
+                window.location.href = '/reports';
+            }
+        }
+
         // Load user data on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadUserData();
@@ -905,11 +960,16 @@
 
         // Load personal tenant and update integration code
         async function loadPersonalTenantAndUpdateCode(apiKey) {
+            // Always update integration code with API key first
+            const integrationCode = document.getElementById('integration-code');
+            const basicCode = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
+            integrationCode.innerHTML = basicCode;
+            
             try {
-                console.log('🔍 Loading personal tenant for integration code...');
+                console.log('🔍 Attempting to load user personal tenant...');
                 const token = localStorage.getItem('authToken');
                 
-                // Try to fetch user's personal tenant
+                // Try to fetch user's personal tenant - but don't fail if endpoint doesn't exist
                 const response = await fetch('/api/tenant/personal-tenant', {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -918,55 +978,35 @@
                     }
                 });
                 
-                let tenantId = null;
-                let integrationDescription = 'Copy and paste this code just before the closing </body> tag on your website:';
-                
                 if (response.ok) {
                     const data = await response.json();
-                    tenantId = data.personalTenant?.tenantId;
-                    console.log('✅ Personal tenant loaded:', tenantId);
+                    const tenantId = data.personalTenant?.tenantId;
                     
                     if (tenantId) {
-                        integrationDescription = `🏢 Personal tenant integration code (Tenant ID: ${tenantId})`;
+                        console.log('✅ Personal tenant loaded:', tenantId);
+                        const tenantCode = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-tenant-id="${tenantId}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
+                        integrationCode.innerHTML = tenantCode;
+                        
+                        // Update description
+                        const descriptionElement = integrationCode.parentElement.previousElementSibling;
+                        if (descriptionElement && descriptionElement.tagName === 'P') {
+                            descriptionElement.innerHTML = `🏢 Personal tenant integration code (Tenant ID: ${tenantId})`;
+                        }
+                        
+                        // Store tenant ID globally for testing widget
+                        window.userPersonalTenantId = tenantId;
                     }
                 } else if (response.status === 404) {
-                    console.log('ℹ️ No personal tenant found, using basic integration code');
-                    integrationDescription += ' Note: Consider upgrading to paid plans for tenant-specific features.';
+                    console.log('ℹ️ No personal tenant found for this API key, using default configuration');
                 } else {
-                    console.warn('⚠️ Failed to load personal tenant:', response.status);
+                    console.log('⚠️ Failed to load personal tenant:', response.status, 'using default configuration');
                 }
                 
-                // Update integration code
-                const integrationCode = document.getElementById('integration-code');
-                let codeSnippet;
-                
-                if (tenantId) {
-                    // Include tenant ID in the integration code
-                    codeSnippet = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-tenant-id="${tenantId}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
-                } else {
-                    // Basic integration code without tenant ID
-                    codeSnippet = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
-                }
-                
-                integrationCode.innerHTML = codeSnippet;
-                
-                // Update the description above the code
-                const descriptionElement = integrationCode.parentElement.previousElementSibling;
-                if (descriptionElement && descriptionElement.tagName === 'P') {
-                    descriptionElement.innerHTML = integrationDescription;
-                }
-                
-                // Store tenant ID globally for testing widget
-                window.userPersonalTenantId = tenantId;
-                
-                console.log('✅ Integration code updated with', tenantId ? 'personal tenant ID' : 'basic configuration');
+                console.log('✅ Integration code updated successfully');
                 
             } catch (error) {
-                console.error('❌ Error loading personal tenant:', error);
-                // Fallback to basic integration code with just API key
-                const integrationCode = document.getElementById('integration-code');
-                const basicCode = `<script src="https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js" data-api-key="${apiKey}" data-primary-color="#667eea" data-position="bottom-right"></script>`;
-                integrationCode.innerHTML = basicCode;
+                console.log('ℹ️ No personal tenant found for this API key, using default configuration');
+                // Integration code already set to basic version above
             }
         }
 
@@ -1078,60 +1118,6 @@
             console.log('✅ Plan-based features applied successfully for plan:', currentPlan);
         }
         
-        // Enhanced analytics with plan-specific content and proper routing
-        function viewAnalytics() {
-            const currentPlan = window.currentUserPlan || 'free';
-            console.log('📊 Opening analytics for plan:', currentPlan);
-            
-            if (currentPlan === 'free') {
-                const message = '📊 Analytics Dashboard - Upgrade Required\n\n' +
-                              'Analytics features are available with paid plans:\n\n' +
-                              '🎯 Starter Plan includes:\n' +
-                              '• Basic usage statistics\n' +
-                              '• Message volume tracking\n' +
-                              '• Simple reporting\n\n' +
-                              '🚀 Professional Plan includes:\n' +
-                              '• Advanced analytics dashboard\n' +
-                              '• User behavior insights\n' +
-                              '• Custom reports and exports\n' +
-                              '• Real-time metrics\n\n' +
-                              'Would you like to upgrade or view pricing plans?';
-                              
-                if (confirm(message)) {
-                    window.location.href = '/pricing?feature=analytics';
-                }
-            } else {
-                console.log('✅ Routing to analytics page for', currentPlan, 'plan user');
-                window.location.href = '/analytics';
-            }
-        }
-        
-        // Enhanced export reports with plan check and proper routing
-        function exportReports() {
-            const currentPlan = window.currentUserPlan || 'free';
-            console.log('📋 Opening reports for plan:', currentPlan);
-            
-            if (currentPlan === 'free' || currentPlan === 'starter') {
-                const message = 'Export Reports - Upgrade Required\n\n' +
-                              'This feature requires Professional Plan (₹1,499/month).\n\n' +
-                              'Benefits of upgrading:\n' +
-                              '• Access to Export Reports\n' +
-                              '• Higher message limits\n' +
-                              '• Priority support\n' +
-                              '• Advanced features\n\n' +
-                              'Would you like to view our pricing plans?';
-                              
-                if (confirm(message)) {
-                    window.location.href = '/pricing?upgrade=professional&feature=Export%20Reports';
-                }
-            } else {
-                console.log('✅ Routing to reports page for', currentPlan, 'plan user');
-                window.location.href = '/reports';
-            }
-        }
-        
-        // Store current plan globally for use in other functions
-        window.currentUserPlan = 'free'; // Default, will be updated when user data loads
         
         // Enhanced download invoice with plan-specific logic
         function downloadInvoice() {
