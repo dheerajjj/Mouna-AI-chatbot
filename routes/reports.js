@@ -53,7 +53,7 @@ async function getReportData(userId, dateRange, reportType) {
             user: {
                 name: user.name,
                 email: user.email,
-                plan: user.plan?.current?.name || 'Free Plan',
+                plan: user.subscription?.planName || user.plan?.current?.name || 'Free Plan',
                 apiKey: user.apiKey ? user.apiKey.substring(0, 8) + '...' : 'Not available'
             },
             dateRange: {
@@ -317,7 +317,7 @@ function generateCSVReport(reportData) {
 router.post('/generate', authenticateToken, async (req, res) => {
     try {
         const { dateRange, reportType, format } = req.body;
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.userId || req.user.id;
 
         // Validate inputs
         const validDateRanges = ['7days', '30days', '90days'];
@@ -336,12 +336,28 @@ router.post('/generate', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Invalid format' });
         }
 
-        // Check plan access for advanced features
-        if ((reportType === 'detailed' || reportType === 'performance') && 
-            !req.user.plan?.current?.features?.advancedReports) {
+        // Check plan access for report features
+        const { PlanManager } = require('../config/planFeatures');
+        const userPlan = req.user.subscription?.planName || req.user.subscription?.plan || req.user.plan?.current?.name || 'free';
+        
+        // All reports require export data feature (available on starter and above)
+        if (!PlanManager.hasFeature(userPlan, 'exportData')) {
             return res.status(403).json({ 
-                error: 'Advanced reports require a professional plan',
-                upgradeRequired: true 
+                error: 'Reports require a plan with export data feature',
+                upgradeRequired: true,
+                currentPlan: userPlan,
+                suggestedUpgrade: 'starter'
+            });
+        }
+        
+        // Advanced reports need professional plan or higher
+        if ((reportType === 'detailed' || reportType === 'performance') && 
+            !PlanManager.hasFeature(userPlan, 'advancedAnalytics')) {
+            return res.status(403).json({ 
+                error: 'Advanced reports require a professional plan or higher',
+                upgradeRequired: true,
+                currentPlan: userPlan,
+                suggestedUpgrade: 'professional'
             });
         }
 
@@ -403,7 +419,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
 router.get('/preview', authenticateToken, async (req, res) => {
     try {
         const { dateRange = '30days', reportType = 'summary' } = req.query;
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.userId || req.user.id;
 
         // Get basic report data for preview
         const reportData = await getReportData(userId, dateRange, reportType);
@@ -438,7 +454,7 @@ router.get('/preview', authenticateToken, async (req, res) => {
  */
 router.get('/usage/download', authenticateToken, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.userId || req.user.id;
         const reportData = await getReportData(userId, '30days', 'usage');
         
         const buffer = generateCSVReport(reportData);
@@ -463,7 +479,7 @@ router.get('/usage/download', authenticateToken, async (req, res) => {
  */
 router.get('/conversations/download', authenticateToken, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.userId || req.user.id;
         const reportData = await getReportData(userId, '30days', 'conversations');
         
         const buffer = generateCSVReport(reportData);
@@ -492,7 +508,7 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SAMPLE_DATA ===
      */
     router.post('/create-sample-data', authenticateToken, async (req, res) => {
         try {
-            const userId = req.user.id;
+            const userId = req.user._id || req.user.userId || req.user.id;
             const { DatabaseService } = require('../services/DatabaseService');
             
             const result = await createSampleReportData(DatabaseService, userId);
@@ -518,7 +534,7 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SAMPLE_DATA ===
      */
     router.delete('/clear-sample-data', authenticateToken, async (req, res) => {
         try {
-            const userId = req.user.id;
+            const userId = req.user._id || req.user.userId || req.user.id;
             
             const result = await clearSampleReportData(userId);
             
