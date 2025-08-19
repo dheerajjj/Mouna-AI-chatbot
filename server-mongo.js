@@ -1841,6 +1841,10 @@ app.get('/email-validation-test', (req, res) => {
     const progressRoutes = require('./routes/progressRoutes');
     app.use('/api', progressRoutes);
     
+    // Reports routes
+    const reportRoutes = require('./routes/reports');
+    app.use('/api/reports', reportRoutes);
+    
     // Auto-training routes for website crawling and chatbot setup
     try {
       const autoTrainingRoutes = require('./routes/autoTraining');

@@ -522,10 +522,12 @@
             });
         }
 
-        function generateReport() {
+        async function generateReport() {
             const dateRange = document.getElementById('date-range').value;
             const reportType = document.getElementById('report-type').value;
             const format = document.getElementById('format').value;
+            const generateBtn = document.querySelector('button[onclick="generateReport()"]');
+            const originalText = generateBtn ? generateBtn.innerHTML : '';
 
             const user = window.currentUser;
             const currentPlan = user?.plan?.current?.id || user?.subscription?.plan || 'free';
@@ -535,18 +537,188 @@
                 return;
             }
 
-            // Simulate report generation
-            const loadingMsg = `Generating ${reportType} report in ${format.toUpperCase()} format for ${dateRange}...`;
-            alert(`📊 ${loadingMsg}\n\nThis feature is being developed and will be available soon!\n\nYour report will include data from the selected date range with the specified format.`);
+            try {
+                // Show loading state
+                if (generateBtn) {
+                    generateBtn.disabled = true;
+                    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Report...';
+                }
+
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    throw new Error('Authentication required. Please log in again.');
+                }
+
+                // Generate and download report
+                const response = await fetch('/api/reports/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        dateRange,
+                        reportType,
+                        format
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (errorData.upgradeRequired) {
+                        showUpgradePrompt('Advanced Reports', 'professional');
+                        return;
+                    }
+                    throw new Error(errorData.error || 'Failed to generate report');
+                }
+
+                // Get filename from response headers
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `mouna-ai-${reportType}-report-${dateRange}.${format}`;
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="(.+)"/);;
+                    if (match) filename = match[1];
+                }
+
+                // Download the file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // Show success message
+                if (generateBtn) {
+                    generateBtn.innerHTML = '<i class="fas fa-check"></i> Report Downloaded!';
+                    setTimeout(() => {
+                        generateBtn.innerHTML = originalText;
+                        generateBtn.disabled = false;
+                    }, 3000);
+                }
+
+                const successMsg = `📊 Report Generated Successfully!\n\n` +
+                                 `✅ ${reportType.toUpperCase()} report downloaded as ${format.toUpperCase()}\n` +
+                                 `📅 Date Range: ${dateRange}\n` +
+                                 `📁 File: ${filename}\n\n` +
+                                 `The report has been saved to your Downloads folder.`;
+                alert(successMsg);
+
+            } catch (error) {
+                console.error('Report generation error:', error);
+                
+                // Reset button
+                if (generateBtn) {
+                    generateBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Generation Failed';
+                    generateBtn.disabled = false;
+                    setTimeout(() => {
+                        generateBtn.innerHTML = originalText;
+                    }, 3000);
+                }
+
+                const errorMsg = `❌ Report Generation Failed\n\n` +
+                               `Error: ${error.message}\n\n` +
+                               `Please try the following:\n` +
+                               `• Check your internet connection\n` +
+                               `• Refresh the page and try again\n` +
+                               `• Contact support if the issue persists`;
+                alert(errorMsg);
+            }
         }
 
-        function downloadReport(reportType) {
+        async function downloadReport(reportType) {
             const user = window.currentUser;
             const currentPlan = user?.plan?.current?.id || user?.subscription?.plan || 'free';
+            const downloadBtn = document.querySelector(`button[onclick="downloadReport('${reportType}')"]`);
+            const originalText = downloadBtn ? downloadBtn.innerHTML : '';
 
             if (reportType === 'usage' || reportType === 'conversations') {
-                // These are available to all plans
-                alert(`📄 Downloading ${reportType} report...\n\nReport generation is being developed.\n\nYour ${reportType} report will be downloaded shortly with:\n• Data from the last 30 days\n• PDF format\n• Detailed analytics`);
+                try {
+                    // Show loading state
+                    if (downloadBtn) {
+                        downloadBtn.disabled = true;
+                        downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+                    }
+
+                    const token = localStorage.getItem('authToken');
+                    if (!token) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+
+                    // Use the quick download endpoints
+                    const endpoint = reportType === 'usage' ? '/api/reports/usage/download' : '/api/reports/conversations/download';
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to download report');
+                    }
+
+                    // Get filename from response headers
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = `mouna-ai-${reportType}-report-${new Date().toISOString().split('T')[0]}.csv`;
+                    if (contentDisposition) {
+                        const match = contentDisposition.match(/filename="(.+)"/);;
+                        if (match) filename = match[1];
+                    }
+
+                    // Download the file
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+
+                    // Show success state
+                    if (downloadBtn) {
+                        downloadBtn.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
+                        setTimeout(() => {
+                            downloadBtn.innerHTML = originalText;
+                            downloadBtn.disabled = false;
+                        }, 3000);
+                    }
+
+                    const successMsg = `📄 ${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report Downloaded!\n\n` +
+                                     `✅ File: ${filename}\n` +
+                                     `📁 Saved to your Downloads folder\n` +
+                                     `📅 Data from the last 30 days\n` +
+                                     `📊 CSV format for easy analysis`;
+                    alert(successMsg);
+
+                } catch (error) {
+                    console.error('Report download error:', error);
+                    
+                    // Reset button
+                    if (downloadBtn) {
+                        downloadBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Download Failed';
+                        downloadBtn.disabled = false;
+                        setTimeout(() => {
+                            downloadBtn.innerHTML = originalText;
+                        }, 3000);
+                    }
+
+                    const errorMsg = `❌ Download Failed\n\n` +
+                                   `Error: ${error.message}\n\n` +
+                                   `Please try the following:\n` +
+                                   `• Check your internet connection\n` +
+                                   `• Refresh the page and try again\n` +
+                                   `• Use the 'Generate Report' button above for more options`;
+                    alert(errorMsg);
+                }
             } else {
                 showUpgradePrompt(`${reportType} Report`, 'professional');
             }
