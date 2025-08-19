@@ -1886,7 +1886,7 @@ app.get('/email-validation-test', (req, res) => {
     
     // Main dashboard (streamlined architecture - serves full dashboard functionality)
     app.get('/dashboard', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public', 'new-dashboard.html'));
+        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
     });
     
     app.get('/pricing', (req, res) => {
