@@ -74,13 +74,52 @@ async function getReportData(userId, dateRange, reportType) {
             throw new Error('User not found');
         }
 
+        // Enhanced plan detection logic
+        let userPlan = 'Free Plan';
+        if (user.subscription) {
+            if (user.subscription.planName) userPlan = user.subscription.planName;
+            else if (user.subscription.plan) userPlan = user.subscription.plan;
+        }
+        if (userPlan === 'Free Plan' && user.plan) {
+            if (user.plan.current?.name) userPlan = user.plan.current.name;
+            else if (user.plan.name) userPlan = user.plan.name;
+            else if (typeof user.plan === 'string') userPlan = user.plan;
+        }
+        
+        // Capitalize first letter for display
+        if (userPlan && userPlan !== 'Free Plan') {
+            userPlan = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+        }
+        
+        console.log('📊 [REPORT] Plan detection result:', {
+            subscription: user.subscription,
+            plan: user.plan,
+            finalPlan: userPlan
+        });
+        
+        // Get user's total message usage across all time
+        const totalUserSessions = await db.collection('chat_sessions').find({
+            userId: userObjectId
+        }).toArray();
+        
+        const totalUserMessages = totalUserSessions.reduce((sum, session) => sum + (session.messages?.length || 0), 0);
+        
+        console.log('📊 [REPORT] Usage calculation:', {
+            totalSessionsAllTime: totalUserSessions.length,
+            totalMessagesAllTime: totalUserMessages,
+            dateRangeStart: startDate,
+            dateRangeEnd: now
+        });
+
         // Base report data
         const reportData = {
             user: {
                 name: user.name,
                 email: user.email,
-                plan: user.subscription?.planName || user.plan?.current?.name || 'Free Plan',
-                apiKey: user.apiKey ? user.apiKey.substring(0, 8) + '...' : 'Not available'
+                plan: userPlan,
+                apiKey: user.apiKey ? user.apiKey.substring(0, 8) + '...' : 'Not available',
+                totalMessagesAllTime: totalUserMessages,
+                totalSessionsAllTime: totalUserSessions.length
             },
             dateRange: {
                 start: startDate,
@@ -196,7 +235,13 @@ function generatePDFReport(reportData) {
                .text(`Plan: ${reportData.user.plan}`, 70, 190)
                .text(`API Key: ${reportData.user.apiKey}`, 70, 205);
 
-            let yPosition = 240;
+            // All-time usage summary
+            doc.fontSize(14).text('All-Time Usage', 50, 230);
+            doc.fontSize(10)
+               .text(`Total Sessions: ${reportData.user.totalSessionsAllTime || 0}`, 70, 250)
+               .text(`Total Messages: ${reportData.user.totalMessagesAllTime || 0}`, 70, 265);
+
+            let yPosition = 290;
 
             // Usage Statistics
             if (reportData.usage) {

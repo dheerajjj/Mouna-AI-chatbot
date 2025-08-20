@@ -86,10 +86,10 @@ const authenticateToken = async (req, res, next) => {
           userId: user._id,        // Alternative alias
           email: user.email,
           name: user.name,
-          plan: user.plan || { current: { id: 'free', name: 'Free Plan' } },
-          subscription: user.subscription || { plan: 'free', planName: 'Free Plan' },
+          plan: user.plan,         // Don't override with fallback - use actual data
+          subscription: user.subscription, // Don't override with fallback - use actual data
           apiKey: user.apiKey,
-          ...user
+          ...user  // Spread actual user data (this includes plan and subscription)
         };
         req.token = token;
         
