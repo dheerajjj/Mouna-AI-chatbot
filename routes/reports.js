@@ -19,6 +19,13 @@ try {
  */
 async function getReportData(userId, dateRange, reportType) {
     try {
+        console.log('🐛 [DEBUG] getReportData called with:', {
+            userId, 
+            userIdType: typeof userId,
+            dateRange, 
+            reportType
+        });
+        
         const { getDb } = require('../server-mongo');
         const db = getDb();
         
@@ -41,9 +48,23 @@ async function getReportData(userId, dateRange, reportType) {
         }
 
         const userObjectId = ObjectId.isValid(userId) ? new ObjectId(userId) : userId;
+        
+        console.log('🐛 [DEBUG] Looking up user with ObjectId:', userObjectId);
+        console.log('🐛 [DEBUG] ObjectId.isValid(userId):', ObjectId.isValid(userId));
 
         // Get user data
         const user = await db.collection('users').findOne({ _id: userObjectId });
+        console.log('🐛 [DEBUG] User found from database:', user ? 'YES' : 'NO');
+        if (user) {
+            console.log('🐛 [DEBUG] User data structure:', JSON.stringify({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                subscription: user.subscription,
+                plan: user.plan,
+                keys: Object.keys(user)
+            }, null, 2));
+        }
         if (!user) {
             throw new Error('User not found');
         }
@@ -316,8 +337,19 @@ function generateCSVReport(reportData) {
  */
 router.post('/generate', authenticateToken, async (req, res) => {
     try {
+        console.log('🐛 [DEBUG] Reports route hit - /api/reports/generate');
+        console.log('🐛 [DEBUG] Request body:', JSON.stringify(req.body, null, 2));
+        console.log('🐛 [DEBUG] Request user object:', JSON.stringify(req.user, null, 2));
+        console.log('🐛 [DEBUG] Request headers:', JSON.stringify(req.headers, null, 2));
+        
         const { dateRange, reportType, format } = req.body;
         const userId = req.user._id || req.user.userId || req.user.id;
+        
+        console.log('🐛 [DEBUG] Extracted userId:', userId);
+        console.log('🐛 [DEBUG] userId type:', typeof userId);
+        console.log('🐛 [DEBUG] req.user._id:', req.user._id);
+        console.log('🐛 [DEBUG] req.user.userId:', req.user.userId);
+        console.log('🐛 [DEBUG] req.user.id:', req.user.id);
 
         // Validate inputs
         const validDateRanges = ['7days', '30days', '90days'];
@@ -339,6 +371,13 @@ router.post('/generate', authenticateToken, async (req, res) => {
         // Check plan access for report features
         const { PlanManager } = require('../config/planFeatures');
         const userPlan = req.user.subscription?.planName || req.user.subscription?.plan || req.user.plan?.current?.name || 'free';
+        
+        console.log('🐛 [DEBUG] Plan detection:');
+        console.log('🐛 [DEBUG] - req.user.subscription?.planName:', req.user.subscription?.planName);
+        console.log('🐛 [DEBUG] - req.user.subscription?.plan:', req.user.subscription?.plan);
+        console.log('🐛 [DEBUG] - req.user.plan?.current?.name:', req.user.plan?.current?.name);
+        console.log('🐛 [DEBUG] - Final userPlan:', userPlan);
+        console.log('🐛 [DEBUG] - PlanManager.hasFeature(userPlan, "exportData"):', PlanManager.hasFeature(userPlan, 'exportData'));
         
         // All reports require export data feature (available on starter and above)
         if (!PlanManager.hasFeature(userPlan, 'exportData')) {
