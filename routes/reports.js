@@ -161,65 +161,92 @@ function generatePDFReport(reportData) {
         throw new Error('PDF generation not available. Please install pdfkit package.');
     }
 
-    const doc = new PDFDocument();
-    const buffers = [];
-    
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {});
-
-    // Header
-    doc.fontSize(20).text('Mouna AI - Chatbot Report', 50, 50);
-    doc.fontSize(12).text(`Generated on: ${reportData.generatedAt.toLocaleDateString()}`, 50, 80);
-    doc.text(`Report Type: ${reportData.reportType.toUpperCase()}`, 50, 95);
-    doc.text(`Date Range: ${reportData.dateRange.start.toLocaleDateString()} to ${reportData.dateRange.end.toLocaleDateString()}`, 50, 110);
-
-    // User Info
-    doc.fontSize(14).text('Account Information', 50, 140);
-    doc.fontSize(10)
-       .text(`Name: ${reportData.user.name}`, 70, 160)
-       .text(`Email: ${reportData.user.email}`, 70, 175)
-       .text(`Plan: ${reportData.user.plan}`, 70, 190)
-       .text(`API Key: ${reportData.user.apiKey}`, 70, 205);
-
-    let yPosition = 240;
-
-    // Usage Statistics
-    if (reportData.usage) {
-        doc.fontSize(14).text('Usage Statistics', 50, yPosition);
-        yPosition += 25;
-        
-        doc.fontSize(10)
-           .text(`Total Sessions: ${reportData.usage.totalSessions}`, 70, yPosition)
-           .text(`Total Messages: ${reportData.usage.totalMessages}`, 70, yPosition + 15)
-           .text(`Average Messages per Session: ${reportData.usage.averageMessagesPerSession}`, 70, yPosition + 30)
-           .text(`Average Sessions per Day: ${reportData.usage.summary.avgSessionsPerDay}`, 70, yPosition + 45);
-        
-        yPosition += 80;
-    }
-
-    // Conversation Summary
-    if (reportData.conversations) {
-        doc.fontSize(14).text('Recent Conversations', 50, yPosition);
-        yPosition += 25;
-        
-        reportData.conversations.slice(0, 10).forEach((conv, index) => {
-            if (yPosition > 700) {
-                doc.addPage();
-                yPosition = 50;
-            }
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument();
+            const buffers = [];
             
+            // Collect data chunks
+            doc.on('data', (chunk) => buffers.push(chunk));
+            
+            // When document is finished, resolve with the complete buffer
+            doc.on('end', () => {
+                const pdfBuffer = Buffer.concat(buffers);
+                console.log('✅ [PDF] PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+                resolve(pdfBuffer);
+            });
+            
+            // Handle errors
+            doc.on('error', (error) => {
+                console.error('❌ [PDF] Error generating PDF:', error);
+                reject(error);
+            });
+
+            // Header
+            doc.fontSize(20).text('Mouna AI - Chatbot Report', 50, 50);
+            doc.fontSize(12).text(`Generated on: ${reportData.generatedAt.toLocaleDateString()}`, 50, 80);
+            doc.text(`Report Type: ${reportData.reportType.toUpperCase()}`, 50, 95);
+            doc.text(`Date Range: ${reportData.dateRange.start.toLocaleDateString()} to ${reportData.dateRange.end.toLocaleDateString()}`, 50, 110);
+
+            // User Info
+            doc.fontSize(14).text('Account Information', 50, 140);
             doc.fontSize(10)
-               .text(`${index + 1}. Session ${conv.sessionId.toString().substring(0, 8)}...`, 70, yPosition)
-               .text(`   Start: ${conv.startTime.toLocaleString()}`, 90, yPosition + 12)
-               .text(`   Messages: ${conv.messageCount}`, 90, yPosition + 24);
-            
-            yPosition += 45;
-        });
-    }
+               .text(`Name: ${reportData.user.name}`, 70, 160)
+               .text(`Email: ${reportData.user.email}`, 70, 175)
+               .text(`Plan: ${reportData.user.plan}`, 70, 190)
+               .text(`API Key: ${reportData.user.apiKey}`, 70, 205);
 
-    doc.end();
-    
-    return Buffer.concat(buffers);
+            let yPosition = 240;
+
+            // Usage Statistics
+            if (reportData.usage) {
+                doc.fontSize(14).text('Usage Statistics', 50, yPosition);
+                yPosition += 25;
+                
+                doc.fontSize(10)
+                   .text(`Total Sessions: ${reportData.usage.totalSessions}`, 70, yPosition)
+                   .text(`Total Messages: ${reportData.usage.totalMessages}`, 70, yPosition + 15)
+                   .text(`Average Messages per Session: ${reportData.usage.averageMessagesPerSession}`, 70, yPosition + 30)
+                   .text(`Average Sessions per Day: ${reportData.usage.summary.avgSessionsPerDay}`, 70, yPosition + 45);
+                
+                yPosition += 80;
+            }
+
+            // Conversation Summary
+            if (reportData.conversations && reportData.conversations.length > 0) {
+                doc.fontSize(14).text('Recent Conversations', 50, yPosition);
+                yPosition += 25;
+                
+                reportData.conversations.slice(0, 10).forEach((conv, index) => {
+                    if (yPosition > 700) {
+                        doc.addPage();
+                        yPosition = 50;
+                    }
+                    
+                    doc.fontSize(10)
+                       .text(`${index + 1}. Session ${conv.sessionId.toString().substring(0, 8)}...`, 70, yPosition)
+                       .text(`   Start: ${conv.startTime.toLocaleString()}`, 90, yPosition + 12)
+                       .text(`   Messages: ${conv.messageCount}`, 90, yPosition + 24);
+                    
+                    yPosition += 45;
+                });
+            } else {
+                // Add message when no conversations found
+                doc.fontSize(12).text('No conversation data found for the selected date range.', 50, yPosition);
+            }
+
+            // Add footer
+            const footerY = doc.page.height - 50;
+            doc.fontSize(8).text('Generated by Mouna AI Chatbot Platform', 50, footerY);
+
+            // Finalize the PDF document
+            doc.end();
+            
+        } catch (error) {
+            console.error('❌ [PDF] Error setting up PDF generation:', error);
+            reject(error);
+        }
+    });
 }
 
 /**
@@ -485,7 +512,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
             switch (format) {
                 case 'pdf':
                     console.log('📝 [REPORTS] Generating PDF report');
-                    buffer = generatePDFReport(reportData);
+                    buffer = await generatePDFReport(reportData);
                     contentType = 'application/pdf';
                     filename = `mouna-ai-${reportType}-report-${dateRange}.pdf`;
                     break;
