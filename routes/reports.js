@@ -26,6 +26,11 @@ async function getReportData(userId, dateRange, reportType) {
             reportType
         });
         
+        if (!userId) {
+            console.error('🚨 [ERROR] getReportData called with null or undefined userId');
+            throw new Error('Missing userId in getReportData');
+        }
+        
         const { getDb } = require('../server-mongo');
         const db = getDb();
         
@@ -342,17 +347,35 @@ router.post('/generate', authenticateToken, async (req, res) => {
         console.log('🐛 [DEBUG] Request user object:', JSON.stringify(req.user, null, 2));
         console.log('🐛 [DEBUG] Request headers:', JSON.stringify(req.headers, null, 2));
         
-        const { dateRange, reportType, format } = req.body;
-        const userId = req.user._id || req.user.userId || req.user.id;
+        // Check if req.user exists before trying to access properties
+        if (!req.user) {
+            console.error('🚨 [ERROR] Authentication passed but req.user is missing');
+            return res.status(401).json({
+                error: 'Authentication failed - user information missing',
+                message: 'Please log in again and try once more'
+            });
+        }
         
-        console.log('🐛 [DEBUG] Extracted userId:', userId);
+        const { dateRange, reportType, format } = req.body;
+        let userId;
+        
+        // Enhanced user ID extraction with stringification for MongoDB ObjectId handling
+        if (req.user._id) {
+            userId = typeof req.user._id === 'object' ? req.user._id.toString() : req.user._id;
+        } else if (req.user.userId) {
+            userId = req.user.userId;
+        } else if (req.user.id) {
+            userId = req.user.id;
+        }
+        
+        console.log('🐛 [DEBUG] Enhanced userId extraction:', userId);
         console.log('🐛 [DEBUG] userId type:', typeof userId);
-        console.log('🐛 [DEBUG] req.user._id:', req.user._id);
+        console.log('🐛 [DEBUG] req.user._id:', req.user._id, typeof req.user._id);
         console.log('🐛 [DEBUG] req.user.userId:', req.user.userId);
         console.log('🐛 [DEBUG] req.user.id:', req.user.id);
         
         if (!userId) {
-            console.log('🐛 [DEBUG] No userId found after extraction attempts');
+            console.error('🚨 [ERROR] No userId found after extraction attempts');
             return res.status(400).json({ 
                 error: 'User ID could not be extracted from authentication token',
                 debug: {
@@ -381,28 +404,50 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
         // Check plan access for report features
         const { PlanManager } = require('../config/planFeatures');
-        const userPlan = req.user.subscription?.planName || req.user.subscription?.plan || req.user.plan?.current?.name || 'free';
         
-        console.log('🐛 [DEBUG] Plan detection:');
-        console.log('🐛 [DEBUG] - req.user.subscription?.planName:', req.user.subscription?.planName);
-        console.log('🐛 [DEBUG] - req.user.subscription?.plan:', req.user.subscription?.plan);
-        console.log('🐛 [DEBUG] - req.user.plan?.current?.name:', req.user.plan?.current?.name);
-        console.log('🐛 [DEBUG] - Final userPlan:', userPlan);
-        console.log('🐛 [DEBUG] - PlanManager.hasFeature(userPlan, "exportData"):', PlanManager.hasFeature(userPlan, 'exportData'));
+        // Enhanced plan detection with fallbacks
+        let userPlan = 'free';
+        try {
+            // More comprehensive plan detection logic with clear precedence
+            if (req.user.subscription?.planName) userPlan = req.user.subscription.planName.toLowerCase();
+            else if (req.user.subscription?.plan) userPlan = req.user.subscription.plan.toLowerCase();
+            else if (req.user.plan?.current?.name) userPlan = req.user.plan.current.name.toLowerCase();
+            else if (req.user.plan?.name) userPlan = req.user.plan.name.toLowerCase();
+            else if (req.user.plan) {
+                // If req.user.plan is a string, use it directly
+                if (typeof req.user.plan === 'string') userPlan = req.user.plan.toLowerCase();
+            }
+            
+            // Normalize common plan names
+            if (userPlan.includes('starter')) userPlan = 'starter';
+            if (userPlan.includes('professional') || userPlan.includes('pro')) userPlan = 'professional';
+            if (userPlan.includes('enterprise')) userPlan = 'enterprise';
+        } catch (e) {
+            console.error('🚨 [ERROR] Error determining user plan:', e.message);
+            // Fall back to free plan on error
+        }
         
-        // All reports require export data feature (available on starter and above)
-        if (!PlanManager.hasFeature(userPlan, 'exportData')) {
+        console.log('🐛 [DEBUG] Enhanced plan detection:');
+        console.log('🐛 [DEBUG] - req.user.subscription:', req.user.subscription);
+        console.log('🐛 [DEBUG] - req.user.plan:', req.user.plan);
+        console.log('🐛 [DEBUG] - Final userPlan after normalization:', userPlan);
+        console.log('🐛 [DEBUG] - Available in PlanManager:', Object.keys(PlanManager.getAllPlans()).includes(userPlan));
+        console.log('🐛 [DEBUG] - exportData feature available:', PlanManager.hasFeature(userPlan, 'exportData'));
+        console.log('🐛 [DEBUG] - advancedAnalytics feature available:', PlanManager.hasFeature(userPlan, 'advancedAnalytics'));
+        
+        // Handle free users - check if basic reports should be allowed
+        // Free users cannot access any reports
+        if (userPlan === 'free') {
             return res.status(403).json({ 
-                error: 'Reports require a plan with export data feature',
+                error: 'Reports require a paid plan with export data feature',
                 upgradeRequired: true,
                 currentPlan: userPlan,
                 suggestedUpgrade: 'starter'
             });
         }
         
-        // Advanced reports need professional plan or higher
-        if ((reportType === 'detailed' || reportType === 'performance') && 
-            !PlanManager.hasFeature(userPlan, 'advancedAnalytics')) {
+        // For Starter plan users - limit to basic reports only
+        if (userPlan === 'starter' && (reportType === 'detailed' || reportType === 'performance')) {
             return res.status(403).json({ 
                 error: 'Advanced reports require a professional plan or higher',
                 upgradeRequired: true,
@@ -468,8 +513,38 @@ router.post('/generate', authenticateToken, async (req, res) => {
  */
 router.get('/preview', authenticateToken, async (req, res) => {
     try {
+        console.log('🐛 [DEBUG] Report preview route hit');
+        console.log('🐛 [DEBUG] Preview req.user:', req.user);
+        
+        if (!req.user) {
+            console.error('🚨 [ERROR] Report preview failed - req.user is missing');
+            return res.status(401).json({
+                error: 'Authentication failed - user information missing',
+                message: 'Please log in again and try once more'
+            });
+        }
+        
         const { dateRange = '30days', reportType = 'summary' } = req.query;
-        const userId = req.user._id || req.user.userId || req.user.id;
+        let userId;
+        
+        // Enhanced user ID extraction
+        if (req.user._id) {
+            userId = typeof req.user._id === 'object' ? req.user._id.toString() : req.user._id;
+        } else if (req.user.userId) {
+            userId = req.user.userId;
+        } else if (req.user.id) {
+            userId = req.user.id;
+        }
+        
+        console.log('🐛 [DEBUG] Preview userId extraction result:', userId);
+        
+        if (!userId) {
+            console.error('🚨 [ERROR] Report preview failed - no userId found');
+            return res.status(400).json({
+                error: 'User ID could not be determined',
+                debug: { userKeys: Object.keys(req.user) }
+            });
+        }
 
         // Get basic report data for preview
         const reportData = await getReportData(userId, dateRange, reportType);
@@ -504,7 +579,34 @@ router.get('/preview', authenticateToken, async (req, res) => {
  */
 router.get('/usage/download', authenticateToken, async (req, res) => {
     try {
-        const userId = req.user._id || req.user.userId || req.user.id;
+        console.log('🐛 [DEBUG] Quick usage download route hit');
+        console.log('🐛 [DEBUG] Usage download req.user:', req.user);
+        
+        if (!req.user) {
+            console.error('🚨 [ERROR] Usage report download failed - req.user is missing');
+            return res.status(401).json({
+                error: 'Authentication failed - user information missing',
+                message: 'Please log in again and try once more'
+            });
+        }
+        
+        let userId;
+        if (req.user._id) {
+            userId = typeof req.user._id === 'object' ? req.user._id.toString() : req.user._id;
+        } else if (req.user.userId) {
+            userId = req.user.userId;
+        } else if (req.user.id) {
+            userId = req.user.id;
+        }
+        
+        if (!userId) {
+            console.error('🚨 [ERROR] Usage report download failed - no userId found');
+            return res.status(400).json({
+                error: 'User ID could not be determined',
+                debug: { userKeys: Object.keys(req.user) }
+            });
+        }
+        
         const reportData = await getReportData(userId, '30days', 'usage');
         
         const buffer = generateCSVReport(reportData);
@@ -529,7 +631,34 @@ router.get('/usage/download', authenticateToken, async (req, res) => {
  */
 router.get('/conversations/download', authenticateToken, async (req, res) => {
     try {
-        const userId = req.user._id || req.user.userId || req.user.id;
+        console.log('🐛 [DEBUG] Quick conversations download route hit');
+        console.log('🐛 [DEBUG] Conversations download req.user:', req.user);
+        
+        if (!req.user) {
+            console.error('🚨 [ERROR] Conversations report download failed - req.user is missing');
+            return res.status(401).json({
+                error: 'Authentication failed - user information missing',
+                message: 'Please log in again and try once more'
+            });
+        }
+        
+        let userId;
+        if (req.user._id) {
+            userId = typeof req.user._id === 'object' ? req.user._id.toString() : req.user._id;
+        } else if (req.user.userId) {
+            userId = req.user.userId;
+        } else if (req.user.id) {
+            userId = req.user.id;
+        }
+        
+        if (!userId) {
+            console.error('🚨 [ERROR] Conversations report download failed - no userId found');
+            return res.status(400).json({
+                error: 'User ID could not be determined',
+                debug: { userKeys: Object.keys(req.user) }
+            });
+        }
+        
         const reportData = await getReportData(userId, '30days', 'conversations');
         
         const buffer = generateCSVReport(reportData);
@@ -558,7 +687,36 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SAMPLE_DATA ===
      */
     router.post('/create-sample-data', authenticateToken, async (req, res) => {
         try {
-            const userId = req.user._id || req.user.userId || req.user.id;
+            // Enhanced user ID extraction with logging
+            console.log('🐛 [DEBUG] Create sample data - req.user:', req.user);
+            
+            if (!req.user) {
+                console.error('🚨 [ERROR] Sample data generation failed - req.user is missing');
+                return res.status(401).json({
+                    error: 'Authentication failed - user information missing',
+                    message: 'Please log in again and try once more'
+                });
+            }
+            
+            let userId;
+            if (req.user._id) {
+                userId = typeof req.user._id === 'object' ? req.user._id.toString() : req.user._id;
+            } else if (req.user.userId) {
+                userId = req.user.userId;
+            } else if (req.user.id) {
+                userId = req.user.id;
+            }
+            
+            console.log('🐛 [DEBUG] Sample data userId extraction result:', userId);
+            
+            if (!userId) {
+                console.error('🚨 [ERROR] Sample data generation failed - no userId found');
+                return res.status(400).json({
+                    error: 'User ID could not be determined',
+                    debug: { userKeys: Object.keys(req.user) }
+                });
+            }
+            
             const { DatabaseService } = require('../services/DatabaseService');
             
             const result = await createSampleReportData(DatabaseService, userId);
@@ -584,7 +742,35 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SAMPLE_DATA ===
      */
     router.delete('/clear-sample-data', authenticateToken, async (req, res) => {
         try {
-            const userId = req.user._id || req.user.userId || req.user.id;
+            // Enhanced user ID extraction with logging
+            console.log('🐛 [DEBUG] Clear sample data - req.user:', req.user);
+            
+            if (!req.user) {
+                console.error('🚨 [ERROR] Sample data clearing failed - req.user is missing');
+                return res.status(401).json({
+                    error: 'Authentication failed - user information missing',
+                    message: 'Please log in again and try once more'
+                });
+            }
+            
+            let userId;
+            if (req.user._id) {
+                userId = typeof req.user._id === 'object' ? req.user._id.toString() : req.user._id;
+            } else if (req.user.userId) {
+                userId = req.user.userId;
+            } else if (req.user.id) {
+                userId = req.user.id;
+            }
+            
+            console.log('🐛 [DEBUG] Clear sample data userId extraction result:', userId);
+            
+            if (!userId) {
+                console.error('🚨 [ERROR] Sample data clearing failed - no userId found');
+                return res.status(400).json({
+                    error: 'User ID could not be determined',
+                    debug: { userKeys: Object.keys(req.user) }
+                });
+            }
             
             const result = await clearSampleReportData(userId);
             
