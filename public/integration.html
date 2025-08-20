@@ -866,6 +866,37 @@
             color: #374151;
             background: #f3f4f6;
         }
+        
+        /* User menu styles */
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-name {
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .logout-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+        
+        .logout-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -879,10 +910,16 @@
                     <div class="logo-tagline">AI ASSISTANT</div>
                 </div>
             </div>
-            <a href="/welcome-dashboard" class="back-btn">
-                <i class="fas fa-arrow-left"></i>
-                Back to Dashboard
-            </a>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <a href="/dashboard" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Dashboard
+                </a>
+                <div class="user-menu">
+                    <span class="user-name" id="user-name">Loading...</span>
+                    <button onclick="logout()" class="logout-btn">Logout</button>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -2363,10 +2400,47 @@
             }
         }
         
+        // Load user profile data and display name
+        async function loadUserProfile() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    return;
+                }
+                
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const { user } = await response.json();
+                    // Display user name in navbar
+                    const userNameElement = document.getElementById('user-name');
+                    if (userNameElement && user.name) {
+                        userNameElement.textContent = user.name;
+                    }
+                } else {
+                    console.error('Failed to load user profile');
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
+        }
+        
         // Add some interactive animations
         document.addEventListener('DOMContentLoaded', function() {
             // Load user data on page load
             loadUserData();
+            loadUserProfile();
             
             // Mark embed step as started when user visits integration page
             updateSetupProgress('embed', true);
