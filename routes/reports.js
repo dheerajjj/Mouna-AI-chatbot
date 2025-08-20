@@ -198,16 +198,34 @@ async function getReportData(userId, dateRange, reportType) {
         }
 
         if (reportType === 'conversations' || reportType === 'detailed') {
-            // Get conversation logs with same enhanced debugging as usage
+            // Get conversation logs with enhanced debugging
             console.log('💬 [REPORT] Fetching conversations for date range:', {
                 userId: userObjectId,
                 startDate: startDate.toISOString(),
                 endDate: now.toISOString()
             });
             
+            // First, get ALL conversations for this user to debug
+            const allConversations = await db.collection('chat_sessions').find({
+                userId: userObjectId
+            }).sort({ createdAt: -1 }).limit(100).toArray();
+            
+            console.log('💬 [REPORT] All conversations debug:', {
+                totalFound: allConversations.length,
+                sampleData: allConversations.slice(0, 3).map(s => ({
+                    _id: s._id,
+                    sessionId: s.sessionId,
+                    createdAt: s.createdAt,
+                    startTime: s.startTime,
+                    messagesCount: s.messages?.length || 0,
+                    firstMessage: s.messages?.[0]?.content?.substring(0, 50) || 'No messages',
+                    hasMessages: !!s.messages && s.messages.length > 0
+                }))
+            });
+            
             let conversations = [];
             
-            // Try the same query approaches as usage stats
+            // Try multiple query approaches
             const convQuery1 = await db.collection('chat_sessions').find({
                 userId: userObjectId,
                 createdAt: { $gte: startDate, $lte: now }
@@ -217,12 +235,9 @@ async function getReportData(userId, dateRange, reportType) {
                 userId: userObjectId,
                 $or: [
                     { createdAt: { $gte: startDate, $lte: now } },
+                    { startTime: { $gte: startDate, $lte: now } },
                     { updatedAt: { $gte: startDate, $lte: now } }
                 ]
-            }).sort({ createdAt: -1 }).limit(100).toArray();
-            
-            const allConversations = await db.collection('chat_sessions').find({
-                userId: userObjectId
             }).sort({ createdAt: -1 }).limit(100).toArray();
             
             console.log('💬 [REPORT] Conversation queries results:', {
@@ -231,36 +246,48 @@ async function getReportData(userId, dateRange, reportType) {
                 allConversationsForUser: allConversations.length
             });
             
-            // Use the query that returns more results
+            // Use the query that returns more results, or fall back to all conversations
             if (convQuery1.length > 0) {
                 conversations = convQuery1;
             } else if (convQuery2.length > 0) {
                 conversations = convQuery2;
             } else {
-                // Debug: use all conversations if date range fails
-                console.log('💬 [REPORT] Sample conversation dates:', allConversations.slice(0, 2).map(s => ({
-                    _id: s._id,
-                    createdAt: s.createdAt,
-                    updatedAt: s.updatedAt,
-                    messagesCount: s.messages?.length || 0
-                })));
+                // Use all conversations for now since we have message data
+                console.log('💬 [REPORT] Using all conversations since date filtering failed');
                 conversations = allConversations;
             }
 
-            reportData.conversations = conversations.map(session => ({
-                sessionId: session._id,
-                startTime: session.createdAt,
-                endTime: session.updatedAt || session.createdAt,
-                messageCount: session.messages?.length || 0,
-                messages: session.messages?.map(msg => ({
-                    timestamp: msg.timestamp,
-                    sender: msg.sender,
-                    message: msg.message.substring(0, 200) + (msg.message.length > 200 ? '...' : ''),
-                    type: msg.type || 'text'
-                })) || []
-            }));
+            // Map conversations with better data handling
+            reportData.conversations = conversations.map(session => {
+                // Use sessionId field or _id as fallback
+                const sessionIdentifier = session.sessionId || session._id;
+                
+                // Use startTime field or createdAt as fallback
+                const sessionStart = session.startTime || session.createdAt;
+                const sessionEnd = session.endTime || session.updatedAt || sessionStart;
+                
+                return {
+                    sessionId: sessionIdentifier,
+                    startTime: sessionStart,
+                    endTime: sessionEnd,
+                    messageCount: session.messages?.length || 0,
+                    messages: session.messages?.map(msg => {
+                        // Handle multiple possible field names for message content
+                        const messageText = msg.content || msg.message || msg.text || '';
+                        return {
+                            timestamp: msg.timestamp,
+                            sender: msg.type || msg.sender, // Handle both 'type' and 'sender' fields
+                            message: messageText.substring(0, 200) + (messageText.length > 200 ? '...' : ''),
+                            type: msg.type || 'text'
+                        };
+                    }) || []
+                };
+            }).filter(conv => conv.messageCount > 0); // Only include conversations with messages
             
-            console.log('💬 [REPORT] Final conversations count:', reportData.conversations.length);
+            console.log('💬 [REPORT] Final conversations:', {
+                count: reportData.conversations.length,
+                sampleConversation: reportData.conversations[0] || 'No conversations with messages'
+            });
         }
 
         return reportData;
