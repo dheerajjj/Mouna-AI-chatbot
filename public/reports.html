@@ -523,16 +523,29 @@
         }
 
         async function generateReport() {
+            console.log('🔄 [FRONTEND] Generate report function called');
+            
             const dateRange = document.getElementById('date-range').value;
             const reportType = document.getElementById('report-type').value;
             const format = document.getElementById('format').value;
             const generateBtn = document.querySelector('button[onclick="generateReport()"]');
             const originalText = generateBtn ? generateBtn.innerHTML : '';
 
+            console.log('📈 [FRONTEND] Report parameters:', {
+                dateRange, reportType, format
+            });
+
             const user = window.currentUser;
             const currentPlan = user?.plan?.current?.id || user?.subscription?.plan || 'free';
+            
+            console.log('👤 [FRONTEND] User info:', {
+                user: user ? 'Found' : 'Not found',
+                plan: currentPlan,
+                hasToken: !!localStorage.getItem('authToken')
+            });
 
             if ((reportType === 'detailed' || reportType === 'performance') && (currentPlan === 'free' || currentPlan === 'starter')) {
+                console.log('🚨 [FRONTEND] Plan restriction triggered for advanced reports');
                 showUpgradePrompt('Advanced Reports', 'professional');
                 return;
             }
@@ -546,10 +559,40 @@
 
                 const token = localStorage.getItem('authToken');
                 if (!token) {
+                    console.error('🚨 [FRONTEND] No auth token found');
                     throw new Error('Authentication required. Please log in again.');
+                }
+                
+                console.log('🔐 [FRONTEND] Token found, length:', token.length);
+                console.log('🔍 [FRONTEND] Making API call to /api/reports/generate');
+
+                // Test API endpoint first
+                try {
+                    console.log('🧪 [FRONTEND] Testing API connectivity...');
+                    const testResponse = await fetch('/api/reports/preview?dateRange=30days&reportType=summary', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    console.log('🧪 [FRONTEND] Test API response status:', testResponse.status);
+                    
+                    if (!testResponse.ok) {
+                        const testError = await testResponse.text();
+                        console.error('🚨 [FRONTEND] Test API failed:', testError);
+                        throw new Error(`API test failed: ${testResponse.status} - ${testError}`);
+                    }
+                    
+                    console.log('✅ [FRONTEND] API connectivity test passed');
+                } catch (testError) {
+                    console.error('🚨 [FRONTEND] API connectivity test failed:', testError);
+                    throw new Error(`API not accessible: ${testError.message}`);
                 }
 
                 // Generate and download report
+                console.log('📊 [FRONTEND] Proceeding with report generation');
                 const response = await fetch('/api/reports/generate', {
                     method: 'POST',
                     headers: {
@@ -562,14 +605,28 @@
                         format
                     })
                 });
+                
+                console.log('📊 [FRONTEND] Generate API response status:', response.status);
+                console.log('📊 [FRONTEND] Generate API response headers:', [...response.headers.entries()]);
 
                 if (!response.ok) {
-                    const errorData = await response.json();
+                    console.error('🚨 [FRONTEND] Generate API failed with status:', response.status);
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                        console.error('🚨 [FRONTEND] Error response data:', errorData);
+                    } catch (parseError) {
+                        const errorText = await response.text();
+                        console.error('🚨 [FRONTEND] Error response text:', errorText);
+                        throw new Error(`Server error: ${response.status} - ${errorText}`);
+                    }
+                    
                     if (errorData.upgradeRequired) {
+                        console.log('💳 [FRONTEND] Upgrade required for this report type');
                         showUpgradePrompt('Advanced Reports', 'professional');
                         return;
                     }
-                    throw new Error(errorData.error || 'Failed to generate report');
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
                 }
 
                 // Get filename from response headers
@@ -630,10 +687,18 @@
         }
 
         async function downloadReport(reportType) {
+            console.log('📋 [FRONTEND] Download report function called for:', reportType);
+            
             const user = window.currentUser;
             const currentPlan = user?.plan?.current?.id || user?.subscription?.plan || 'free';
             const downloadBtn = document.querySelector(`button[onclick="downloadReport('${reportType}')"]`);
             const originalText = downloadBtn ? downloadBtn.innerHTML : '';
+            
+            console.log('👤 [FRONTEND] Download - User info:', {
+                user: user ? 'Found' : 'Not found',
+                plan: currentPlan,
+                hasToken: !!localStorage.getItem('authToken')
+            });
 
             if (reportType === 'usage' || reportType === 'conversations') {
                 try {
@@ -645,11 +710,15 @@
 
                     const token = localStorage.getItem('authToken');
                     if (!token) {
+                        console.error('🚨 [FRONTEND] No auth token found for download');
                         throw new Error('Authentication required. Please log in again.');
                     }
+                    
+                    console.log('🔐 [FRONTEND] Token found for download, length:', token.length);
 
                     // Use the quick download endpoints
                     const endpoint = reportType === 'usage' ? '/api/reports/usage/download' : '/api/reports/conversations/download';
+                    console.log('🔍 [FRONTEND] Making download request to:', endpoint);
                     
                     const response = await fetch(endpoint, {
                         method: 'GET',
@@ -658,10 +727,22 @@
                             'Content-Type': 'application/json'
                         }
                     });
+                    
+                    console.log('📋 [FRONTEND] Download response status:', response.status);
+                    console.log('📋 [FRONTEND] Download response headers:', [...response.headers.entries()]);
 
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to download report');
+                        console.error('🚨 [FRONTEND] Download failed with status:', response.status);
+                        let errorData;
+                        try {
+                            errorData = await response.json();
+                            console.error('🚨 [FRONTEND] Download error data:', errorData);
+                        } catch (parseError) {
+                            const errorText = await response.text();
+                            console.error('🚨 [FRONTEND] Download error text:', errorText);
+                            throw new Error(`Download failed: ${response.status} - ${errorText}`);
+                        }
+                        throw new Error(errorData.error || `Download failed: ${response.status}`);
                     }
 
                     // Get filename from response headers
