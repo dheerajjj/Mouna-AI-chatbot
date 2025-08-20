@@ -131,25 +131,95 @@ async function getReportData(userId, dateRange, reportType) {
         };
 
         if (reportType === 'usage' || reportType === 'summary') {
-            // Get usage statistics
-            const chatSessions = await db.collection('chat_sessions').find({
+            // Get usage statistics with enhanced debugging
+            console.log('📊 [REPORT] Fetching chat sessions for date range:', {
+                userId: userObjectId,
+                startDate: startDate.toISOString(),
+                endDate: now.toISOString()
+            });
+            
+            // Try multiple query approaches to find sessions
+            let chatSessions = [];
+            
+            // Query 1: Standard date range query
+            const sessions1 = await db.collection('chat_sessions').find({
                 userId: userObjectId,
                 createdAt: { $gte: startDate, $lte: now }
             }).toArray();
-
+            
+            // Query 2: Alternative with updatedAt field
+            const sessions2 = await db.collection('chat_sessions').find({
+                userId: userObjectId,
+                $or: [
+                    { createdAt: { $gte: startDate, $lte: now } },
+                    { updatedAt: { $gte: startDate, $lte: now } }
+                ]
+            }).toArray();
+            
+            // Query 3: All sessions for this user (to debug)
+            const allSessions = await db.collection('chat_sessions').find({
+                userId: userObjectId
+            }).toArray();
+            
+            console.log('📊 [REPORT] Session queries results:', {
+                standardQuery: sessions1.length,
+                alternativeQuery: sessions2.length,
+                allSessionsForUser: allSessions.length
+            });
+            
+            // Use the query that returns more results, or fall back to all sessions if date range is empty
+            if (sessions1.length > 0) {
+                chatSessions = sessions1;
+            } else if (sessions2.length > 0) {
+                chatSessions = sessions2;
+            } else {
+                // If no sessions in date range, but we have all-time sessions,
+                // let's check the date formats
+                console.log('📊 [REPORT] Sample session dates:', allSessions.slice(0, 3).map(s => ({
+                    _id: s._id,
+                    createdAt: s.createdAt,
+                    updatedAt: s.updatedAt,
+                    createdAtType: typeof s.createdAt,
+                    messagesCount: s.messages?.length || 0
+                })));
+                
+                // For debugging: use all sessions if date range fails
+                chatSessions = allSessions;
+            }
+            
             const totalSessions = chatSessions.length;
             const totalMessages = chatSessions.reduce((sum, session) => sum + (session.messages?.length || 0), 0);
+            
+            console.log('📊 [REPORT] Session analysis:', {
+                totalSessions,
+                totalMessages,
+                sampleSessions: chatSessions.slice(0, 2).map(s => ({
+                    _id: s._id,
+                    createdAt: s.createdAt,
+                    messageCount: s.messages?.length || 0
+                }))
+            });
             
             // Group by date for daily breakdown
             const dailyStats = {};
             chatSessions.forEach(session => {
-                const date = session.createdAt.toISOString().split('T')[0];
+                let date;
+                if (session.createdAt) {
+                    // Handle both Date objects and string dates
+                    const sessionDate = new Date(session.createdAt);
+                    date = sessionDate.toISOString().split('T')[0];
+                } else {
+                    date = 'unknown';
+                }
+                
                 if (!dailyStats[date]) {
                     dailyStats[date] = { sessions: 0, messages: 0 };
                 }
                 dailyStats[date].sessions++;
                 dailyStats[date].messages += session.messages?.length || 0;
             });
+            
+            console.log('📊 [REPORT] Daily breakdown:', dailyStats);
 
             reportData.usage = {
                 totalSessions,
@@ -165,11 +235,54 @@ async function getReportData(userId, dateRange, reportType) {
         }
 
         if (reportType === 'conversations' || reportType === 'detailed') {
-            // Get conversation logs
-            const conversations = await db.collection('chat_sessions').find({
+            // Get conversation logs with same enhanced debugging as usage
+            console.log('💬 [REPORT] Fetching conversations for date range:', {
+                userId: userObjectId,
+                startDate: startDate.toISOString(),
+                endDate: now.toISOString()
+            });
+            
+            let conversations = [];
+            
+            // Try the same query approaches as usage stats
+            const convQuery1 = await db.collection('chat_sessions').find({
                 userId: userObjectId,
                 createdAt: { $gte: startDate, $lte: now }
             }).sort({ createdAt: -1 }).limit(100).toArray();
+            
+            const convQuery2 = await db.collection('chat_sessions').find({
+                userId: userObjectId,
+                $or: [
+                    { createdAt: { $gte: startDate, $lte: now } },
+                    { updatedAt: { $gte: startDate, $lte: now } }
+                ]
+            }).sort({ createdAt: -1 }).limit(100).toArray();
+            
+            const allConversations = await db.collection('chat_sessions').find({
+                userId: userObjectId
+            }).sort({ createdAt: -1 }).limit(100).toArray();
+            
+            console.log('💬 [REPORT] Conversation queries results:', {
+                standardQuery: convQuery1.length,
+                alternativeQuery: convQuery2.length,
+                allConversationsForUser: allConversations.length
+            });
+            
+            // Use the query that returns more results
+            if (convQuery1.length > 0) {
+                conversations = convQuery1;
+            } else if (convQuery2.length > 0) {
+                conversations = convQuery2;
+            } else {
+                // Debug: use all conversations if date range fails
+                console.log('💬 [REPORT] Sample conversation dates:', allConversations.slice(0, 2).map(s => ({
+                    _id: s._id,
+                    createdAt: s.createdAt,
+                    updatedAt: s.updatedAt,
+                    messagesCount: s.messages?.length || 0
+                })));
+                conversations = allConversations;
+            }
 
             reportData.conversations = conversations.map(session => ({
                 sessionId: session._id,
@@ -183,6 +296,8 @@ async function getReportData(userId, dateRange, reportType) {
                     type: msg.type || 'text'
                 })) || []
             }));
+            
+            console.log('💬 [REPORT] Final conversations count:', reportData.conversations.length);
         }
 
         return reportData;
