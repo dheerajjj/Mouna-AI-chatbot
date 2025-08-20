@@ -719,11 +719,12 @@
                     right: 0;
                     bottom: 0;
                     background: white;
-                    z-index: 1001;
+                    z-index: 2147483648;
                     display: flex;
                     flex-direction: column;
                     border-radius: 12px;
                     overflow: hidden;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
                 }
                 
                 .chatbot-language-header {
@@ -1227,31 +1228,59 @@
         // Language toggle button
         const langToggle = widget.querySelector('#chatbot-language-toggle');
         if (langToggle) {
-            langToggle.addEventListener('click', () => {
+            console.log('✅ Language toggle button found and bound');
+            langToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🌐 Language toggle clicked');
                 const langSelector = widget.querySelector('#chatbot-language-selector');
                 if (langSelector) {
                     langSelector.style.display = 'flex';
+                    console.log('🌐 Language selector shown');
+                } else {
+                    console.error('❌ Language selector not found');
                 }
             });
+        } else {
+            console.error('❌ Language toggle button not found');
         }
         
         // Language selector close button
         const langClose = widget.querySelector('#chatbot-language-close');
         if (langClose) {
-            langClose.addEventListener('click', () => {
+            console.log('✅ Language close button found and bound');
+            langClose.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('❌ Language selector close clicked');
                 const langSelector = widget.querySelector('#chatbot-language-selector');
                 if (langSelector) {
                     langSelector.style.display = 'none';
+                    console.log('❌ Language selector hidden');
+                } else {
+                    console.error('❌ Language selector not found for closing');
                 }
             });
+        } else {
+            console.error('❌ Language close button not found');
         }
         
         // Language option buttons
         const langOptions = widget.querySelectorAll('.chatbot-language-option');
-        langOptions.forEach(option => {
-            option.addEventListener('click', () => {
+        console.log(`✅ Found ${langOptions.length} language option buttons`);
+        langOptions.forEach((option, index) => {
+            const langCode = option.getAttribute('data-language');
+            console.log(`🔗 Binding language option ${index + 1}: ${langCode}`);
+            
+            option.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const selectedLang = option.getAttribute('data-language');
+                console.log(`🌐 Language option clicked: ${selectedLang}`);
+                
                 if (selectedLang && selectedLang !== currentLanguage) {
+                    console.log(`🔄 Switching from ${currentLanguage} to ${selectedLang}`);
+                    
                     // Update current language
                     currentLanguage = selectedLang;
                     
@@ -1262,26 +1291,39 @@
                     // Update active state
                     langOptions.forEach(opt => opt.classList.remove('active'));
                     option.classList.add('active');
+                    console.log(`✅ Updated active state for ${selectedLang}`);
                     
                     // Update language flag
                     const currentLangSpan = widget.querySelector('.chatbot-current-lang');
                     if (currentLangSpan) {
                         currentLangSpan.textContent = SUPPORTED_LANGUAGES[selectedLang]?.flag || '🌐';
+                        console.log(`🏳️ Updated flag to: ${SUPPORTED_LANGUAGES[selectedLang]?.flag}`);
                     }
                     
                     // Update input field language attribute
                     const inputField = widget.querySelector('#chatbot-input-field');
                     if (inputField) {
                         inputField.setAttribute('lang', selectedLang);
+                        console.log(`📝 Updated input field language to: ${selectedLang}`);
                     }
                     
                     // Hide language selector
                     const langSelector = widget.querySelector('#chatbot-language-selector');
                     if (langSelector) {
                         langSelector.style.display = 'none';
+                        console.log('❌ Language selector hidden after selection');
                     }
                     
-                    console.log('Language changed to:', selectedLang);
+                    console.log(`✅ Language successfully changed to: ${selectedLang}`);
+                } else if (selectedLang === currentLanguage) {
+                    console.log(`ℹ️ Language ${selectedLang} is already selected`);
+                    // Still hide the selector
+                    const langSelector = widget.querySelector('#chatbot-language-selector');
+                    if (langSelector) {
+                        langSelector.style.display = 'none';
+                    }
+                } else {
+                    console.error('❌ Invalid language selection:', selectedLang);
                 }
             });
         });
