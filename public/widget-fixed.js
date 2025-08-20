@@ -560,14 +560,36 @@
                             <button class="chatbot-language-close" id="chatbot-language-close">&times;</button>
                         </div>
                         <div class="chatbot-language-list">
-                            ${Object.entries(SUPPORTED_LANGUAGES).map(([code, lang]) => `
-                                <button class="chatbot-language-option ${code === currentLanguage ? 'active' : ''}" 
-                                        data-language="${code}">
-                                    <span class="chatbot-lang-flag">${lang.flag}</span>
-                                    <span class="chatbot-lang-name">${lang.nativeName}</span>
-                                    <span class="chatbot-lang-code">${lang.name}</span>
-                                </button>
-                            `).join('')}
+                            <button class="chatbot-language-option ${currentLanguage === 'en' ? 'active' : ''}" data-language="en">
+                                <span class="chatbot-lang-flag">🇺🇸</span>
+                                <span class="chatbot-lang-name">English</span>
+                                <span class="chatbot-lang-code">English</span>
+                            </button>
+                            <button class="chatbot-language-option ${currentLanguage === 'hi' ? 'active' : ''}" data-language="hi">
+                                <span class="chatbot-lang-flag">🇮🇳</span>
+                                <span class="chatbot-lang-name">हिंदी</span>
+                                <span class="chatbot-lang-code">Hindi</span>
+                            </button>
+                            <button class="chatbot-language-option ${currentLanguage === 'te' ? 'active' : ''}" data-language="te">
+                                <span class="chatbot-lang-flag">🇮🇳</span>
+                                <span class="chatbot-lang-name">తెలుగు</span>
+                                <span class="chatbot-lang-code">Telugu</span>
+                            </button>
+                            <button class="chatbot-language-option ${currentLanguage === 'ta' ? 'active' : ''}" data-language="ta">
+                                <span class="chatbot-lang-flag">🇮🇳</span>
+                                <span class="chatbot-lang-name">தமிழ்</span>
+                                <span class="chatbot-lang-code">Tamil</span>
+                            </button>
+                            <button class="chatbot-language-option ${currentLanguage === 'mr' ? 'active' : ''}" data-language="mr">
+                                <span class="chatbot-lang-flag">🇮🇳</span>
+                                <span class="chatbot-lang-name">मराठी</span>
+                                <span class="chatbot-lang-code">Marathi</span>
+                            </button>
+                            <button class="chatbot-language-option ${currentLanguage === 'kn' ? 'active' : ''}" data-language="kn">
+                                <span class="chatbot-lang-flag">🇮🇳</span>
+                                <span class="chatbot-lang-name">ಕನ್ನಡ</span>
+                                <span class="chatbot-lang-code">Kannada</span>
+                            </button>
                         </div>
                     </div>
                     
@@ -733,11 +755,13 @@
                     flex: 1;
                     padding: 20px;
                     overflow-y: auto;
+                    background: white;
+                    min-height: 200px;
                 }
                 
                 .chatbot-language-option {
                     width: 100%;
-                    background: none;
+                    background: white;
                     border: 1px solid #eee;
                     padding: 12px 16px;
                     border-radius: 8px;
@@ -748,6 +772,9 @@
                     margin-bottom: 8px;
                     transition: all 0.2s;
                     text-align: left;
+                    font-family: inherit;
+                    font-size: 14px;
+                    color: #333;
                 }
                 
                 .chatbot-language-option:hover {
