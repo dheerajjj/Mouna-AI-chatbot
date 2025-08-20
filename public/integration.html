@@ -2516,6 +2516,12 @@
             });
         });
     </script>
-</body>
+        <script>
+            // Load the chatbot widget on page load
+            const script = document.createElement('script');
+            script.src = '/widget-fixed.js?demo=true';
+            document.body.appendChild(script);
+        </script>
+    </body>
 </html>
 
