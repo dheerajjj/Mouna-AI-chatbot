@@ -1121,16 +1121,19 @@
         showTyping();
         
         // Check for auto responses first (tenant demo features)
+        // Note: Skip auto responses for non-English languages to ensure AI generates appropriate responses
         let autoResponse = null;
-        if (currentConfig.autoResponsesMap) {
+        if (currentConfig.autoResponsesMap && currentLanguage === 'en') {
             const messageLower = message.toLowerCase();
             for (let [keyword, response] of currentConfig.autoResponsesMap) {
                 if (messageLower.includes(keyword)) {
                     autoResponse = response;
-                    console.log(`🤖 Auto response matched for keyword: "${keyword}"`);
+                    console.log(`🤖 Auto response matched for keyword: "${keyword}" (English only)`);
                     break;
                 }
             }
+        } else if (currentConfig.autoResponsesMap && currentLanguage !== 'en') {
+            console.log(`🌐 Skipping auto responses for language: ${currentLanguage} - using AI instead`);
         }
         
         try {

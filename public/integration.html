@@ -1325,10 +1325,11 @@
                         
                         // Create and inject the widget script
                         const script = document.createElement('script');
-                        script.src = 'https://mouna-ai-chatbot-production.up.railway.app/widget-fixed.js';
+                        script.src = '/widget-fixed.js'; // Use local widget with full multi-language support
                         script.setAttribute('data-api-key', data.apiKey);
                         script.setAttribute('data-primary-color', '#667eea');
                         script.setAttribute('data-position', 'bottom-right');
+                        script.setAttribute('data-demo', 'true'); // Enable demo mode
                         
                         // Ensure widget has higher z-index than modal
                         script.onload = function() {
