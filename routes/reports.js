@@ -97,16 +97,19 @@ async function getReportData(userId, dateRange, reportType) {
             finalPlan: userPlan
         });
         
-        // Get user's total message usage across all time
+        // Get user's total message usage from user object (same as dashboard)
+        const totalUserMessages = user.usage?.totalMessages || 0;
+        const monthlyUserMessages = user.usage?.messagesThisMonth || 0;
+        
+        // Also get session count for consistency
         const totalUserSessions = await db.collection('chat_sessions').find({
             userId: userObjectId
         }).toArray();
         
-        const totalUserMessages = totalUserSessions.reduce((sum, session) => sum + (session.messages?.length || 0), 0);
-        
-        console.log('📊 [REPORT] Usage calculation:', {
-            totalSessionsAllTime: totalUserSessions.length,
-            totalMessagesAllTime: totalUserMessages,
+        console.log('📊 [REPORT] Usage from user object (matching dashboard):', {
+            totalMessagesFromUserObject: totalUserMessages,
+            monthlyMessagesFromUserObject: monthlyUserMessages,
+            totalSessionsFromDB: totalUserSessions.length,
             dateRangeStart: startDate,
             dateRangeEnd: now
         });
@@ -131,81 +134,36 @@ async function getReportData(userId, dateRange, reportType) {
         };
 
         if (reportType === 'usage' || reportType === 'summary') {
-            // Get usage statistics with enhanced debugging
-            console.log('📊 [REPORT] Fetching chat sessions for date range:', {
-                userId: userObjectId,
-                startDate: startDate.toISOString(),
-                endDate: now.toISOString()
+            // Use data from user object to match dashboard exactly
+            console.log('📊 [REPORT] Using user object data to match dashboard:', {
+                userUsageObject: user.usage,
+                totalMessages: totalUserMessages,
+                monthlyMessages: monthlyUserMessages
             });
             
-            // Try multiple query approaches to find sessions
-            let chatSessions = [];
-            
-            // Query 1: Standard date range query
-            const sessions1 = await db.collection('chat_sessions').find({
-                userId: userObjectId,
-                createdAt: { $gte: startDate, $lte: now }
-            }).toArray();
-            
-            // Query 2: Alternative with updatedAt field
-            const sessions2 = await db.collection('chat_sessions').find({
-                userId: userObjectId,
-                $or: [
-                    { createdAt: { $gte: startDate, $lte: now } },
-                    { updatedAt: { $gte: startDate, $lte: now } }
-                ]
-            }).toArray();
-            
-            // Query 3: All sessions for this user (to debug)
+            // Get sessions for session count and daily breakdown (but use user.usage for message counts)
             const allSessions = await db.collection('chat_sessions').find({
                 userId: userObjectId
             }).toArray();
             
-            console.log('📊 [REPORT] Session queries results:', {
-                standardQuery: sessions1.length,
-                alternativeQuery: sessions2.length,
-                allSessionsForUser: allSessions.length
+            // Filter sessions for date range (for daily breakdown)
+            const sessionsInRange = allSessions.filter(session => {
+                if (!session.createdAt) return false;
+                const sessionDate = new Date(session.createdAt);
+                return sessionDate >= startDate && sessionDate <= now;
             });
             
-            // Use the query that returns more results, or fall back to all sessions if date range is empty
-            if (sessions1.length > 0) {
-                chatSessions = sessions1;
-            } else if (sessions2.length > 0) {
-                chatSessions = sessions2;
-            } else {
-                // If no sessions in date range, but we have all-time sessions,
-                // let's check the date formats
-                console.log('📊 [REPORT] Sample session dates:', allSessions.slice(0, 3).map(s => ({
-                    _id: s._id,
-                    createdAt: s.createdAt,
-                    updatedAt: s.updatedAt,
-                    createdAtType: typeof s.createdAt,
-                    messagesCount: s.messages?.length || 0
-                })));
-                
-                // For debugging: use all sessions if date range fails
-                chatSessions = allSessions;
-            }
-            
-            const totalSessions = chatSessions.length;
-            const totalMessages = chatSessions.reduce((sum, session) => sum + (session.messages?.length || 0), 0);
-            
-            console.log('📊 [REPORT] Session analysis:', {
-                totalSessions,
-                totalMessages,
-                sampleSessions: chatSessions.slice(0, 2).map(s => ({
-                    _id: s._id,
-                    createdAt: s.createdAt,
-                    messageCount: s.messages?.length || 0
-                }))
+            console.log('📊 [REPORT] Session filtering results:', {
+                allSessions: allSessions.length,
+                sessionsInRange: sessionsInRange.length,
+                dateRange: `${startDate.toISOString()} to ${now.toISOString()}`
             });
             
-            // Group by date for daily breakdown
+            // Create daily breakdown from sessions
             const dailyStats = {};
-            chatSessions.forEach(session => {
+            sessionsInRange.forEach(session => {
                 let date;
                 if (session.createdAt) {
-                    // Handle both Date objects and string dates
                     const sessionDate = new Date(session.createdAt);
                     date = sessionDate.toISOString().split('T')[0];
                 } else {
@@ -221,17 +179,22 @@ async function getReportData(userId, dateRange, reportType) {
             
             console.log('📊 [REPORT] Daily breakdown:', dailyStats);
 
+            // Use user.usage data for totals to match dashboard
             reportData.usage = {
-                totalSessions,
-                totalMessages,
-                averageMessagesPerSession: totalSessions > 0 ? Math.round(totalMessages / totalSessions) : 0,
+                totalSessions: allSessions.length, // Use actual session count
+                totalMessages: totalUserMessages,  // Use user.usage.totalMessages (matches dashboard)
+                averageMessagesPerSession: allSessions.length > 0 ? Math.round(totalUserMessages / allSessions.length) : 0,
                 dailyBreakdown: dailyStats,
                 summary: {
                     mostActiveDay: Object.keys(dailyStats).reduce((max, date) => 
                         !max || dailyStats[date].sessions > dailyStats[max].sessions ? date : max, null),
-                    avgSessionsPerDay: Math.round(totalSessions / Math.max(1, Math.ceil((now - startDate) / (24 * 60 * 60 * 1000))))
-                }
+                    avgSessionsPerDay: Math.round(sessionsInRange.length / Math.max(1, Math.ceil((now - startDate) / (24 * 60 * 60 * 1000))))
+                },
+                // Add monthly data from user object for dashboard consistency
+                messagesThisMonth: monthlyUserMessages
             };
+            
+            console.log('📊 [REPORT] Final usage data (matching dashboard):', reportData.usage);
         }
 
         if (reportType === 'conversations' || reportType === 'detailed') {
