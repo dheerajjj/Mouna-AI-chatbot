@@ -650,6 +650,7 @@
                     display: flex;
                     flex-direction: column;
                     overflow: hidden;
+                    position: relative;
                 }
                 
                 .chatbot-widget-header {
@@ -696,9 +697,11 @@
                     right: 0;
                     bottom: 0;
                     background: white;
-                    z-index: 1000;
+                    z-index: 1001;
                     display: flex;
                     flex-direction: column;
+                    border-radius: 12px;
+                    overflow: hidden;
                 }
                 
                 .chatbot-language-header {
