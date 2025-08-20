@@ -456,47 +456,99 @@ router.post('/generate', authenticateToken, async (req, res) => {
             });
         }
 
-        // Get report data
-        const reportData = await getReportData(userId, dateRange, reportType);
+        // Get report data with additional error handling
+        console.log('🔍 [REPORTS] About to fetch report data for userId:', userId);
+        let reportData;
+        try {
+            reportData = await getReportData(userId, dateRange, reportType);
+            console.log('✅ [REPORTS] Report data fetched successfully');
+        } catch (reportError) {
+            console.error('🚨 [REPORTS] Critical error getting report data:', reportError);
+            return res.status(500).json({
+                error: 'Failed to retrieve report data',
+                message: reportError.message,
+                debug: {
+                    userId: userId,
+                    dateRange: dateRange,
+                    reportType: reportType
+                }
+            });
+        }
 
         // Generate report in requested format
+        console.log('📊 [REPORTS] Generating report in format:', format);
         let buffer;
         let contentType;
         let filename;
 
-        switch (format) {
-            case 'pdf':
-                buffer = generatePDFReport(reportData);
-                contentType = 'application/pdf';
-                filename = `mouna-ai-${reportType}-report-${dateRange}.pdf`;
-                break;
+        try {
+            switch (format) {
+                case 'pdf':
+                    console.log('📝 [REPORTS] Generating PDF report');
+                    buffer = generatePDFReport(reportData);
+                    contentType = 'application/pdf';
+                    filename = `mouna-ai-${reportType}-report-${dateRange}.pdf`;
+                    break;
+                
+                case 'excel':
+                    console.log('📈 [REPORTS] Generating Excel report');
+                    buffer = await generateExcelReport(reportData);
+                    contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    filename = `mouna-ai-${reportType}-report-${dateRange}.xlsx`;
+                    break;
+                
+                case 'csv':
+                    console.log('📄 [REPORTS] Generating CSV report');
+                    buffer = generateCSVReport(reportData);
+                    contentType = 'text/csv';
+                    filename = `mouna-ai-${reportType}-report-${dateRange}.csv`;
+                    break;
+                
+                case 'json':
+                    console.log('📜 [REPORTS] Generating JSON report');
+                    buffer = Buffer.from(JSON.stringify(reportData, null, 2), 'utf8');
+                    contentType = 'application/json';
+                    filename = `mouna-ai-${reportType}-report-${dateRange}.json`;
+                    break;
+                
+                default:
+                    throw new Error(`Unsupported format: ${format}`);
+            }
             
-            case 'excel':
-                buffer = await generateExcelReport(reportData);
-                contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-                filename = `mouna-ai-${reportType}-report-${dateRange}.xlsx`;
-                break;
+            console.log('✅ [REPORTS] Report generated successfully:', {
+                format,
+                bufferSize: buffer?.length || 0,
+                filename
+            });
             
-            case 'csv':
-                buffer = generateCSVReport(reportData);
-                contentType = 'text/csv';
-                filename = `mouna-ai-${reportType}-report-${dateRange}.csv`;
-                break;
-            
-            case 'json':
-                buffer = Buffer.from(JSON.stringify(reportData, null, 2), 'utf8');
-                contentType = 'application/json';
-                filename = `mouna-ai-${reportType}-report-${dateRange}.json`;
-                break;
+        } catch (formatError) {
+            console.error('🚨 [REPORTS] Error generating report format:', formatError);
+            return res.status(500).json({
+                error: `Failed to generate ${format} report`,
+                message: formatError.message
+            });
         }
 
         // Set response headers for file download
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Length', buffer.length);
-
-        // Send the file
-        res.send(buffer);
+        try {
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Content-Length', buffer.length);
+            
+            console.log('📦 [REPORTS] Sending file to client:', filename);
+            
+            // Send the file
+            res.send(buffer);
+            
+            console.log('✅ [REPORTS] File sent successfully');
+            
+        } catch (sendError) {
+            console.error('🚨 [REPORTS] Error sending file:', sendError);
+            return res.status(500).json({
+                error: 'Failed to send report file',
+                message: sendError.message
+            });
+        }
 
     } catch (error) {
         console.error('Error generating report:', error);
