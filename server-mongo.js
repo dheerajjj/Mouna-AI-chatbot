@@ -1486,18 +1486,79 @@ async function startServer() {
                 console.log('🎯 Using tenant-specific system prompt');
                 systemPrompt = tenantSettings.customSystemPrompt;
               } else {
-                // Enhance system prompt with tenant context
-                const tenantEnhancement = `\n\nTenant Context: You are assisting with "${tenantSettings.name}" - ${tenantSettings.description || 'a business'}. ` +
-                  `This is a ${tenantSettings.type} tenant. ` + 
-                  (tenantSettings.enabledFeatures?.bookings ? 'You can help with bookings and appointments. ' : '') +
-                  (tenantSettings.enabledFeatures?.orders ? 'You can help with orders and purchases. ' : '') +
-                  (tenantSettings.enabledFeatures?.slots ? 'You can help with slot management and scheduling. ' : '') +
-                  (tenantSettings.businessInfo?.hours ? `Business hours: ${tenantSettings.businessInfo.hours}. ` : '') +
-                  (tenantSettings.businessInfo?.location ? `Located at: ${tenantSettings.businessInfo.location}. ` : '') +
-                  'Provide relevant assistance based on this context.';
+                // Enhance system prompt with tenant context in the selected language
+                let tenantEnhancement = '';
+                
+                // Language-specific tenant context messages
+                const contextMessages = {
+                  en: {
+                    context: `\n\nTenant Context: You are assisting with "${tenantSettings.name}" - ${tenantSettings.description || 'a business'}. This is a ${tenantSettings.type} tenant. `,
+                    bookings: 'You can help with bookings and appointments. ',
+                    orders: 'You can help with orders and purchases. ',
+                    slots: 'You can help with slot management and scheduling. ',
+                    hours: `Business hours: ${tenantSettings.businessInfo?.hours}. `,
+                    location: `Located at: ${tenantSettings.businessInfo?.location}. `,
+                    assistance: 'Provide relevant assistance based on this context. Remember to respond in English.'
+                  },
+                  hi: {
+                    context: `\n\nTenant संदर्भ: आप "${tenantSettings.name}" की सहायता कर रहे हैं - ${tenantSettings.description || 'एक व्यवसाय'}। यह एक ${tenantSettings.type} tenant है। `,
+                    bookings: 'आप बुकिंग और अपॉइंटमेंट में मदद कर सकते हैं। ',
+                    orders: 'आप ऑर्डर और खरीदारी में मदद कर सकते हैं। ',
+                    slots: 'आप स्लॉट प्रबंधन और शेड्यूलिंग में मदद कर सकते हैं। ',
+                    hours: `व्यापारिक समय: ${tenantSettings.businessInfo?.hours}। `,
+                    location: `स्थान: ${tenantSettings.businessInfo?.location}। `,
+                    assistance: 'इस संदर्भ के आधार पर प्रासंगिक सहायता प्रदान करें। हिंदी में उत्तर देना याद रखें।'
+                  },
+                  te: {
+                    context: `\n\nTenant సందర్భం: మీరు "${tenantSettings.name}" తో సహాయం చేస్తున్నారు - ${tenantSettings.description || 'ఒక వ్యాపారం'}. ఇది ${tenantSettings.type} tenant. `,
+                    bookings: 'మీరు బుకింగ్‌లు మరియు అపాయింట్‌మెంట్‌లతో సహాయం చేయవచ్చు. ',
+                    orders: 'మీరు ఆర్డర్‌లు మరియు కొనుగోళ్లతో సహాయం చేయవచ్చు. ',
+                    slots: 'మీరు స్లాట్ నిర్వహణ మరియు షెడ్యూలింగ్‌తో సహాయం చేయవచ్చు. ',
+                    hours: `వ్యాపార గంటలు: ${tenantSettings.businessInfo?.hours}. `,
+                    location: `స్థానం: ${tenantSettings.businessInfo?.location}. `,
+                    assistance: 'ఈ సందర్భం ఆధారంగా సంబంధిత సహాయాన్ని అందించండి. తెలుగులో సమాధానం ఇవ్వాలని గుర్తుంచుకోండి।'
+                  },
+                  ta: {
+                    context: `\n\nTenant சூழல்: நீங்கள் "${tenantSettings.name}" உடன் உதவுகிறீர்கள் - ${tenantSettings.description || 'ஒரு வணிகம்'}. இது ${tenantSettings.type} tenant. `,
+                    bookings: 'நீங்கள் பதிவுகள் மற்றும் நியமனங்களில் உதவலாம். ',
+                    orders: 'நீங்கள் ஆர்டர்கள் மற்றும் வாங்குதல்களில் உதவலாம். ',
+                    slots: 'நீங்கள் ஸ்லாட் நிர்வாகம் மற்றும் அட்டவணையில் உதவலாம். ',
+                    hours: `வணிக நேரம்: ${tenantSettings.businessInfo?.hours}. `,
+                    location: `இடம்: ${tenantSettings.businessInfo?.location}. `,
+                    assistance: 'இந்த சூழலின் அடிப்படையில் தொடர்புடைய உதவியை வழங்கவும். தமிழில் பதிலளிப்பதை நினைவில் வைத்துக் கொள்ளுங்கள்।'
+                  },
+                  mr: {
+                    context: `\n\nTenant संदर्भ: तुम्ही "${tenantSettings.name}" ला मदत करत आहात - ${tenantSettings.description || 'एक व्यवसाय'}. हा ${tenantSettings.type} tenant आहे. `,
+                    bookings: 'तुम्ही बुकिंग आणि अपॉइंटमेंटमध्ये मदत करू शकता. ',
+                    orders: 'तुम्ही ऑर्डर आणि खरेदीमध्ये मदत करू शकता. ',
+                    slots: 'तुम्ही स्लॉट व्यवस्थापन आणि शेड्युलिंगमध्ये मदत करू शकता. ',
+                    hours: `व्यवसाय तास: ${tenantSettings.businessInfo?.hours}. `,
+                    location: `स्थान: ${tenantSettings.businessInfo?.location}. `,
+                    assistance: 'या संदर्भावर आधारित संबंधित सहाय्य प्रदान करा. मराठीत उत्तर द्यायला लक्षात ठेवा।'
+                  },
+                  kn: {
+                    context: `\n\nTenant ಸಂದರ್ಭ: ನೀವು "${tenantSettings.name}" ಗೆ ಸಹಾಯ ಮಾಡುತ್ತಿದ್ದೀರಿ - ${tenantSettings.description || 'ಒಂದು ವ್ಯಾಪಾರ'}. ಇದು ${tenantSettings.type} tenant. `,
+                    bookings: 'ನೀವು ಬುಕಿಂಗ್‌ಗಳು ಮತ್ತು ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಹುದು. ',
+                    orders: 'ನೀವು ಆರ್ಡರ್‌ಗಳು ಮತ್ತು ಖರೀದಿಗಳಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಹುದು. ',
+                    slots: 'ನೀವು ಸ್ಲಾಟ್ ನಿರ್ವಹಣೆ ಮತ್ತು ಅನುಸೂಚಿಯಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಹುದು. ',
+                    hours: `ವ್ಯಾಪಾರ ಸಮಯ: ${tenantSettings.businessInfo?.hours}. `,
+                    location: `ಸ್ಥಳ: ${tenantSettings.businessInfo?.location}. `,
+                    assistance: 'ಈ ಸಂದರ್ಭದ ಆಧಾರದ ಮೇಲೆ ಸಂಬಂಧಿತ ಸಹಾಯವನ್ನು ಒದಗಿಸಿ. ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸುವುದನ್ನು ನೆನಪಿನಲ್ಲಿಡಿ।'
+                  }
+                };
+                
+                const langMessages = contextMessages[detectedLanguage] || contextMessages['en'];
+                
+                tenantEnhancement = langMessages.context +
+                  (tenantSettings.enabledFeatures?.bookings ? langMessages.bookings : '') +
+                  (tenantSettings.enabledFeatures?.orders ? langMessages.orders : '') +
+                  (tenantSettings.enabledFeatures?.slots ? langMessages.slots : '') +
+                  (tenantSettings.businessInfo?.hours ? langMessages.hours : '') +
+                  (tenantSettings.businessInfo?.location ? langMessages.location : '') +
+                  langMessages.assistance;
                 
                 systemPrompt += tenantEnhancement;
-                console.log('🔧 Enhanced system prompt with tenant context');
+                console.log('🔧 Enhanced system prompt with tenant context in language:', detectedLanguage);
               }
             } else {
               console.log('⚠️ Tenant not found or inactive:', tenantId);
