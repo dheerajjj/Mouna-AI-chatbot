@@ -41,7 +41,9 @@ const authenticateToken = async (req, res, next) => {
 
         // Attach user and token to request
         req.user = {
-          id: user._id,
+          _id: user._id,           // MongoDB ObjectId
+          id: user._id,            // Alias for compatibility
+          userId: user._id,        // Alternative alias
           email: user.email,
           name: user.name,
           plan: user.plan || { current: { id: 'free', name: 'Free Plan' } },

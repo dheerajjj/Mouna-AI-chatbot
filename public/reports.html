@@ -576,7 +576,7 @@
                 const contentDisposition = response.headers.get('Content-Disposition');
                 let filename = `mouna-ai-${reportType}-report-${dateRange}.${format}`;
                 if (contentDisposition) {
-                    const match = contentDisposition.match(/filename="(.+)"/);;
+                    const match = contentDisposition.match(/filename="(.+)"/);
                     if (match) filename = match[1];
                 }
 
@@ -668,7 +668,7 @@
                     const contentDisposition = response.headers.get('Content-Disposition');
                     let filename = `mouna-ai-${reportType}-report-${new Date().toISOString().split('T')[0]}.csv`;
                     if (contentDisposition) {
-                        const match = contentDisposition.match(/filename="(.+)"/);;
+                        const match = contentDisposition.match(/filename="(.+)"/);
                         if (match) filename = match[1];
                     }
 

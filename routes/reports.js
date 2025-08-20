@@ -350,6 +350,17 @@ router.post('/generate', authenticateToken, async (req, res) => {
         console.log('🐛 [DEBUG] req.user._id:', req.user._id);
         console.log('🐛 [DEBUG] req.user.userId:', req.user.userId);
         console.log('🐛 [DEBUG] req.user.id:', req.user.id);
+        
+        if (!userId) {
+            console.log('🐛 [DEBUG] No userId found after extraction attempts');
+            return res.status(400).json({ 
+                error: 'User ID could not be extracted from authentication token',
+                debug: {
+                    userKeys: Object.keys(req.user || {}),
+                    userObject: req.user
+                }
+            });
+        }
 
         // Validate inputs
         const validDateRanges = ['7days', '30days', '90days'];
