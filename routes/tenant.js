@@ -194,7 +194,8 @@ router.get('/subscription-info', authenticateToken, getSubscriptionInfo, (req, r
  */
 router.get('/personal-tenant', async (req, res) => {
   try {
-    const apiKey = req.headers['x-api-key'];
+    // Handle both upper and lowercase API key headers for compatibility
+    const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'];
     
     if (!apiKey) {
       return res.status(401).json({
@@ -734,76 +735,6 @@ router.delete('/settings/:tenantId', authenticateToken, async (req, res) => {
 }
 });
 
-/**
- * PERSONAL TENANT ENDPOINT: Get user's personal/default tenant for backward compatibility
- * This allows widgets without explicit tenant IDs to still get tenant-specific configuration
- */
-router.get('/personal-tenant', async (req, res) => {
-  try {
-    const apiKey = req.headers['x-api-key'];
-    
-    if (!apiKey) {
-      return res.status(401).json({ error: 'API key required' });
-    }
-    
-    // Find user by API key
-    const user = await User.findOne({ apiKey: apiKey, isActive: true });
-    if (!user) {
-      return res.status(404).json({ error: 'Invalid API key' });
-    }
-    
-    // Find user's first/primary tenant (or create a default one)
-    let personalTenant = await TenantSettings.findOne({ 
-      owner: user._id, 
-      isActive: true 
-    }).sort({ createdAt: 1 }); // Get the oldest (first) tenant
-    
-    if (!personalTenant) {
-      console.log(`Creating default personal tenant for user: ${user.email}`);
-      
-      // Create a default personal tenant
-      personalTenant = new TenantSettings({
-        tenantId: `personal_${user._id.toString().substring(0, 8)}_${Date.now()}`,
-        name: `${user.name}'s Personal Assistant`,
-        description: `Personal AI assistant for ${user.name}`,
-        type: 'personal',
-        owner: user._id,
-        enabledFeatures: {
-          bookings: false,
-          orders: false,
-          slots: false,
-          analytics: true
-        },
-        customSystemPrompt: '',
-        businessInfo: {
-          name: user.name || 'Personal Assistant',
-          description: 'A helpful AI assistant for general queries'
-        },
-        isActive: true
-      });
-      
-      await personalTenant.save();
-      console.log(`✅ Default personal tenant created: ${personalTenant.tenantId}`);
-    }
-    
-    res.json({
-      success: true,
-      personalTenant: {
-        tenantId: personalTenant.tenantId,
-        name: personalTenant.name,
-        description: personalTenant.description,
-        type: personalTenant.type
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error fetching personal tenant:', error);
-    res.status(500).json({
-      error: 'Failed to fetch personal tenant',
-      details: error.message
-    });
-  }
-});
 
 /**
  * PROTECTED ENDPOINT: Get tenant usage analytics

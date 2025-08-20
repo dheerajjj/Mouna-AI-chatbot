@@ -1470,7 +1470,10 @@
             try {
                 const token = localStorage.getItem('authToken');
                 if (!token) {
-                    console.log('No auth token found');
+                    console.log('No auth token found - user may not be logged in');
+                    // Show default integration without tenant features
+                    updateIntegrationCode();
+                    updateIntegrationGuide(false);
                     return;
                 }
                 
@@ -1487,26 +1490,51 @@
                     userApiKey = user.apiKey;
                     userSubscription = user.subscription;
                     
-                    console.log('User subscription:', userSubscription);
+                    console.log('✅ User profile loaded:', {
+                        hasApiKey: !!userApiKey,
+                        subscription: userSubscription
+                    });
                     
                     // Show tenant selection for Starter and paid plans
                     const planType = userSubscription?.plan || 'free';
-                    console.log('User plan detected:', planType);
+                    console.log('📋 User plan detected:', planType);
                     
                     if (planType !== 'free') {
+                        console.log('🏢 Paid plan detected - enabling tenant features');
                         document.getElementById('tenant-selection-card').style.display = 'block';
-                        await loadTenants();
                         
-                        // Update integration guide
-                        updateIntegrationGuide(true);
+                        try {
+                            await loadTenants();
+                            // Update integration guide
+                            updateIntegrationGuide(true);
+                        } catch (tenantError) {
+                            console.error('❌ Failed to load tenants:', tenantError);
+                            // Show error but still allow basic integration
+                            showTenantLoadError('Unable to load tenant configurations. You can still use the basic integration code below.');
+                            updateIntegrationCode();
+                            updateIntegrationGuide(false);
+                        }
                     } else {
+                        console.log('🆓 Free plan - using basic integration');
                         // Free plan - use default integration
                         updateIntegrationCode();
                         updateIntegrationGuide(false);
                     }
+                } else if (profileResponse.status === 401) {
+                    console.warn('🔑 Authentication expired - redirecting to login');
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                } else {
+                    console.error('❌ Failed to load user profile:', profileResponse.status);
+                    // Fallback to basic integration
+                    updateIntegrationCode();
+                    updateIntegrationGuide(false);
                 }
             } catch (error) {
-                console.error('Error loading user data:', error);
+                console.error('❌ Error loading user data:', error);
+                // Fallback to basic integration on any error
+                updateIntegrationCode();
+                updateIntegrationGuide(false);
             }
         }
         
