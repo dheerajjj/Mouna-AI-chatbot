@@ -140,6 +140,11 @@ const userSchema = new mongoose.Schema({
     branding: {
       type: Boolean,
       default: true // Show "Powered by" for free users
+    },
+    language: {
+      type: String,
+      enum: ['en', 'hi', 'te', 'ta', 'mr', 'kn'],
+      default: 'en'
     }
   },
   

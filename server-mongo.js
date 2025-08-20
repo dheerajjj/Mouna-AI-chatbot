@@ -780,6 +780,54 @@ async function startServer() {
       }
     });
     
+    // Language preference endpoints
+    app.post('/api/user/language', authenticateJWT, async (req, res) => {
+      try {
+        const userId = req.user._id;
+        const { language } = req.body;
+        
+        if (!language || !SUPPORTED_LANGUAGES[language]) {
+          return res.status(400).json({
+            error: 'Invalid language code',
+            supported: Object.keys(SUPPORTED_LANGUAGES)
+          });
+        }
+        
+        await DatabaseService.updateUser(userId, { 'widgetConfig.language': language });
+        res.json({ 
+          success: true, 
+          message: 'Language preference updated successfully',
+          language: language
+        });
+      } catch (error) {
+        console.error('Language update error:', error);
+        res.status(500).json({ error: 'Failed to update language preference' });
+      }
+    });
+    
+    app.get('/api/user/language', authenticateJWT, async (req, res) => {
+      try {
+        const userId = req.user._id;
+        const user = await DatabaseService.findUserById(userId);
+        
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const currentLanguage = user.widgetConfig?.language || 'en';
+        
+        res.json({
+          success: true,
+          language: currentLanguage,
+          supported: SUPPORTED_LANGUAGES,
+          translations: TRANSLATIONS[currentLanguage] || TRANSLATIONS['en']
+        });
+      } catch (error) {
+        console.error('Language fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch language preference' });
+      }
+    });
+    
     // Chat configuration -- Save comprehensive chat settings
     app.put('/api/chat-config', authenticateJWT, async (req, res) => {
       try {
@@ -1375,10 +1423,12 @@ async function startServer() {
         let aiResponse;
         const startTime = Date.now();
 
-        // Detect language from user message
-        let detectedLanguage = language || LANGUAGE_DETECTION.detectLanguage(message);
+        // Detect language from user message or use user's preference
+        let detectedLanguage = language || user.widgetConfig?.language || LANGUAGE_DETECTION.detectLanguage(message);
         console.log('🌐 Language received from client:', language);
-        console.log('🔍 Detected language from message:', detectedLanguage);
+        console.log('👤 User preferred language:', user.widgetConfig?.language);
+        console.log('🔍 Detected language from message:', LANGUAGE_DETECTION.detectLanguage(message));
+        console.log('✅ Final selected language:', detectedLanguage);
         
         if (!SUPPORTED_LANGUAGES[detectedLanguage]) {
           console.log('⚠️ Language not supported, falling back to English');
