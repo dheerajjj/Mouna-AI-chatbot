@@ -2055,5 +2055,43 @@ app.get('/email-validation-test', (req, res) => {
   }
 }
 
-// Start the server
-startServer();
+// Store database connection for export
+let db;
+
+// Initialize and export getDb function
+const { MongoClient } = require('mongodb');
+async function initDB() {
+  try {
+    if (!db) {
+      const client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-chatbot');
+      await client.connect();
+      db = client.db();
+      console.log('✅ Direct MongoDB connection established for reports');
+    }
+    return db;
+  } catch (error) {
+    console.error('❌ Direct MongoDB connection failed:', error);
+    throw error;
+  }
+}
+
+// Export getDb function for use by routes
+module.exports = {
+  getDb: () => {
+    if (!db) {
+      throw new Error('Database not initialized. Please ensure MongoDB connection is established.');
+    }
+    return db;
+  },
+  initDB
+};
+
+// Initialize DB before starting server
+initDB().then(() => {
+  // Start the server
+  startServer();
+}).catch((error) => {
+  console.error('❌ Failed to initialize database:', error);
+  // Try to start server anyway with fallback
+  startServer();
+});
