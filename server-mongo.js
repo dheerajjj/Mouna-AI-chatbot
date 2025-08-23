@@ -967,7 +967,7 @@ async function startServer() {
     app.put('/api/widget-config', authenticateJWT, async (req, res) => {
       try {
         const userId = req.user._id;
-        const { primaryColor, title, welcomeMessage, position, icon, size, animation } = req.body;
+        const { primaryColor, title, welcomeMessage, position, icon, size, animation, autoOpenMode, autoOpenDelay, autoOpenFrequency } = req.body;
         const update = {
           'widgetConfig.primaryColor': primaryColor,
           'widgetConfig.title': title,
@@ -976,6 +976,10 @@ async function startServer() {
           'widgetConfig.icon': icon,
           'widgetConfig.size': size,
           'widgetConfig.animation': animation,
+          // Behavior settings
+          'widgetConfig.autoOpenMode': autoOpenMode,
+          'widgetConfig.autoOpenDelay': typeof autoOpenDelay === 'number' ? autoOpenDelay : undefined,
+          'widgetConfig.autoOpenFrequency': autoOpenFrequency,
           'widgetConfig.lastUpdated': new Date()
         };
         await DatabaseService.updateUser(userId, update);
@@ -1332,7 +1336,11 @@ async function startServer() {
           welcomeMessage: 'Hello! How can I help you today?',
           placeholder: 'Type your message...',
           maxMessages: 10,
-          branding: true
+          branding: true,
+          // Default behavior
+          autoOpenMode: 'never',
+          autoOpenDelay: 10,
+          autoOpenFrequency: 'always'
         });
       } catch (error) {
         console.error('Config error:', error);

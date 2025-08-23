@@ -329,11 +329,31 @@
     
     async function loadConfiguration() {
         try {
-            const response = await fetch(`${currentConfig.apiEndpoint}/config`);
+            // Prefer API-key scoped config when available
+            const url = currentConfig.apiKey
+                ? `${currentConfig.apiEndpoint}/config/${encodeURIComponent(currentConfig.apiKey)}`
+                : `${currentConfig.apiEndpoint}/config`;
+            const response = await fetch(url);
             if (response.ok) {
                 const config = await response.json();
                 // Merge server config with local config
-                Object.assign(currentConfig, config.branding || {});
+                if (config) {
+                    // Colors and text
+                    if (config.primaryColor) currentConfig.primaryColor = config.primaryColor;
+                    if (config.title) currentConfig.title = config.title;
+                    if (config.welcomeMessage) currentConfig.welcomeMessage = config.welcomeMessage;
+                    if (typeof config.maxMessages === 'number') currentConfig.maxMessages = config.maxMessages;
+                    if (config.position) currentConfig.position = config.position;
+                    if (config.customLogoUrl) currentConfig.customLogo = config.customLogoUrl;
+
+                    // Behavior
+                    const mode = config.autoOpenMode || config.autoOpen; // support both
+                    const delay = typeof config.autoOpenDelay === 'number' ? config.autoOpenDelay : undefined;
+                    const freq = config.autoOpenFrequency || 'always';
+                    if (mode) currentConfig.autoOpen = mode;
+                    if (typeof delay !== 'undefined') currentConfig.autoOpenDelay = delay;
+                    if (freq) currentConfig.autoOpenFrequency = freq;
+                }
             }
         } catch (error) {
             console.warn('Could not load widget configuration:', error);
@@ -505,12 +525,33 @@
     // Auto-open rules
     function setupAutoOpenRules() {
         try {
-            let mode = currentConfig.autoOpen || 'never';
+            let mode = (currentConfig.autoOpen || 'never').toLowerCase();
             const delaySec = currentConfig.autoOpenDelay || 10;
+            const frequency = (currentConfig.autoOpenFrequency || 'always').toLowerCase();
             let autoOpened = false;
+
+            function respectFrequency() {
+                try {
+                    if (frequency === 'session') {
+                        if (sessionStorage.getItem('mouna_autoopen_done') === 'true') return false;
+                        sessionStorage.setItem('mouna_autoopen_done', 'true');
+                        return true;
+                    }
+                    if (frequency === 'daily') {
+                        const today = new Date();
+                        const key = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+                        const last = localStorage.getItem('mouna_autoopen_day');
+                        if (last === key) return false;
+                        localStorage.setItem('mouna_autoopen_day', key);
+                        return true;
+                    }
+                } catch (e) {}
+                return true; // default allow
+            }
 
             function safeOpen() {
                 if (!autoOpened && !isOpen) {
+                    if (!respectFrequency()) return;
                     autoOpened = true;
                     openWidget();
                 }
@@ -1488,11 +1529,13 @@
             // Parse auto-open settings
             const autoOpenMode = scriptTag.getAttribute('data-auto-open'); // time|exit|returning|immediate|never
             const autoOpenDelayAttr = scriptTag.getAttribute('data-auto-open-delay');
+            const autoOpenFreq = scriptTag.getAttribute('data-auto-open-frequency'); // always|session|daily
             if (autoOpenMode) currentConfig.autoOpen = autoOpenMode; // reuse field for mode string
             if (autoOpenDelayAttr) {
                 const sec = parseInt(autoOpenDelayAttr, 10);
                 if (!Number.isNaN(sec)) currentConfig.autoOpenDelay = sec;
             }
+            if (autoOpenFreq) currentConfig.autoOpenFrequency = autoOpenFreq;
         }
         
         // If no API key is provided, try to fetch test API key for demo

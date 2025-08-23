@@ -474,6 +474,33 @@
                     </div>
                 </div>
 
+                <div class="section">
+                    <h3><i class="fas fa-bolt"></i> Behavior</h3>
+                    <div class="form-group">
+                        <label class="form-label">Auto-open Mode</label>
+                        <select id="auto-open-mode" class="form-input">
+                            <option value="never">Never</option>
+                            <option value="immediate">Immediate</option>
+                            <option value="time">After time on page</option>
+                            <option value="exit">Exit intent</option>
+                            <option value="returning">Returning visitor</option>
+                        </select>
+                        <small style="color:#64748b;">Control when the widget auto-opens to boost engagement.</small>
+                    </div>
+                    <div class="form-group" id="auto-open-delay-group" style="display:none;">
+                        <label class="form-label">Delay (seconds)</label>
+                        <input type="number" id="auto-open-delay" class="form-input" min="1" max="600" value="10" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Frequency</label>
+                        <select id="auto-open-frequency" class="form-input">
+                            <option value="always">Every visit</option>
+                            <option value="session">Once per session</option>
+                            <option value="daily">Once per day</option>
+                        </select>
+                    </div>
+                </div>
+
                 <button class="btn" onclick="saveCustomization()">
                     <i class="fas fa-save"></i>
                     Save Customization
@@ -563,56 +590,66 @@
                     const logoUploadGroup = document.getElementById('logo-upload-group');
                     if (logoUploadGroup) logoUploadGroup.style.display = showLogoUpload ? 'block' : 'none';
 
-                    // Initialize form from saved widget config if available
-                    const w = user.widgetConfig || {};
-                    try {
-                        // Existing custom logo preview
-                        const existingLogo = w.customLogoUrl || w.customLogo;
-                        const previewEl = document.getElementById('logo-preview');
-                        if (existingLogo && previewEl) {
-                            previewEl.src = existingLogo;
-                            previewEl.style.display = 'inline-block';
-                        }
-                        // Primary color
-                        if (w.primaryColor) {
-                            const colorEl = document.getElementById('primary-color');
-                            const colorHexEl = document.getElementById('primary-color-hex');
-                            if (colorEl) colorEl.value = w.primaryColor;
-                            if (colorHexEl) colorHexEl.value = w.primaryColor;
-                        }
-                        // Title and Welcome message
-                        if (w.title) {
-                            const t = document.getElementById('widget-title');
-                            if (t) t.value = w.title;
-                        }
-                        if (w.welcomeMessage) {
-                            const m = document.getElementById('welcome-message');
-                            if (m) m.value = w.welcomeMessage;
-                        }
-                        // Position
-                        if (w.position) {
-                            document.querySelectorAll('.select-option[data-position]').forEach(opt => opt.classList.remove('active'));
-                            const posEl = document.querySelector(`.select-option[data-position="${w.position}"]`);
-                            if (posEl) posEl.classList.add('active');
-                        }
-                        // Icon selection
-                        if (w.icon) {
-                            document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
-                            const iconEl = document.querySelector(`.select-option[data-icon="${w.icon}"]`);
-                            if (iconEl) iconEl.classList.add('active');
-                        }
-                        // Size and animation
-                        if (w.size) {
-                            const s = document.getElementById('widget-size');
-                            if (s) s.value = w.size;
-                        }
-                        if (w.animation) {
-                            const a = document.getElementById('animation');
-                            if (a) a.value = w.animation;
-                        }
-                        // Update preview after loading
-                        updatePreview();
-                    } catch (e) { console.warn('Failed to initialize from saved config:', e); }
+                        // Initialize form from saved widget config if available
+                        const w = user.widgetConfig || {};
+                        try {
+                            // Existing custom logo preview
+                            const existingLogo = w.customLogoUrl || w.customLogo;
+                            const previewEl = document.getElementById('logo-preview');
+                            if (existingLogo && previewEl) {
+                                previewEl.src = existingLogo;
+                                previewEl.style.display = 'inline-block';
+                            }
+                            // Primary color
+                            if (w.primaryColor) {
+                                const colorEl = document.getElementById('primary-color');
+                                const colorHexEl = document.getElementById('primary-color-hex');
+                                if (colorEl) colorEl.value = w.primaryColor;
+                                if (colorHexEl) colorHexEl.value = w.primaryColor;
+                            }
+                            // Title and Welcome message
+                            if (w.title) {
+                                const t = document.getElementById('widget-title');
+                                if (t) t.value = w.title;
+                            }
+                            if (w.welcomeMessage) {
+                                const m = document.getElementById('welcome-message');
+                                if (m) m.value = w.welcomeMessage;
+                            }
+                            // Position
+                            if (w.position) {
+                                document.querySelectorAll('.select-option[data-position]').forEach(opt => opt.classList.remove('active'));
+                                const posEl = document.querySelector(`.select-option[data-position="${w.position}"]`);
+                                if (posEl) posEl.classList.add('active');
+                            }
+                            // Icon selection
+                            if (w.icon) {
+                                document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
+                                const iconEl = document.querySelector(`.select-option[data-icon="${w.icon}"]`);
+                                if (iconEl) iconEl.classList.add('active');
+                            }
+                            // Size and animation
+                            if (w.size) {
+                                const s = document.getElementById('widget-size');
+                                if (s) s.value = w.size;
+                            }
+                            if (w.animation) {
+                                const a = document.getElementById('animation');
+                                if (a) a.value = w.animation;
+                            }
+                            // Behavior
+                            const modeEl = document.getElementById('auto-open-mode');
+                            const delayEl = document.getElementById('auto-open-delay');
+                            const groupEl = document.getElementById('auto-open-delay-group');
+                            const freqEl = document.getElementById('auto-open-frequency');
+                            if (modeEl && w.autoOpenMode) modeEl.value = w.autoOpenMode;
+                            if (delayEl && typeof w.autoOpenDelay === 'number') delayEl.value = w.autoOpenDelay;
+                            if (freqEl && w.autoOpenFrequency) freqEl.value = w.autoOpenFrequency;
+                            if (groupEl) groupEl.style.display = (modeEl && modeEl.value === 'time') ? 'block' : 'none';
+                            
+                            // Update preview after loading
+                            updatePreview();
+                        } catch (e) { console.warn('Failed to initialize from saved config:', e); }
                     
                     if (userPlan === 'free') {
                         document.getElementById('upgrade-banner').style.display = 'block';
@@ -740,6 +777,15 @@
                     });
                 });
 
+                // Auto-open behavior handlers
+                const modeEl = document.getElementById('auto-open-mode');
+                const delayGroup = document.getElementById('auto-open-delay-group');
+                if (modeEl && delayGroup) {
+                    modeEl.addEventListener('change', () => {
+                        delayGroup.style.display = modeEl.value === 'time' ? 'block' : 'none';
+                    });
+                }
+
                 // Widget preview click
                 const widgetPreview = document.getElementById('widget-preview');
                 if (widgetPreview) {
@@ -819,7 +865,22 @@
                 const primaryColor = primaryColorEl ? primaryColorEl.value : '#667eea';
                 const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
                 
-                const code = `&lt;script src=\"https://your-domain.com/widget.js\" data-api-key=\"your-api-key\" data-color=\"${primaryColor}\" data-position=\"${position}\" data-logo=\"{{your_logo_url}}\"&gt;&lt;/script&gt;`;
+                const modeEl = document.getElementById('auto-open-mode');
+                const delayEl = document.getElementById('auto-open-delay');
+                const frequencyEl = document.getElementById('auto-open-frequency');
+
+                let attrs = `data-api-key=\"your-api-key\" data-color=\"${primaryColor}\" data-position=\"${position}\" data-logo=\"{{your_logo_url}}\"`;
+                if (modeEl && modeEl.value && modeEl.value !== 'never') {
+                    attrs += ` data-auto-open=\"${modeEl.value}\"`;
+                }
+                if (modeEl && modeEl.value === 'time' && delayEl && delayEl.value) {
+                    attrs += ` data-auto-open-delay=\"${parseInt(delayEl.value,10)}\"`;
+                }
+                if (frequencyEl && frequencyEl.value && frequencyEl.value !== 'always') {
+                    attrs += ` data-auto-open-frequency=\"${frequencyEl.value}\"`;
+                }
+
+                const code = `&lt;script src=\"https://your-domain.com/widget.js\" ${attrs}&gt;&lt;/script&gt;`;
                 
                 if (integrationCodeEl) {
                     integrationCodeEl.innerHTML = code;
@@ -864,7 +925,10 @@
                     position: document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right',
                     icon: document.querySelector('.select-option[data-icon].active')?.dataset.icon || 'chat',
                     size: document.getElementById('widget-size').value,
-                    animation: document.getElementById('animation').value
+                    animation: document.getElementById('animation').value,
+                    autoOpenMode: document.getElementById('auto-open-mode')?.value || 'never',
+                    autoOpenDelay: parseInt(document.getElementById('auto-open-delay')?.value || '10', 10),
+                    autoOpenFrequency: document.getElementById('auto-open-frequency')?.value || 'always'
                 };
 
                 const response = await fetch('/api/widget-config', {
