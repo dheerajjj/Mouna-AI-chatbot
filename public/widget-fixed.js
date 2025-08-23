@@ -426,6 +426,8 @@
                         
                         if (branding.customLogo) {
                             currentConfig.customLogo = branding.customLogo;
+                            // Update trigger icon if widget is already rendered
+                            renderTriggerIcon();
                         }
                         
                         if (branding.companyName) {
@@ -1374,6 +1376,19 @@
             }
         });
     }
+
+    // Render or update the trigger icon based on customLogo
+    function renderTriggerIcon() {
+        try {
+            const trigger = widget && widget.querySelector ? widget.querySelector('#aiChatToggle') : null;
+            if (!trigger) return;
+            const notif = trigger.querySelector('#chatbot-notification');
+            if (currentConfig.customLogo) {
+                const notifHtml = notif ? notif.outerHTML : '<span class="chatbot-widget-notification" id="chatbot-notification" style="display: none;"></span>';
+                trigger.innerHTML = `<img src="${currentConfig.customLogo}" alt="Chat" style="width:28px;height:28px;border-radius:6px;object-fit:contain;background:#fff;">` + notifHtml;
+            }
+        } catch (e) { console.warn('renderTriggerIcon failed:', e); }
+    }
     
     // Initialize widget
     async function initializeWidget() {
@@ -1411,6 +1426,12 @@
                     currentConfig[configKey] = value;
                 }
             });
+
+            // Custom logo from script attribute (data-logo)
+            const logoAttr = scriptTag.getAttribute('data-logo') || scriptTag.getAttribute('data-logo-url');
+            if (logoAttr) {
+                currentConfig.customLogo = logoAttr;
+            }
         }
         
         // If no API key is provided, try to fetch test API key for demo
@@ -1441,6 +1462,9 @@
         
         // Add widget to page
         document.body.appendChild(widget);
+
+        // If a custom logo is configured at load time, render it
+        renderTriggerIcon();
         
         // Bind events
         bindEvents();

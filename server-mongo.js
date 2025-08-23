@@ -7,6 +7,10 @@ const path = require('path');
 const session = require('express-session');
 require('dotenv').config();
 
+// Cloudinary and Multer for logo uploads
+const { v2: cloudinary } = require('cloudinary');
+const multer = require('multer');
+
 // Import services and models
 const DatabaseService = require('./services/DatabaseService');
 const OpenAI = require('openai');
@@ -15,6 +19,35 @@ const { SUPPORTED_LANGUAGES, TRANSLATIONS, LANGUAGE_DETECTION, AI_SYSTEM_PROMPTS
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configure Cloudinary (for logo uploads)
+try {
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
+    console.log('✅ Cloudinary configured');
+  } else {
+    console.warn('⚠️ Cloudinary env vars missing; logo upload will be disabled until configured');
+  }
+} catch (e) {
+  console.warn('⚠️ Failed to initialize Cloudinary:', e.message);
+}
+
+// Multer setup for handling image uploads (in-memory)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 512 * 1024 }, // 512 KB
+  fileFilter: (req, file, cb) => {
+    try {
+      const allowed = ['image/png','image/jpeg','image/jpg','image/svg+xml','image/webp'];
+      if (allowed.includes(file.mimetype)) return cb(null, true);
+      return cb(new Error('Unsupported file type. Allowed: PNG, JPG, SVG, WEBP'));
+    } catch (err) { return cb(err); }
+  }
+});
 
 // Trust proxy for Railway deployment
 app.set('trust proxy', 1);
@@ -950,6 +983,63 @@ async function startServer() {
         res.status(500).json({ error: 'Failed to save widget configuration.' });
       }
     });
+
+    // Logo upload endpoints (Professional+)
+    app.post('/api/widget/logo', authenticateJWT, requireFeature('logoUpload'), upload.single('logo'), async (req, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: 'No file uploaded' });
+        }
+        if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+          return res.status(503).json({ error: 'Logo upload service not configured' });
+        }
+
+        // Validate mimetype (extra guard)
+        const { mimetype, buffer } = req.file;
+        const allowed = ['image/png','image/jpeg','image/jpg','image/svg+xml','image/webp'];
+        if (!allowed.includes(mimetype)) {
+          return res.status(400).json({ error: 'Unsupported file type. Use PNG, JPG, SVG or WEBP.' });
+        }
+
+        // Upload to Cloudinary using data URI
+        const base64 = buffer.toString('base64');
+        const dataUri = `data:${mimetype};base64,${base64}`;
+        const uploadResult = await cloudinary.uploader.upload(dataUri, {
+          folder: `mouna/widget-logos/${req.user._id}`,
+          public_id: 'logo',
+          overwrite: true,
+          resource_type: 'image',
+          transformation: [{ width: 128, height: 128, crop: 'limit', quality: 'auto' }]
+        });
+
+        // Persist on user profile
+        await DatabaseService.updateUser(req.user._id, {
+          'widgetConfig.customLogoUrl': uploadResult.secure_url,
+          'widgetConfig.icon': 'custom',
+          'widgetConfig.lastUpdated': new Date()
+        });
+
+        return res.json({ success: true, url: uploadResult.secure_url });
+      } catch (error) {
+        console.error('Logo upload error:', error);
+        return res.status(500).json({ error: 'Failed to upload logo' });
+      }
+    });
+
+    app.delete('/api/widget/logo', authenticateJWT, requireFeature('logoUpload'), async (req, res) => {
+      try {
+        // Only clear from user profile; actual Cloudinary deletion is optional
+        await DatabaseService.updateUser(req.user._id, {
+          'widgetConfig.customLogoUrl': null,
+          'widgetConfig.icon': 'chat',
+          'widgetConfig.lastUpdated': new Date()
+        });
+        return res.json({ success: true });
+      } catch (error) {
+        console.error('Logo remove error:', error);
+        return res.status(500).json({ error: 'Failed to remove logo' });
+      }
+    });
     
     // Get Widget Configuration -- Including advanced settings
     app.get('/api/widget/config', validateApiKey, async (req, res) => {
@@ -1371,7 +1461,7 @@ async function startServer() {
     });
 
     // Import plan access control middleware
-    const { checkUsageLimit, incrementUsage } = require('./middleware/planAccessControl');
+const { checkUsageLimit, incrementUsage, requireFeature } = require('./middleware/planAccessControl');
 
     // Chat endpoint
     app.post('/ask', validateApiKey, checkUsageLimit('messagesPerMonth', 1), incrementUsage(DatabaseService), async (req, res) => {

@@ -446,6 +446,21 @@
                                 <i class="fas fa-robot"></i>
                                 <div>Robot</div>
                             </div>
+                            <div class="select-option" data-icon="mouna">
+                                <img src="/images/logo.png" alt="Mouna" style="width:24px;height:24px;object-fit:contain;">
+                                <div>Mouna</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="logo-upload-group" style="display:none;">
+                        <label class="form-label">Custom Logo (Professional+)</label>
+                        <input type="file" id="custom-logo" accept="image/png, image/jpeg, image/svg+xml" class="form-input" />
+                        <small style="color:#64748b;">PNG/JPG/SVG, max 512 KB. Recommended square 128×128.</small>
+                        <div style="margin-top:8px; display:flex; align-items:center; gap:12px;">
+                            <img id="logo-preview" src="" alt="Logo Preview" style="width:40px;height:40px;border-radius:8px;display:none;border:1px solid #e5e7eb;object-fit:contain;background:#fff;" />
+                            <button type="button" class="btn" style="max-width:200px;" id="upload-logo-btn"><i class="fas fa-upload"></i> Upload Logo</button>
+                            <button type="button" class="btn" style="background:#6b7280;max-width:160px;" id="remove-logo-btn"><i class="fas fa-times"></i> Remove</button>
                         </div>
                     </div>
 
@@ -520,6 +535,7 @@
         });
 
         async function checkUserPlan() {
+            let userPlan = 'free';
             try {
                 const token = localStorage.getItem('authToken');
                 if (!token) {
@@ -540,7 +556,63 @@
                     // Update user name in navigation
                     document.getElementById('user-name').textContent = user.name;
                     
-                    const userPlan = user.subscription?.plan || 'free';
+                    userPlan = user.subscription?.plan || 'free';
+                    
+                    // Gate logo upload by plan: Professional+
+                    const showLogoUpload = ['professional','enterprise'].includes(userPlan);
+                    const logoUploadGroup = document.getElementById('logo-upload-group');
+                    if (logoUploadGroup) logoUploadGroup.style.display = showLogoUpload ? 'block' : 'none';
+
+                    // Initialize form from saved widget config if available
+                    const w = user.widgetConfig || {};
+                    try {
+                        // Existing custom logo preview
+                        const existingLogo = w.customLogoUrl || w.customLogo;
+                        const previewEl = document.getElementById('logo-preview');
+                        if (existingLogo && previewEl) {
+                            previewEl.src = existingLogo;
+                            previewEl.style.display = 'inline-block';
+                        }
+                        // Primary color
+                        if (w.primaryColor) {
+                            const colorEl = document.getElementById('primary-color');
+                            const colorHexEl = document.getElementById('primary-color-hex');
+                            if (colorEl) colorEl.value = w.primaryColor;
+                            if (colorHexEl) colorHexEl.value = w.primaryColor;
+                        }
+                        // Title and Welcome message
+                        if (w.title) {
+                            const t = document.getElementById('widget-title');
+                            if (t) t.value = w.title;
+                        }
+                        if (w.welcomeMessage) {
+                            const m = document.getElementById('welcome-message');
+                            if (m) m.value = w.welcomeMessage;
+                        }
+                        // Position
+                        if (w.position) {
+                            document.querySelectorAll('.select-option[data-position]').forEach(opt => opt.classList.remove('active'));
+                            const posEl = document.querySelector(`.select-option[data-position="${w.position}"]`);
+                            if (posEl) posEl.classList.add('active');
+                        }
+                        // Icon selection
+                        if (w.icon) {
+                            document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
+                            const iconEl = document.querySelector(`.select-option[data-icon="${w.icon}"]`);
+                            if (iconEl) iconEl.classList.add('active');
+                        }
+                        // Size and animation
+                        if (w.size) {
+                            const s = document.getElementById('widget-size');
+                            if (s) s.value = w.size;
+                        }
+                        if (w.animation) {
+                            const a = document.getElementById('animation');
+                            if (a) a.value = w.animation;
+                        }
+                        // Update preview after loading
+                        updatePreview();
+                    } catch (e) { console.warn('Failed to initialize from saved config:', e); }
                     
                     if (userPlan === 'free') {
                         document.getElementById('upgrade-banner').style.display = 'block';
@@ -573,6 +645,49 @@
         }
 
         function initializeCustomization() {
+            // Bind upload/remove handlers (Professional+)
+            const uploadBtn = document.getElementById('upload-logo-btn');
+            const removeBtn = document.getElementById('remove-logo-btn');
+            const fileInput = document.getElementById('custom-logo');
+            const logoPreview = document.getElementById('logo-preview');
+
+            if (uploadBtn && fileInput) {
+                uploadBtn.addEventListener('click', async () => {
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        alert('Please choose an image first.');
+                        return;
+                    }
+                    const file = fileInput.files[0];
+                    if (file.size > 512 * 1024) { alert('File too large. Max 512 KB.'); return; }
+                    const token = localStorage.getItem('authToken');
+                    const form = new FormData();
+                    form.append('logo', file);
+                    const resp = await fetch('/api/widget/logo', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: form });
+                    const data = await resp.json();
+                    if (resp.ok && data.url) {
+                        logoPreview.src = data.url;
+                        logoPreview.style.display = 'inline-block';
+                        alert('Logo uploaded! It will reflect in your widget shortly.');
+                    } else {
+                        alert(data.error || 'Upload failed');
+                    }
+                });
+            }
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', async () => {
+                    const token = localStorage.getItem('authToken');
+                    const resp = await fetch('/api/widget/logo', { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                    const data = await resp.json();
+                    if (resp.ok) {
+                        if (logoPreview) { logoPreview.src=''; logoPreview.style.display='none'; }
+                        if (fileInput) fileInput.value = '';
+                        alert('Logo removed.');
+                    } else {
+                        alert(data.error || 'Failed to remove logo');
+                    }
+                });
+            }
             try {
                 // Color picker event listeners
                 const colorInput = document.getElementById('primary-color');
@@ -664,8 +779,12 @@
                     widgetPreview.style.setProperty('--widget-color', primaryColor);
                     
                     // Update icon
-                    const iconClass = icon === 'robot' ? 'fas fa-robot' : 'fas fa-comments';
-                    widgetPreview.innerHTML = `<i class="${iconClass}"></i>`;
+                    if (icon === 'mouna') {
+                        widgetPreview.innerHTML = `<img src="/images/logo.png" alt="Mouna" style="width:28px;height:28px;border-radius:6px;object-fit:contain;background:#fff;">`;
+                    } else {
+                        const iconClass = icon === 'robot' ? 'fas fa-robot' : 'fas fa-comments';
+                        widgetPreview.innerHTML = `<i class="${iconClass}"></i>`;
+                    }
 
                     // Update position
                     widgetPreview.style.bottom = position.includes('bottom') ? '20px' : 'auto';
@@ -700,7 +819,7 @@
                 const primaryColor = primaryColorEl ? primaryColorEl.value : '#667eea';
                 const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
                 
-                const code = `&lt;script src="https://your-domain.com/widget.js" data-api-key="your-api-key" data-color="${primaryColor}" data-position="${position}"&gt;&lt;/script&gt;`;
+                const code = `&lt;script src=\"https://your-domain.com/widget.js\" data-api-key=\"your-api-key\" data-color=\"${primaryColor}\" data-position=\"${position}\" data-logo=\"{{your_logo_url}}\"&gt;&lt;/script&gt;`;
                 
                 if (integrationCodeEl) {
                     integrationCodeEl.innerHTML = code;
