@@ -1011,6 +1011,22 @@
             </div>
         </div>
 
+        <!-- Integration Diagnostics Card -->
+        <div class="card" id="diagnostics-card">
+            <div class="card-icon">
+                <i class="fas fa-stethoscope"></i>
+            </div>
+            <h2 class="card-title">Integration Diagnostics</h2>
+            <p style="color: #64748b; margin-bottom: 1rem;">Run checks to ensure your environment is ready.</p>
+            <div id="diagnostics-results" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+                <ul id="diag-list" style="list-style:none;padding-left:0;margin:0;display:flex;flex-direction:column;gap:.5rem;color:#374151;"></ul>
+            </div>
+            <button class="preview-btn secondary" id="run-diagnostics" onclick="runDiagnostics()">
+                <i class="fas fa-play"></i>
+                Run Diagnostics
+            </button>
+        </div>
+
         <!-- Integration Code Card -->
         <div class="card">
             <div class="card-icon">
@@ -1228,6 +1244,56 @@
             });
         }
         
+        async function runDiagnostics() {
+            const list = document.getElementById('diag-list');
+            const add = (ok, label, detail='') => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span style="color:${ok?'#059669':'#b91c1c'}">${ok?'✔':'✖'}</span> ${label}${detail?` <small style='color:#64748b'>- ${detail}</small>`:''}`;
+                list.appendChild(li);
+            };
+            list.innerHTML = '';
+            try {
+                // Health
+                let r = await fetch('/health');
+                const healthy = r.ok; const health = healthy ? await r.json() : {};
+                add(healthy, 'Server health', healthy?`DB=${health.database?.status}, OpenAI=${health.openai}`:'unreachable');
+
+                // API Key
+                let apiOk = false;
+                try {
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        const pr = await fetch('/api/profile', { headers:{'Authorization':`Bearer ${token}`}});
+                        if (pr.ok) apiOk = true;
+                    }
+                } catch (e) {}
+                if (!apiOk) {
+                    const tr = await fetch('/test-api-key');
+                    apiOk = tr.ok;
+                }
+                add(apiOk, 'API key available');
+
+                // Widget script accessible
+                try {
+                    const wr = await fetch('/widget-fixed.js', { method:'HEAD' });
+                    add(wr.ok, 'Widget script served');
+                } catch (e) { add(false, 'Widget script served', e.message); }
+
+                // Auto-training availability (optional)
+                let atOk=false; try {
+                    const ar = await fetch('/api/tenant/auto-training/status');
+                    atOk = ar.ok;
+                } catch(e){ /* may not exist */ }
+                add(atOk, 'Auto-training service', atOk?'available':'optional');
+
+                // Result summary
+                const allOk = [...list.children].every(li => li.innerText.trim().startsWith('✔'));
+                if (allOk) add(true, 'All checks passed');
+            } catch (e) {
+                add(false, 'Diagnostics failed', e.message);
+            }
+        }
+
         function previewWidget() {
             // Create a preview modal with actual widget
             const modal = document.createElement('div');

@@ -502,6 +502,55 @@
         }
     }
     
+    // Auto-open rules
+    function setupAutoOpenRules() {
+        try {
+            let mode = currentConfig.autoOpen || 'never';
+            const delaySec = currentConfig.autoOpenDelay || 10;
+            let autoOpened = false;
+
+            function safeOpen() {
+                if (!autoOpened && !isOpen) {
+                    autoOpened = true;
+                    openWidget();
+                }
+            }
+
+            // Returning visitor
+            if (mode === 'returning') {
+                try {
+                    const seen = localStorage.getItem('mouna_widget_seen') === 'true';
+                    if (seen) setTimeout(safeOpen, 1000);
+                } catch (e) {}
+            }
+
+            // Immediate
+            if (mode === 'immediate') {
+                setTimeout(safeOpen, 500);
+            }
+
+            // Time on page
+            if (mode === 'time') {
+                setTimeout(safeOpen, Math.max(1, delaySec) * 1000);
+            }
+
+            // Exit intent
+            if (mode === 'exit') {
+                const onMouseOut = (e) => {
+                    e = e || window.event;
+                    const from = e.relatedTarget || e.toElement;
+                    if (!from && e.clientY <= 0) {
+                        safeOpen();
+                        document.removeEventListener('mouseout', onMouseOut);
+                    }
+                };
+                document.addEventListener('mouseout', onMouseOut);
+            }
+        } catch (e) {
+            console.warn('Auto-open rules setup failed:', e);
+        }
+    }
+    
     // NEW: Update widget colors dynamically
     function updateWidgetColors(primaryColor) {
         if (!primaryColor || !widget) return;
@@ -1190,6 +1239,9 @@
             trigger.style.display = 'none';
             isOpen = true;
             
+            // Mark as seen for “returning visitor” logic
+            try { localStorage.setItem('mouna_widget_seen', 'true'); } catch (e) {}
+            
             // Focus input field
             setTimeout(() => {
                 const inputField = document.getElementById('chatbot-input-field');
@@ -1418,7 +1470,7 @@
             }
             
             // Check for other configuration attributes
-            const attributes = ['primary-color', 'position', 'title', 'welcome-message', 'subtitle'];
+            const attributes = ['primary-color', 'position', 'title', 'welcome-message', 'subtitle', 'auto-open', 'auto-open-delay'];
             attributes.forEach(attr => {
                 const value = scriptTag.getAttribute(`data-${attr}`);
                 if (value) {
@@ -1431,6 +1483,15 @@
             const logoAttr = scriptTag.getAttribute('data-logo') || scriptTag.getAttribute('data-logo-url');
             if (logoAttr) {
                 currentConfig.customLogo = logoAttr;
+            }
+
+            // Parse auto-open settings
+            const autoOpenMode = scriptTag.getAttribute('data-auto-open'); // time|exit|returning|immediate|never
+            const autoOpenDelayAttr = scriptTag.getAttribute('data-auto-open-delay');
+            if (autoOpenMode) currentConfig.autoOpen = autoOpenMode; // reuse field for mode string
+            if (autoOpenDelayAttr) {
+                const sec = parseInt(autoOpenDelayAttr, 10);
+                if (!Number.isNaN(sec)) currentConfig.autoOpenDelay = sec;
             }
         }
         
@@ -1482,10 +1543,8 @@
             await loadPersonalTenantConfiguration();
         }
         
-        // Auto-open if configured
-        if (currentConfig.autoOpen) {
-            setTimeout(openWidget, 1000);
-        }
+        // Setup auto-open rules (time on page, exit-intent, returning visitor)
+        setupAutoOpenRules();
         
         console.log('AI Chatbot Widget initialized successfully');
     }
