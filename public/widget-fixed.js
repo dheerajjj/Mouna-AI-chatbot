@@ -250,32 +250,25 @@
     }
     
     async function transliterateText(text, language) {
-        if (language !== 'te' || !text) {
-            return text; // Only transliterate for Telugu
-        }
-        
+        // Convert user's typed text to the selected language script before sending
+        if (!text || !language || language === 'en') return text;
         try {
-            // Use server-side transliteration endpoint
             const response = await fetch(`${currentConfig.apiEndpoint}/api/transliterate`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    text: text,
-                    fromScript: 'latin',
-                    toScript: 'telugu'
+                    text,
+                    toLanguage: language // generalized server-side conversion
                 })
             });
-            
             if (response.ok) {
                 const data = await response.json();
-                return data.transliteratedText || text;
+                // Server returns convertedText
+                return data.convertedText || data.transliteratedText || text;
             }
         } catch (error) {
-            console.warn('Transliteration failed:', error);
+            console.warn('Transliteration/conversion failed:', error);
         }
-        
         return text;
     }
     function generateSessionId() {
@@ -1151,7 +1144,9 @@
             } else {
                 // Make API call for regular AI responses
                 console.log('Sending message with language:', currentLanguage);
-                response = await sendMessage(message);
+                // Send the converted text so the backend and model receive the selected language
+                const messageForApi = transliteratedMessage || message;
+                response = await sendMessage(messageForApi);
                 
                 // Simulate typing delay
                 await new Promise(resolve => setTimeout(resolve, currentConfig.typingDelay));

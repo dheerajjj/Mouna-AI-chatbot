@@ -1297,65 +1297,59 @@ async function startServer() {
       });
     });
 
-    // Transliteration endpoint
-    app.post('/api/transliterate', (req, res) => {
-        const { text, fromScript = 'latin', toScript = 'telugu' } = req.body;
-        
-        if (!text) {
-            return res.status(400).json({ error: 'Text is required' });
-        }
-        
+    // Language conversion/transliteration endpoint (generalized)
+    // Converts Latin-typed input into the target language script naturally.
+    app.post('/api/transliterate', async (req, res) => {
         try {
-            // Basic Telugu transliteration mapping
-            const teluguMap = {
-                'ela unnaru': 'ఎలా ఉన్నారు',
-                'meeru bagunnara': 'మీరు బాగున్నారా',
-                'nenu bagunnanu': 'నేను బాగున్నాను',
-                'dhanyavadalu': 'ధన్యవాదాలు',
-                'namaste': 'నమస్తే',
-                'hello': 'హలో',
-                'good morning': 'శుభోదయం',
-                'good night': 'శుభరాత్రి',
-                'thank you': 'ధన్యవాదాలు',
-                'how are you': 'ఎలా ఉన్నారు',
-                'what is your name': 'మీ పేరు ఏమిటి',
-                'my name is': 'నా పేరు',
-                'nice to meet you': 'మిమ్మల్ని కలవడం సంతోషం',
-                'see you later': 'తర్వాత కలుద్దాం',
-                'goodbye': 'వీడ్కోలు',
-                'yes': 'అవును',
-                'no': 'లేదు',
-                'please': 'దయచేసి',
-                'sorry': 'క్షమించండి',
-                'excuse me': 'క్షమించండి',
-                'help me': 'నాకు సహాయం చేయండి',
-                'i need help': 'నాకు సహాయం కావాలి',
-                'where are you': 'మీరు ఎక్కడ ఉన్నారు',
-                'what are you doing': 'మీరు ఏమి చేస్తున్నారు',
-                'i am fine': 'నేను బాగున్నాను',
-                'i am good': 'నేను బాగున్నాను',
-                'very good': 'చాలా బాగుంది'
-            };
-            
-            let transliteratedText = text;
-            
-            // Replace phrases (case-insensitive)
-            for (let key in teluguMap) {
-                const regex = new RegExp(key, 'gi');
-                transliteratedText = transliteratedText.replace(regex, teluguMap[key]);
+            const { text, toLanguage } = req.body;
+            if (!text) return res.status(400).json({ error: 'Text is required' });
+
+            // Only act when a non-English language is requested
+            const target = (toLanguage || 'en').toLowerCase();
+            if (target === 'en') {
+                return res.json({ convertedText: text, success: true });
             }
-            
-            res.json({
-                originalText: text,
-                transliteratedText,
-                fromScript,
-                toScript,
-                success: true
-            });
-            
+
+            // Prefer open-source transliteration for Indian languages
+            let convertedText = text;
+
+            // Try using @indic-transliteration/sanscript if present
+            try {
+                const Sanscript = require('@indic-transliteration/sanscript');
+                const map = { te: 'telugu', hi: 'devanagari', ta: 'tamil', mr: 'devanagari', kn: 'kannada' };
+                const targetScript = map[target];
+                if (targetScript) {
+                    // Sanscript expects scheme names; 'itrans' handles ASCII to Indic reasonably well
+                    convertedText = Sanscript.t(text, 'itrans', targetScript);
+                }
+            } catch (e) {
+                // If Sanscript isn't present, keep original text for fallback
+            }
+
+            // If nothing changed and OpenAI is configured, use a lightweight conversion fallback
+            if (convertedText === text && typeof openai !== 'undefined' && openai) {
+                try {
+                    const languageName = SUPPORTED_LANGUAGES[target]?.name || target;
+                    const completion = await openai.chat.completions.create({
+                        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+                        messages: [
+                            { role: 'system', content: `You convert text typed using Latin characters into natural ${languageName} in its native script. Output only the converted text with no explanations.` },
+                            { role: 'user', content: text }
+                        ],
+                        max_tokens: 120,
+                        temperature: 0
+                    });
+                    const out = completion.choices[0]?.message?.content?.trim();
+                    if (out) convertedText = out;
+                } catch (e) {
+                    console.warn('OpenAI conversion fallback failed:', e.message);
+                }
+            }
+
+            return res.json({ success: true, convertedText });
         } catch (error) {
             console.error('Transliteration error:', error);
-            res.status(500).json({ error: 'Transliteration failed' });
+            return res.status(500).json({ error: 'Transliteration failed' });
         }
     });
 
@@ -1579,6 +1573,10 @@ async function startServer() {
               {
                 role: 'system',
                 content: systemPrompt
+              },
+              {
+                role: 'system',
+                content: `All assistant replies must be in ${SUPPORTED_LANGUAGES[detectedLanguage]?.name || detectedLanguage} using its native script. Do not switch languages unless explicitly asked to translate.`
               },
               {
                 role: 'user',
