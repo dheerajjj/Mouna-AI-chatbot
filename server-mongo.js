@@ -16,6 +16,8 @@ const DatabaseService = require('./services/DatabaseService');
 const OpenAI = require('openai');
 const mongoose = require('mongoose');
 const { SUPPORTED_LANGUAGES, TRANSLATIONS, LANGUAGE_DETECTION, AI_SYSTEM_PROMPTS } = require('./config/languages');
+// Plan access control (limits, features)
+const { checkUsageLimit, incrementUsage, requireFeature } = require('./middleware/planAccessControl');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1460,8 +1462,8 @@ async function startServer() {
       });
     });
 
-    // Import plan access control middleware
-const { checkUsageLimit, incrementUsage, requireFeature } = require('./middleware/planAccessControl');
+// Import plan access control middleware
+// Moved to top to avoid TDZ issues before route definitions
 
     // Chat endpoint
     app.post('/ask', validateApiKey, checkUsageLimit('messagesPerMonth', 1), incrementUsage(DatabaseService), async (req, res) => {
