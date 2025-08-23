@@ -767,6 +767,18 @@
 
         // Load user data on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Capture token from OAuth redirects (?token=...)
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const tokenFromURL = params.get('token');
+                if (tokenFromURL && tokenFromURL.length > 10) {
+                    localStorage.setItem('authToken', tokenFromURL);
+                    // Clean the URL (remove token from query)
+                    const newUrl = window.location.pathname + (params.get('provider') ? (`?provider=${params.get('provider')}`) : '');
+                    window.history.replaceState({}, document.title, newUrl);
+                }
+            } catch (e) { console.warn('Token parse failed:', e); }
+
             loadUserData();
         });
 

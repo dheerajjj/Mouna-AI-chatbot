@@ -938,6 +938,18 @@
             // Initialize loading state management
             initializePageLoading();
             
+            // If redirected from OAuth, save ?token to localStorage
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const tokenParam = params.get('token');
+                if (tokenParam && tokenParam.length > 10) {
+                    localStorage.setItem('authToken', tokenParam);
+                    // Clean URL
+                    const newUrl = window.location.pathname + (params.get('provider') ? (`?provider=${params.get('provider')}`) : '');
+                    window.history.replaceState({}, document.title, newUrl);
+                }
+            } catch (e) { console.warn('OAuth token parse failed:', e); }
+            
             // Fetch and display user data when the page loads
             const token = localStorage.getItem('authToken');
             if (!token) {
