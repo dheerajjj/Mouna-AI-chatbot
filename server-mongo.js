@@ -1588,6 +1588,49 @@ async function startServer() {
           });
 
           aiResponse = completion.choices[0]?.message?.content || 'I apologize, but I could not generate a response at this time.';
+
+          // Enforce script: if model returned text not in the target script, convert it
+          async function isMostlyInScript(text, lang) {
+            if (!text) return false;
+            const ranges = {
+              hi: /[\u0900-\u097F]/g,      // Devanagari
+              mr: /[\u0900-\u097F]/g,      // Devanagari
+              te: /[\u0C00-\u0C7F]/g,      // Telugu
+              ta: /[\u0B80-\u0BFF]/g,      // Tamil
+              kn: /[\u0C80-\u0CFF]/g       // Kannada
+            };
+            const rx = ranges[lang];
+            if (!rx) return true; // English or unsupported: assume fine
+            const matches = text.match(rx);
+            const letters = text.replace(/[^\p{L}]/gu, '').length || 1;
+            const score = (matches ? matches.length : 0) / letters;
+            return score >= 0.4; // at least 40% letters in target script
+          }
+
+          async function forceScript(text, lang) {
+            try {
+              if (await isMostlyInScript(text, lang)) return text;
+              if (typeof openai === 'undefined' || !openai) return text;
+              const languageName = SUPPORTED_LANGUAGES[lang]?.nativeName || SUPPORTED_LANGUAGES[lang]?.name || lang;
+              const conv = await openai.chat.completions.create({
+                model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+                messages: [
+                  { role: 'system', content: `Convert the following reply into ${languageName} using its native script only. Preserve meaning, tone and formatting. Output only the converted text without any explanation.` },
+                  { role: 'user', content: aiResponse }
+                ],
+                max_tokens: 500,
+                temperature: 0
+              });
+              return conv.choices[0]?.message?.content?.trim() || text;
+            } catch (e) {
+              console.warn('Script enforcement failed:', e.message);
+              return text;
+            }
+          }
+
+          if (detectedLanguage && detectedLanguage !== 'en') {
+            aiResponse = await forceScript(aiResponse, detectedLanguage);
+          }
           
           const responseTime = Date.now() - startTime;
           
