@@ -25,6 +25,10 @@ class KnowledgeBaseService {
      * Initialize knowledge base for Mouna AI Chatbot Widget
      */
     initializeMounaKnowledge() {
+        // Determine public domain/url for links used in knowledge content (avoid localhost leaks)
+        const publicDomain = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.PUBLIC_APP_DOMAIN || 'mouna-ai-chatbot-production.up.railway.app').replace(/\/$/, '');
+        const publicUrl = publicDomain.startsWith('http') ? publicDomain : `https://${publicDomain}`;
+
         const mounaKnowledge = {
             company: {
                 name: "Mouna",
@@ -165,18 +169,21 @@ class KnowledgeBaseService {
             ],
             
             contact: {
-                website: "http://localhost:3000",
+                website: publicUrl,
                 email: "support@mounaai.com",
                 demo: "Click 'See Live Demo' button to try it now",
                 signup: "Click 'Start Free Trial' to get started"
             }
         };
 
-        // Set Mouna knowledge for localhost and common development domains
+        // Set Mouna knowledge for localhost and common domains
         this.knowledgeBases.set('localhost:3000', mounaKnowledge);
         this.knowledgeBases.set('localhost', mounaKnowledge);
         this.knowledgeBases.set('127.0.0.1:3000', mounaKnowledge);
         this.knowledgeBases.set('mounaai.com', mounaKnowledge);
+        // Production Railway domain (dynamic) so the model references the correct public URL
+        const domainKey = publicDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        this.knowledgeBases.set(domainKey, mounaKnowledge);
     }
 
     /**
@@ -403,11 +410,10 @@ class KnowledgeBaseService {
             return this.knowledgeBases.get(domainWithoutPort);
         }
 
-        // Try common variations
+        // Try common variations (avoid falling back to localhost for unrelated domains)
         const variations = [
             `www.${domainWithoutPort}`,
-            domainWithoutPort.replace('www.', ''),
-            'localhost', // Fallback for development
+            domainWithoutPort.replace('www.', '')
         ];
 
         for (const variation of variations) {
