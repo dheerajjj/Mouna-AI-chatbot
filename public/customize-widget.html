@@ -458,7 +458,7 @@
                         <input type="file" id="custom-logo" accept="image/png, image/jpeg, image/svg+xml" class="form-input" />
                         <small style="color:#64748b;">PNG/JPG/SVG, max 512 KB. Recommended square 128×128.</small>
                         <div style="margin-top:8px; display:flex; align-items:center; gap:12px;">
-                            <img id="logo-preview" src="" alt="Logo Preview" style="width:40px;height:40px;border-radius:8px;display:none;border:1px solid #e5e7eb;object-fit:contain;background:#fff;" />
+                        <img id="logo-preview" src="" alt="Logo Preview" style="width:40px;height:40px;border-radius:8px;display:none;border:1px solid #e5e7eb;object-fit:contain;background:transparent;" />
                             <button type="button" class="btn" style="max-width:200px;" id="upload-logo-btn"><i class="fas fa-upload"></i> Upload Logo</button>
                             <button type="button" class="btn" style="background:#6b7280;max-width:160px;" id="remove-logo-btn"><i class="fas fa-times"></i> Remove</button>
                         </div>
@@ -780,7 +780,7 @@
                     
                     // Update icon
                     if (icon === 'mouna') {
-                        widgetPreview.innerHTML = `<img src="/images/logo.png" alt="Mouna" style="width:28px;height:28px;border-radius:6px;object-fit:contain;background:#fff;">`;
+                        widgetPreview.innerHTML = `<img src="/images/logo.png" alt="Mouna" style="width:28px;height:28px;object-fit:contain;">`;
                     } else {
                         const iconClass = icon === 'robot' ? 'fas fa-robot' : 'fas fa-comments';
                         widgetPreview.innerHTML = `<i class="${iconClass}"></i>`;

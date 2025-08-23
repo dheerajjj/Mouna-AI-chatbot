@@ -1385,7 +1385,7 @@
             const notif = trigger.querySelector('#chatbot-notification');
             if (currentConfig.customLogo) {
                 const notifHtml = notif ? notif.outerHTML : '<span class="chatbot-widget-notification" id="chatbot-notification" style="display: none;"></span>';
-                trigger.innerHTML = `<img src="${currentConfig.customLogo}" alt="Chat" style="width:28px;height:28px;border-radius:6px;object-fit:contain;background:#fff;">` + notifHtml;
+                trigger.innerHTML = `<img src="${currentConfig.customLogo}" alt="Chat" style=\"width:28px;height:28px;object-fit:contain;\">` + notifHtml;
             }
         } catch (e) { console.warn('renderTriggerIcon failed:', e); }
     }
