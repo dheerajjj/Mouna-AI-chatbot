@@ -166,6 +166,110 @@
     let isTyping = false;
     let sessionId = null;
 
+    // Booking quick-reply UX state and helpers
+    const bookingFlow = {
+        active: false,
+        awaitingName: false,
+        awaitingEmail: false,
+        chosenSlot: null,
+        resourceId: 'default',
+        tempName: null
+    };
+    function detectBookingIntent(text) {
+        if (!text) return false;
+        if (!currentConfig.enabledFeatures?.bookings) return false;
+        const q = text.toLowerCase();
+        return ['book', 'booking', 'reserve', 'reservation', 'appointment', 'schedule'].some(k => q.includes(k));
+    }
+    function formatSlotLabel(iso) {
+        const d = new Date(iso);
+        const now = new Date();
+        const sameDay = d.toDateString() === now.toDateString();
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const isTomorrow = d.toDateString() === tomorrow.toDateString();
+        const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        if (sameDay) return `Today ${time}`;
+        if (isTomorrow) return `Tomorrow ${time}`;
+        return d.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+    async function fetchTopSlots(limit = 5, resourceId = 'default') {
+        const out = [];
+        if (!currentConfig.tenantId) return out;
+        let day = new Date();
+        for (let i = 0; i < 3 && out.length < limit; i++) {
+            const y = day.getFullYear();
+            const m = String(day.getMonth() + 1).padStart(2, '0');
+            const dd = String(day.getDate()).padStart(2, '0');
+            const url = `${currentConfig.apiEndpoint}/api/bookings/${encodeURIComponent(currentConfig.tenantId)}/availability?date=${y}-${m}-${dd}&resourceId=${encodeURIComponent(resourceId)}`;
+            try {
+                const resp = await fetch(url);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const now = new Date();
+                    (data.slots || []).forEach(s => {
+                        const start = new Date(s.start);
+                        if (s.available && start > now && out.length < limit) out.push(s);
+                    });
+                }
+            } catch (e) {}
+            day = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+        }
+        return out.slice(0, limit);
+    }
+    function addOptionsMessage(title, options) {
+        const messagesContainer = document.getElementById('chatbot-messages');
+        const messageDiv = createElement('div', 'chatbot-message chatbot-message-bot');
+        const contentDiv = createElement('div', 'chatbot-message-content');
+        const textDiv = createElement('div', 'chatbot-message-text');
+        const heading = document.createElement('div');
+        heading.style.marginBottom = '8px';
+        heading.textContent = title;
+        textDiv.appendChild(heading);
+        const wrap = document.createElement('div');
+        wrap.style.display = 'flex';
+        wrap.style.flexWrap = 'wrap';
+        wrap.style.gap = '8px';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'chatbot-option-button';
+            btn.textContent = opt.label;
+            btn.setAttribute('data-action', opt.action || 'select-slot');
+            if (opt.start) btn.setAttribute('data-start', opt.start);
+            btn.style.padding = '8px 12px';
+            btn.style.border = '1px solid #ddd';
+            btn.style.borderRadius = '16px';
+            btn.style.background = '#fff';
+            btn.style.cursor = 'pointer';
+            btn.style.fontSize = '12px';
+            wrap.appendChild(btn);
+        });
+        textDiv.appendChild(wrap);
+        contentDiv.appendChild(textDiv);
+        contentDiv.appendChild(createElement('div', 'chatbot-message-time', formatTime(new Date())));
+        messageDiv.appendChild(contentDiv);
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    async function startBookingFlow() {
+        bookingFlow.active = true;
+        const slots = await fetchTopSlots(5, bookingFlow.resourceId);
+        if (!slots.length) { addMessage('Sorry, I could not find available times right now. Please try another day or time.', false); bookingFlow.active = false; return; }
+        const options = slots.map(s => ({ label: formatSlotLabel(s.start), start: s.start, action: 'select-slot' }));
+        addOptionsMessage('Here are the next available times:', options);
+    }
+    async function postBooking(startISO, name, email) {
+        try {
+            const body = { tenantId: currentConfig.tenantId, resourceId: bookingFlow.resourceId, start: startISO, user: { name, email }, source: 'chat' };
+            const resp = await fetch(`${currentConfig.apiEndpoint}/api/bookings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const data = await resp.json();
+            if (!resp.ok || !data.success) throw new Error(data.error || 'Booking failed');
+            const b = data.booking; const label = formatSlotLabel(b.start);
+            if (b.status === 'pending') addMessage(`Your booking request for ${label} has been received and is pending approval. We'll email you a confirmation.`, false);
+            else addMessage(`Booked for ${label}. A confirmation email (with calendar invite) has been sent to ${email}.`, false);
+            bookingFlow.active = false; bookingFlow.awaitingName = false; bookingFlow.awaitingEmail = false; bookingFlow.chosenSlot = null;
+        } catch (e) { addMessage(`Could not complete booking: ${e.message}`, false); }
+    }
+
     // BEGIN: Copied implementation from widget-fixed.js
     
     function generateSessionId() {
@@ -226,6 +330,25 @@
                 }
             }
         } catch (e) {}
+    }
+    // Load tenant configuration and merge enabled features for gating (bookings, etc.)
+    async function loadTenantConfiguration(tenantId) {
+        try {
+            const resp = await fetch(`${currentConfig.apiEndpoint}/api/tenant/config/${encodeURIComponent(tenantId)}`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const tenantConfig = data.config || {};
+            if (tenantConfig.enabledFeatures) {
+                Object.assign(currentConfig.enabledFeatures, tenantConfig.enabledFeatures);
+            }
+            // White-labeling: hide branding for Pro/Enterprise
+            if (data.ownerSubscription && (data.ownerSubscription.plan === 'professional' || data.ownerSubscription.plan === 'enterprise')) {
+                currentConfig.showBranding = false;
+            }
+            if (tenantConfig.primaryColor) updateWidgetColors(tenantConfig.primaryColor);
+        } catch (e) {
+            // Ignore errors, use defaults
+        }
     }
     function updateWidgetColors(primaryColor) {
         if (!primaryColor || !widget) return;
@@ -301,6 +424,31 @@
         const sendButton = document.getElementById('chatbot-send-button');
         if (inputField) inputField.value = '';
         if (sendButton) sendButton.disabled = true;
+
+        // Booking flow inputs
+        if (bookingFlow.awaitingName) {
+            bookingFlow.tempName = message.trim();
+            bookingFlow.awaitingName = false;
+            bookingFlow.awaitingEmail = true;
+            addMessage('Thanks! Please share your email so we can send the confirmation.', false);
+            return;
+        }
+        if (bookingFlow.awaitingEmail) {
+            const email = message.trim();
+            const rx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!rx.test(email)) { addMessage('That email looks invalid. Please enter a valid email address.', false); return; }
+            try { localStorage.setItem('mouna_booking_name', bookingFlow.tempName || ''); localStorage.setItem('mouna_booking_email', email); } catch (_) {}
+            addMessage('Great, booking now...', false);
+            await postBooking(bookingFlow.chosenSlot, bookingFlow.tempName || 'Guest', email);
+            return;
+        }
+        // Detect booking intent
+        if (detectBookingIntent(message)) {
+            addMessage('I can help you schedule an appointment.', false);
+            await startBookingFlow();
+            return;
+        }
+
         showTyping();
         try {
             const response = await sendMessage(message);
@@ -338,6 +486,23 @@
         const closeBtn = widget.querySelector('.chatbot-widget-close'); if (closeBtn) closeBtn.addEventListener('click', closeWidget);
         const sendBtn = widget.querySelector('#chatbot-send-button'); if (sendBtn) sendBtn.addEventListener('click', (e) => { e.preventDefault(); const inputField = widget.querySelector('#chatbot-input-field'); if (inputField && inputField.value.trim()) handleUserMessage(inputField.value); });
         const inputField = widget.querySelector('#chatbot-input-field');
+        // Option button clicks (quick replies)
+        const messagesContainer = widget.querySelector('#chatbot-messages');
+        if (messagesContainer) {
+            messagesContainer.addEventListener('click', async (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                const action = btn.getAttribute('data-action');
+                if (action === 'select-slot') {
+                    const start = btn.getAttribute('data-start');
+                    bookingFlow.chosenSlot = start;
+                    let name = null, email = null;
+                    try { name = localStorage.getItem('mouna_booking_name'); email = localStorage.getItem('mouna_booking_email'); } catch (_) {}
+                    if (name && email) { addMessage(`Booking ${formatSlotLabel(start)} for ${name} (${email})...`, false); await postBooking(start, name, email); }
+                    else { bookingFlow.awaitingName = true; addMessage('Great choice! What name should we put on the booking?', false); }
+                }
+            });
+        }
         if (inputField) {
             inputField.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (inputField.value.trim()) handleUserMessage(inputField.value); } });
             inputField.addEventListener('input', (e) => { const hasText = e.target.value.trim().length > 0; if (sendBtn) { sendBtn.disabled = !hasText; sendBtn.style.opacity = hasText ? '1' : '0.5'; } });
@@ -395,6 +560,7 @@
         renderTriggerIcon();
         bindEvents();
         await loadConfiguration();
+        if (currentConfig.tenantId) { await loadTenantConfiguration(currentConfig.tenantId); }
         setupAutoOpenRules();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeWidget); else initializeWidget();
