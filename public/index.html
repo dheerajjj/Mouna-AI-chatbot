@@ -120,6 +120,37 @@
             overflow: hidden;
         }
         
+        /* Feature badges styling */
+        .feature-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 12px;
+            margin-top: 18px;
+            max-width: 640px;
+        }
+        .feature-badges .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.1px;
+            white-space: nowrap;
+            backdrop-filter: blur(4px);
+        }
+        .feature-badges .badge i {
+            color: #10b981;
+        }
+        @media (max-width: 768px) {
+            .feature-badges { max-width: 100%; }
+            .feature-badges .badge { font-size: 0.85rem; padding: 7px 10px; }
+        }
+        
         .hero::before {
             content: '';
             position: absolute;
@@ -840,6 +871,21 @@
                     <i class="fas fa-check" style="color: #10b981; margin-right: 0.5rem;"></i>No technical skills needed
                     <span style="margin: 0 1rem;">•</span>
                     <i class="fas fa-check" style="color: #10b981; margin-right: 0.5rem;"></i>Cancel anytime
+                </div>
+
+                <!-- Feature badges row -->
+                <div class="feature-badges" aria-label="Key benefits">
+                    <span class="badge"><i class="fas fa-bolt"></i> 2‑min onboarding</span>
+                    <span class="badge"><i class="fas fa-code"></i> No‑code install</span>
+                    <span class="badge"><i class="fas fa-language"></i> Multi‑language</span>
+                    <span class="badge"><i class="fas fa-calendar-check"></i> Bookings + payments</span>
+                    <span class="badge"><i class="fas fa-calendar-day"></i> Calendar sync</span>
+                    <span class="badge"><i class="fas fa-file-alt"></i> Train on your site</span>
+                    <span class="badge"><i class="fas fa-user-plus"></i> Lead capture</span>
+                    <span class="badge"><i class="fas fa-headset"></i> WhatsApp/email handoff</span>
+                    <span class="badge"><i class="fas fa-chart-line"></i> Analytics dashboard</span>
+                    <span class="badge"><i class="fas fa-paint-brush"></i> White‑label</span>
+                    <span class="badge"><i class="fas fa-shield-alt"></i> Secure & GDPR‑ready</span>
                 </div>
             </div>
             <div class="hero-visual">
