@@ -635,6 +635,9 @@
                                 </svg>
                                 <span class="chatbot-current-lang">${SUPPORTED_LANGUAGES[currentLanguage]?.flag || '🌐'}</span>
                             </button>
+                            <button class="chatbot-handoff-toggle" id="chatbot-handoff-toggle" title="Contact a human" style="background: rgba(255,255,255,0.1); border:none; color:#fff; padding:6px 10px; border-radius:6px; cursor:pointer; display:none; align-items:center; gap:6px; font-size:12px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4S14.21 4 12 4 8 5.79 8 8s1.79 4 4 4zm6 1h-1.26c-.84 0-1.64.32-2.24.9l-.66.64c-.57.54-1.33.86-2.13.86H12c-.8 0-1.56-.32-2.12-.88l-.66-.64a3.18 3.18 0 00-2.24-.9H5c-1.66 0-3 1.34-3 3v2c0 .55.45 1 1 1h16c1.66 0 3-1.34 3-3s-1.34-3-3-3z"/></svg>
+                            </button>
                             <button class="chatbot-widget-close" title="${currentTranslations.close}">&times;</button>
                         </div>
                     </div>
@@ -775,7 +778,7 @@
                     align-items: center;
                 }
                 
-                .chatbot-language-toggle {
+.chatbot-language-toggle, .chatbot-handoff-toggle {
                     background: rgba(255, 255, 255, 0.1);
                     border: none;
                     color: white;
@@ -789,7 +792,7 @@
                     transition: background-color 0.2s;
                 }
                 
-                .chatbot-language-toggle:hover {
+.chatbot-language-toggle:hover, .chatbot-handoff-toggle:hover {
                     background: rgba(255, 255, 255, 0.2);
                 }
                 
@@ -1335,6 +1338,16 @@
             console.error('❌ Language toggle button not found');
         }
         
+        // Handoff button
+        const handoffBtn = widget.querySelector('#chatbot-handoff-toggle');
+        if (handoffBtn) {
+            handoffBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                buildHandoffMenu();
+            });
+        }
+        
         // Language selector close button
         const langClose = widget.querySelector('#chatbot-language-close');
         if (langClose) {
@@ -1462,6 +1475,12 @@
             }
         } 
         
+        // Close on outside click
+        document.addEventListener('click', () => {
+            const hm = widget.querySelector('#chatbot-handoff-menu');
+            if (hm) hm.remove();
+        });
+        
         // Close on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && isOpen) {
@@ -1483,6 +1502,32 @@
         } catch (e) { console.warn('renderTriggerIcon failed:', e); }
     }
     
+    function isHandoffAvailable() { return !!(currentConfig?.whatsapp?.businessNumber || currentConfig?.contact?.phone || currentConfig?.contact?.email); }
+    function updateHandoffAvailability() { const btn = widget && widget.querySelector ? widget.querySelector('#chatbot-handoff-toggle') : null; if (btn) btn.style.display = isHandoffAvailable() ? 'inline-flex' : 'none'; }
+    function buildHandoffMenu() {
+        let menu = widget.querySelector('#chatbot-handoff-menu'); if (menu) { menu.remove(); menu = null; }
+        menu = document.createElement('div');
+        menu.id = 'chatbot-handoff-menu';
+        menu.style.position = 'absolute';
+        menu.style.top = '56px';
+        menu.style.right = '60px';
+        menu.style.background = '#fff';
+        menu.style.border = '1px solid #eee';
+        menu.style.borderRadius = '8px';
+        menu.style.boxShadow = '0 8px 20px rgba(0,0,0,0.12)';
+        menu.style.zIndex = '2147483648';
+        menu.style.minWidth = '220px';
+        const wrap = document.createElement('div'); wrap.style.padding = '10px'; wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '8px';
+        const title = document.createElement('div'); title.textContent = 'Contact details'; title.style.fontWeight = '600'; title.style.fontSize = '12px'; title.style.color = '#374151'; wrap.appendChild(title);
+        const phone = currentConfig?.whatsapp?.businessNumber || currentConfig?.contact?.phone || '';
+        const email = currentConfig?.contact?.email || '';
+        if (phone) { const row = document.createElement('div'); row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.gap = '8px'; row.innerHTML = '<span>📱</span><span style="font-weight:600;">WhatsApp</span><span style="margin-left:auto;color:#111827;">'+phone+'</span>'; wrap.appendChild(row); }
+        if (email) { const row = document.createElement('div'); row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.gap = '8px'; row.innerHTML = '<span>✉️</span><span style="font-weight:600;">Email</span><span style="margin-left:auto;color:#111827;">'+email+'</span>'; wrap.appendChild(row); }
+        if (!phone && !email) { const empty = document.createElement('div'); empty.textContent = 'No human contact configured.'; empty.style.color = '#6b7280'; empty.style.fontSize = '12px'; wrap.appendChild(empty); }
+        menu.appendChild(wrap);
+        const header = widget.querySelector('.chatbot-widget-header'); if (header && header.parentElement) header.parentElement.appendChild(menu);
+    }
+
     // Initialize widget
     async function initializeWidget() {
         // Generate session ID
@@ -1587,6 +1632,7 @@
         }
         
         // Setup auto-open rules (time on page, exit-intent, returning visitor)
+        updateHandoffAvailability();
         setupAutoOpenRules();
         
         console.log('AI Chatbot Widget initialized successfully');

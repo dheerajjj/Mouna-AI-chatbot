@@ -157,7 +157,10 @@
             slots: false,
             payments: false,
             analytics: false
-        }
+        },
+        // Contact/handoff
+        contact: { email: '', phone: '' },
+        whatsapp: { enabled: false, businessNumber: '' }
     };
     
     // Widget state
