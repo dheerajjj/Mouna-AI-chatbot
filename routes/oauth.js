@@ -24,14 +24,23 @@ const generateToken = (user) => {
 // Google OAuth Routes
 router.get('/google', (req, res, next) => {
     try {
-        // Build callback URL dynamically based on incoming host/protocol
-        const protoHeader = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString();
-        const proto = protoHeader.split(',')[0].trim();
-        const host = (req.headers['x-forwarded-host'] || req.headers['host']);
-        const baseUrl = `${proto}://${host}`.replace(/\/$/, '');
-        const callbackURL = (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.startsWith('http'))
-            ? process.env.GOOGLE_CALLBACK_URL
-            : `${baseUrl}/auth/google/callback`;
+        // Build callback URL dynamically based on incoming host/protocol.
+        // Prefer the current request's host to avoid leaking the Railway domain.
+        const rawProto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString();
+        const proto = rawProto.split(',')[0].trim();
+        const rawHost = (req.headers['x-forwarded-host'] || req.headers['host'] || '').toString();
+        const host = rawHost.split(',')[0].trim();
+
+        let callbackURL;
+        if (host) {
+            const baseUrl = `${proto}://${host}`.replace(/\/$/, '');
+            callbackURL = `${baseUrl}/auth/google/callback`;
+        } else if (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.startsWith('http')) {
+            callbackURL = process.env.GOOGLE_CALLBACK_URL;
+        } else {
+            // Absolute last resort (should not happen in production)
+            callbackURL = 'http://localhost:3000/auth/google/callback';
+        }
 
         return passport.authenticate('google', {
             scope: ['profile', 'email'],
@@ -47,13 +56,20 @@ router.get('/google', (req, res, next) => {
 router.get('/google/callback', async (req, res, next) => {
     try {
         // Ensure the same callback URL shape is used during the callback handling
-        const protoHeader = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString();
-        const proto = protoHeader.split(',')[0].trim();
-        const host = (req.headers['x-forwarded-host'] || req.headers['host']);
-        const baseUrl = `${proto}://${host}`.replace(/\/$/, '');
-        const callbackURL = (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.startsWith('http'))
-            ? process.env.GOOGLE_CALLBACK_URL
-            : `${baseUrl}/auth/google/callback`;
+        const rawProto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString();
+        const proto = rawProto.split(',')[0].trim();
+        const rawHost = (req.headers['x-forwarded-host'] || req.headers['host'] || '').toString();
+        const host = rawHost.split(',')[0].trim();
+
+        let callbackURL;
+        if (host) {
+            const baseUrl = `${proto}://${host}`.replace(/\/$/, '');
+            callbackURL = `${baseUrl}/auth/google/callback`;
+        } else if (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.startsWith('http')) {
+            callbackURL = process.env.GOOGLE_CALLBACK_URL;
+        } else {
+            callbackURL = 'http://localhost:3000/auth/google/callback';
+        }
 
         passport.authenticate('google', { callbackURL }, (err, user, info) => {
             if (err) {
