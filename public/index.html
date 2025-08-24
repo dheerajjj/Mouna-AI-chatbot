@@ -1120,7 +1120,6 @@
             // If already loaded, just open and hint
             if (document.getElementById('chatbot-widget')) {
                 try { if (window.AIChatbotWidget && typeof window.AIChatbotWidget.open === 'function') window.AIChatbotWidget.open(); } catch (e) {}
-                showDemoHint();
                 return;
             }
 
@@ -1148,71 +1147,25 @@
             script.setAttribute('data-auto-open-frequency', 'session');
             
             script.onload = function() {
-                // Open the widget and show a bottom-right hint
                 setTimeout(() => {
                     try { if (window.AIChatbotWidget && typeof window.AIChatbotWidget.open === 'function') window.AIChatbotWidget.open(); } catch (e) {}
-                    showDemoHint();
                 }, 500);
             };
 
             document.body.appendChild(script);
         }
 
-        function showDemoHint() {
-            // Add a quick tooltip near the bottom-right to guide users
-            if (document.getElementById('demo-hint')) return;
-            const hint = document.createElement('div');
-            hint.id = 'demo-hint';
-            hint.setAttribute('role', 'status');
-            hint.style.position = 'fixed';
-            hint.style.right = '90px';
-            hint.style.bottom = '100px';
-            hint.style.background = 'rgba(13, 123, 138, 0.95)';
-            hint.style.color = '#fff';
-            hint.style.padding = '10px 14px';
-            hint.style.borderRadius = '10px';
-            hint.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)';
-            hint.style.zIndex = '2147483647';
-            hint.style.fontWeight = '700';
-            hint.style.fontSize = '0.95rem';
-            hint.style.display = 'flex';
-            hint.style.alignItems = 'center';
-            hint.style.gap = '8px';
-            hint.innerHTML = '<span>💬 Chat demo is ready</span><span style="opacity:.9;">(bottom right)</span><span style="margin-left:10px;opacity:.95;">Tip: type “book” to see available times</span>';
-            
-            const arrow = document.createElement('div');
-            arrow.style.position = 'absolute';
-            arrow.style.right = '-8px';
-            arrow.style.bottom = '10px';
-            arrow.style.width = '0';
-            arrow.style.height = '0';
-            arrow.style.borderLeft = '8px solid rgba(13, 123, 138, 0.95)';
-            arrow.style.borderTop = '8px solid transparent';
-            arrow.style.borderBottom = '8px solid transparent';
-            hint.appendChild(arrow);
-
-            document.body.appendChild(hint);
-            setTimeout(() => { const el = document.getElementById('demo-hint'); if (el) el.remove(); }, 6000);
-        }
         
         let conversationStep = 0;
         const additionalMessages = [
-            {
-                type: 'user',
-                text: 'Sounds great! What payment methods do you accept?'
-            },
-            {
-                type: 'ai',
-                text: '💳 We accept all major payment methods:\n\n• Credit/Debit Cards (Visa, MasterCard, Amex)\n• UPI (GPay, PhonePe, Paytm)\n• Net Banking\n• Digital Wallets\n\nAll payments are secured with 256-bit SSL encryption. Would you like me to help you get started with the free trial?'
-            },
-            {
-                type: 'user',
-                text: 'Yes! How do I begin?'
-            },
-            {
-                type: 'ai',
-                text: '🚀 Perfect! Here\'s how to get started:\n\n1️⃣ Click "Start Free Trial" above\n2️⃣ Create your account (30 seconds)\n3️⃣ Customize your chatbot\n4️⃣ Copy-paste one line of code\n\nThat\'s it! Your AI assistant will be live on your website. Need any help along the way?'
-            }
+            { type: 'user', text: 'I’d like to book an appointment.' },
+            { type: 'ai', text: 'Great! Here are the next available times:\n\n<span style="display:inline-block;padding:6px 10px;border:1px solid #e2e8f0;border-radius:16px;margin:2px;">Today 3:00 PM</span> <span style="display:inline-block;padding:6px 10px;border:1px solid #e2e8f0;border-radius:16px;margin:2px;">Today 4:00 PM</span> <span style="display:inline-block;padding:6px 10px;border:1px solid #e2e8f0;border-radius:16px;margin:2px;">Tomorrow 10:00 AM</span>\n\nWhich time works for you?' },
+            { type: 'user', text: 'Tomorrow 10:00 AM works.' },
+            { type: 'ai', text: 'Perfect. Please share your name and email for the confirmation.' },
+            { type: 'user', text: 'Alex Johnson, alex@example.com' },
+            { type: 'ai', text: 'You’re all set! ✅\n\n• When: <strong>Tomorrow 10:00 AM</strong>\n• Who: Alex Johnson (alex@example.com)\n\nA confirmation email with a calendar invite has been sent.' },
+            { type: 'user', text: 'Thanks! Also, what payment methods do you accept?' },
+            { type: 'ai', text: '💳 We accept all major payment methods: Credit/Debit Cards, UPI, Net Banking, and Digital Wallets.' }
         ];
         
         function showTyping() {

@@ -299,6 +299,64 @@
         for (const k of keys) value = value?.[k];
         return value || TRANSLATIONS['en'][key] || key;
     }
+    function updateWidgetLanguage(lang) {
+        currentLanguage = lang;
+        const title = widget.querySelector('.chatbot-widget-title');
+        const subtitle = widget.querySelector('.chatbot-widget-subtitle');
+        const inputField = widget.querySelector('#chatbot-input-field');
+        const typingText = widget.querySelector('.chatbot-typing-text');
+        const closeBtn = widget.querySelector('.chatbot-widget-close');
+        const trigger = widget.querySelector('.chatbot-widget-trigger');
+        if (title) title.textContent = getTranslation('title', lang);
+        if (subtitle) subtitle.textContent = getTranslation('subtitle', lang);
+        if (inputField) inputField.placeholder = getTranslation('placeholder', lang);
+        if (typingText) typingText.textContent = getTranslation('typing', lang);
+        if (closeBtn) closeBtn.title = getTranslation('close', lang);
+        if (trigger) trigger.title = getTranslation('open', lang);
+        const welcome = widget.querySelector('.chatbot-message-bot .chatbot-message-text');
+        if (welcome) welcome.textContent = getTranslation('welcomeMessage', lang);
+        const langBtn = widget.querySelector('#chatbot-language-toggle .chatbot-current-lang');
+        if (langBtn) langBtn.textContent = SUPPORTED_LANGUAGES[lang]?.flag || '🌐';
+    }
+    function buildLanguageMenu() {
+        let menu = widget.querySelector('#chatbot-lang-menu');
+        if (menu) { menu.remove(); menu = null; }
+        menu = document.createElement('div');
+        menu.id = 'chatbot-lang-menu';
+        menu.style.position = 'absolute';
+        menu.style.top = '56px';
+        menu.style.right = '16px';
+        menu.style.background = '#fff';
+        menu.style.border = '1px solid #eee';
+        menu.style.borderRadius = '8px';
+        menu.style.boxShadow = '0 8px 20px rgba(0,0,0,0.12)';
+        menu.style.zIndex = '2147483648';
+        const list = document.createElement('div');
+        list.style.display = 'flex';
+        list.style.flexDirection = 'column';
+        list.style.padding = '8px';
+        Object.keys(SUPPORTED_LANGUAGES).forEach(code => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.style.padding = '8px 10px';
+            btn.style.margin = '2px 0';
+            btn.style.border = '1px solid #f0f0f0';
+            btn.style.borderRadius = '6px';
+            btn.style.background = code === currentLanguage ? '#eef2ff' : '#fff';
+            btn.style.cursor = 'pointer';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '8px';
+            btn.textContent = `${SUPPORTED_LANGUAGES[code].flag} ${SUPPORTED_LANGUAGES[code].nativeName}`;
+            btn.addEventListener('click', () => { updateWidgetLanguage(code); menu.remove(); });
+            list.appendChild(btn);
+        });
+        menu.appendChild(list);
+        const header = widget.querySelector('.chatbot-widget-header');
+        if (header && header.parentElement) {
+            header.parentElement.appendChild(menu);
+        }
+    }
     async function sendMessage(message) {
         const response = await fetch(`${currentConfig.apiEndpoint}/ask`, {
             method: 'POST',
@@ -334,7 +392,13 @@
     // Load tenant configuration and merge enabled features for gating (bookings, etc.)
     async function loadTenantConfiguration(tenantId) {
         try {
-            const resp = await fetch(`${currentConfig.apiEndpoint}/api/tenant/config/${encodeURIComponent(tenantId)}`);
+            // Try standard tenant config first; fallback to demo route if available
+            let resp = await fetch(`${currentConfig.apiEndpoint}/api/tenant/config/${encodeURIComponent(tenantId)}`);
+            if (!resp.ok) {
+                try {
+                    resp = await fetch(`${currentConfig.apiEndpoint}/api/demo-tenant/config/${encodeURIComponent(tenantId)}`);
+                } catch (_) {}
+            }
             if (!resp.ok) return;
             const data = await resp.json();
             const tenantConfig = data.config || {};
@@ -485,6 +549,8 @@
         const trigger = widget.querySelector('#aiChatToggle'); if (trigger) trigger.addEventListener('click', openWidget);
         const closeBtn = widget.querySelector('.chatbot-widget-close'); if (closeBtn) closeBtn.addEventListener('click', closeWidget);
         const sendBtn = widget.querySelector('#chatbot-send-button'); if (sendBtn) sendBtn.addEventListener('click', (e) => { e.preventDefault(); const inputField = widget.querySelector('#chatbot-input-field'); if (inputField && inputField.value.trim()) handleUserMessage(inputField.value); });
+        const langBtn = widget.querySelector('#chatbot-language-toggle'); if (langBtn) langBtn.addEventListener('click', (e) => { e.stopPropagation(); buildLanguageMenu(); });
+        document.addEventListener('click', () => { const menu = widget.querySelector('#chatbot-lang-menu'); if (menu) menu.remove(); });
         const inputField = widget.querySelector('#chatbot-input-field');
         // Option button clicks (quick replies)
         const messagesContainer = widget.querySelector('#chatbot-messages');
@@ -550,6 +616,27 @@
             if (autoOpenDelayAttr) { const sec = parseInt(autoOpenDelayAttr, 10); if (!Number.isNaN(sec)) currentConfig.autoOpenDelay = sec; }
             if (autoOpenFreq) currentConfig.autoOpenFrequency = autoOpenFreq;
         }
+        // Resolve initial language (attribute or browser)
+        try {
+            let initialLang = null;
+            if (scriptTag) {
+                const langAttr = scriptTag.getAttribute('data-language') || scriptTag.getAttribute('data-lang');
+                if (langAttr) {
+                    const code = langAttr.toLowerCase();
+                    const base = code.split('-')[0];
+                    if (SUPPORTED_LANGUAGES[code]) initialLang = code;
+                    else if (SUPPORTED_LANGUAGES[base]) initialLang = base;
+                }
+            }
+            if (!initialLang) {
+                const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+                const base = nav.split('-')[0];
+                if (SUPPORTED_LANGUAGES[nav]) initialLang = nav;
+                else if (SUPPORTED_LANGUAGES[base]) initialLang = base;
+                else initialLang = 'en';
+            }
+            currentLanguage = initialLang;
+        } catch (e) {}
         if (!currentConfig.apiKey) {
             try { const response = await fetch(`${currentConfig.apiEndpoint}/test-api-key`); if (response.ok) { const data = await response.json(); currentConfig.apiKey = data.apiKey; } } catch (e) {}
         }
@@ -557,6 +644,7 @@
         widget.innerHTML = createWidgetHTML();
         const styleElement = createElement('div'); styleElement.innerHTML = createWidgetStyles(); document.head.appendChild(styleElement.firstElementChild);
         document.body.appendChild(widget);
+        updateWidgetLanguage(currentLanguage);
         renderTriggerIcon();
         bindEvents();
         await loadConfiguration();
