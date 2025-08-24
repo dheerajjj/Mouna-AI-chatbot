@@ -1113,14 +1113,80 @@
     </div>
 
     <script>
-        function startDemo() {
-            // This will load the actual chatbot widget for demo
-            if (!document.getElementById('chatbot-widget')) {
-                const script = document.createElement('script');
-                script.id = 'chatbot-widget';
-                script.src = '/widget-fixed.js?demo=true';
-                document.body.appendChild(script);
+        async function startDemo() {
+            // If already loaded, just open and hint
+            if (document.getElementById('chatbot-widget')) {
+                try { if (window.AIChatbotWidget && typeof window.AIChatbotWidget.open === 'function') window.AIChatbotWidget.open(); } catch (e) {}
+                showDemoHint();
+                return;
             }
+
+            // Try to fetch a test API key for demo so requests authenticate
+            let demoApiKey = null;
+            try {
+                const resp = await fetch('/test-api-key', { cache: 'no-store' });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    demoApiKey = data.apiKey || data.api_key || null;
+                }
+            } catch (e) { /* ignore; we will still load the widget and show a hint */ }
+
+            const script = document.createElement('script');
+            script.id = 'chatbot-widget';
+            script.src = '/widget-fixed.js?demo=true';
+            // Pass demo key if available
+            if (demoApiKey) script.setAttribute('data-api-key', demoApiKey);
+            // Ensure the demo opens immediately and only once per session
+            script.setAttribute('data-auto-open', 'immediate');
+            script.setAttribute('data-auto-open-delay', '0');
+            script.setAttribute('data-auto-open-frequency', 'session');
+            
+            script.onload = function() {
+                // Open the widget and show a bottom-right hint
+                setTimeout(() => {
+                    try { if (window.AIChatbotWidget && typeof window.AIChatbotWidget.open === 'function') window.AIChatbotWidget.open(); } catch (e) {}
+                    showDemoHint();
+                }, 500);
+            };
+
+            document.body.appendChild(script);
+        }
+
+        function showDemoHint() {
+            // Add a quick tooltip near the bottom-right to guide users
+            if (document.getElementById('demo-hint')) return;
+            const hint = document.createElement('div');
+            hint.id = 'demo-hint';
+            hint.setAttribute('role', 'status');
+            hint.style.position = 'fixed';
+            hint.style.right = '90px';
+            hint.style.bottom = '100px';
+            hint.style.background = 'rgba(13, 123, 138, 0.95)';
+            hint.style.color = '#fff';
+            hint.style.padding = '10px 14px';
+            hint.style.borderRadius = '10px';
+            hint.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)';
+            hint.style.zIndex = '2147483647';
+            hint.style.fontWeight = '700';
+            hint.style.fontSize = '0.95rem';
+            hint.style.display = 'flex';
+            hint.style.alignItems = 'center';
+            hint.style.gap = '8px';
+            hint.innerHTML = '<span>💬 Chat demo is ready</span><span style="opacity:.9;">(bottom right)</span>';
+            
+            const arrow = document.createElement('div');
+            arrow.style.position = 'absolute';
+            arrow.style.right = '-8px';
+            arrow.style.bottom = '10px';
+            arrow.style.width = '0';
+            arrow.style.height = '0';
+            arrow.style.borderLeft = '8px solid rgba(13, 123, 138, 0.95)';
+            arrow.style.borderTop = '8px solid transparent';
+            arrow.style.borderBottom = '8px solid transparent';
+            hint.appendChild(arrow);
+
+            document.body.appendChild(hint);
+            setTimeout(() => { const el = document.getElementById('demo-hint'); if (el) el.remove(); }, 6000);
         }
         
         let conversationStep = 0;
