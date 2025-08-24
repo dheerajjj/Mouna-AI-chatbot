@@ -951,6 +951,9 @@
                         <li><i class="fas fa-check"></i> Analytics & Insights</li>
                     </ul>
                     <button class="btn btn-primary" onclick="startDemo()">Try Live Demo</button>
+                    <div style="margin-top:10px;color:#0f766e;font-size:0.95rem;">
+                        Tip: in the live demo, type “book” or “appointment” to see available times and click to confirm a booking.
+                    </div>
                 </div>
                 <div class="demo-preview">
                     <div style="background: #f7fafc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
@@ -1133,9 +1136,12 @@
 
             const script = document.createElement('script');
             script.id = 'chatbot-widget';
-            script.src = '/widget-fixed.js?demo=true';
+            // Use the booking-enabled widget (with quick replies)
+            script.src = '/widget.js?demo=true';
             // Pass demo key if available
             if (demoApiKey) script.setAttribute('data-api-key', demoApiKey);
+            // Load a demo tenant with bookings enabled so users can see slots
+            script.setAttribute('data-tenant-id', 'demo_clinic_tenant');
             // Ensure the demo opens immediately and only once per session
             script.setAttribute('data-auto-open', 'immediate');
             script.setAttribute('data-auto-open-delay', '0');
@@ -1172,7 +1178,7 @@
             hint.style.display = 'flex';
             hint.style.alignItems = 'center';
             hint.style.gap = '8px';
-            hint.innerHTML = '<span>💬 Chat demo is ready</span><span style="opacity:.9;">(bottom right)</span>';
+            hint.innerHTML = '<span>💬 Chat demo is ready</span><span style="opacity:.9;">(bottom right)</span><span style="margin-left:10px;opacity:.95;">Tip: type “book” to see available times</span>';
             
             const arrow = document.createElement('div');
             arrow.style.position = 'absolute';
