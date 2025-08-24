@@ -758,6 +758,52 @@
                 gap: 1rem;
             }
         }
+
+        /* Mobile CTA bar (shown when nav buttons are hidden on small screens) */
+        .mobile-cta-bar { display: none; }
+        @media (max-width: 768px) {
+            .mobile-cta-bar {
+                position: fixed;
+                left: 12px;
+                right: 12px;
+                bottom: 12px;
+                padding: 8px;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(8px);
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+                display: flex;
+                gap: 10px;
+                z-index: 1000;
+                padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            }
+            .mobile-cta {
+                flex: 1;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                text-decoration: none;
+                border-radius: 10px;
+                padding: 12px 14px;
+                font-weight: 700;
+                font-size: 0.95rem;
+                border: none;
+                cursor: pointer;
+            }
+            .mobile-cta.primary {
+                background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
+                color: #ffffff;
+            }
+            .mobile-cta.secondary {
+                background: #ffffff;
+                color: #0d7b8a;
+                border: 2px solid #e2e8f0;
+            }
+            .mobile-cta:active {
+                transform: translateY(1px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1059,6 +1105,12 @@
             </div>
         </div>
     </footer>
+
+    <!-- Mobile CTA bar (only visible on small screens) -->
+    <div class="mobile-cta-bar" id="mobile-cta-bar" aria-label="Mobile actions">
+        <a href="/get-started" class="mobile-cta primary" aria-label="Start free trial">Start Free Trial</a>
+        <button class="mobile-cta secondary" onclick="startDemo()" aria-label="See live demo">Live Demo</button>
+    </div>
 
     <script>
         function startDemo() {
