@@ -361,25 +361,29 @@
             align-items: center;
             gap: 0.5rem;
             margin-bottom: 2rem;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
         
+        /* High-contrast breadcrumb for gradient backgrounds */
         .breadcrumb a {
-            color: #64748b;
+            color: rgba(255, 255, 255, 0.95);
             text-decoration: none;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+            font-weight: 600;
         }
         
         .breadcrumb a:hover {
-            color: #0d7b8a;
+            color: #ffffff;
         }
         
         .breadcrumb .separator {
-            color: #cbd5e1;
+            color: rgba(255, 255, 255, 0.7);
         }
         
         .breadcrumb .current {
-            color: #1e293b;
-            font-weight: 600;
+            color: #ffffff;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
         }
         
         @media (max-width: 768px) {
