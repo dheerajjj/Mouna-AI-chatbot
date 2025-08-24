@@ -156,6 +156,36 @@ const tenantSettingsSchema = new mongoose.Schema({
     }
   },
   
+  // Unified booking settings (canonical)
+  bookingSettings: {
+    timezone: { type: String, default: 'Asia/Kolkata' },
+    workingHours: {
+      // Simple default working hours; can be overridden per tenant
+      monday: { start: { type: String, default: '09:00' }, end: { type: String, default: '17:00' }, enabled: { type: Boolean, default: true } },
+      tuesday: { start: { type: String, default: '09:00' }, end: { type: String, default: '17:00' }, enabled: { type: Boolean, default: true } },
+      wednesday: { start: { type: String, default: '09:00' }, end: { type: String, default: '17:00' }, enabled: { type: Boolean, default: true } },
+      thursday: { start: { type: String, default: '09:00' }, end: { type: String, default: '17:00' }, enabled: { type: Boolean, default: true } },
+      friday: { start: { type: String, default: '09:00' }, end: { type: String, default: '17:00' }, enabled: { type: Boolean, default: true } },
+      saturday: { start: { type: String, default: '10:00' }, end: { type: String, default: '14:00' }, enabled: { type: Boolean, default: false } },
+      sunday: { start: { type: String, default: '00:00' }, end: { type: String, default: '00:00' }, enabled: { type: Boolean, default: false } }
+    },
+    slotDuration: { type: Number, default: 30 }, // minutes
+    bufferMinutes: { type: Number, default: 0 },
+    maxAdvanceDays: { type: Number, default: 30 },
+    minAdvanceNotice: { type: Number, default: 60 }, // minutes
+    resources: [{
+      id: { type: String, required: true },
+      name: { type: String, required: true },
+      capacity: { type: Number, default: 1 }
+    }],
+    bookingProvider: { type: String, enum: ['native', 'calendly', 'google'], default: 'native' },
+    payments: {
+      enabled: { type: Boolean, default: false },
+      depositAmount: { type: Number, default: 0 },
+      currency: { type: String, default: 'INR', enum: ['INR', 'USD', 'EUR', 'GBP'] }
+    }
+  },
+
   // Slots-specific configuration
   slotsConfig: {
     enabled: {
@@ -560,6 +590,38 @@ tenantSettingsSchema.statics.findByTenantId = function(tenantId) {
 // Static method to find tenants by user ID
 tenantSettingsSchema.statics.findByUserId = function(userId) {
   return this.find({ userId, status: { $ne: 'suspended' } });
+};
+
+// Helper to produce normalized booking settings for consumers (widget, APIs)
+tenantSettingsSchema.methods.getNormalizedBookingSettings = function() {
+  const settings = this.bookingSettings || {};
+
+  // Backward-compatibility fallbacks from legacy fields if missing
+  const fallbackDuration = this.slotsConfig?.slotTypes?.[0]?.duration || this.bookingConfig?.allowedTimeSlots?.[0]?.slotDuration || 30;
+  const tz = settings.timezone || this.widgetCustomization?.businessHours?.timezone || 'Asia/Kolkata';
+
+  // If resources missing, create a default one
+  const resources = (settings.resources && settings.resources.length > 0) ? settings.resources : [{ id: 'default', name: 'Default', capacity: 1 }];
+
+  return {
+    timezone: tz,
+    workingHours: settings.workingHours || this.slotsConfig?.workingHours || {
+      monday:   { start: '09:00', end: '17:00', enabled: true },
+      tuesday:  { start: '09:00', end: '17:00', enabled: true },
+      wednesday:{ start: '09:00', end: '17:00', enabled: true },
+      thursday: { start: '09:00', end: '17:00', enabled: true },
+      friday:   { start: '09:00', end: '17:00', enabled: true },
+      saturday: { start: '10:00', end: '14:00', enabled: false },
+      sunday:   { start: '00:00', end: '00:00', enabled: false }
+    },
+    slotDuration: settings.slotDuration || fallbackDuration,
+    bufferMinutes: settings.bufferMinutes ?? 0,
+    maxAdvanceDays: settings.maxAdvanceDays ?? 30,
+    minAdvanceNotice: settings.minAdvanceNotice ?? 60,
+    resources,
+    bookingProvider: settings.bookingProvider || 'native',
+    payments: settings.payments || { enabled: false, depositAmount: 0, currency: 'INR' }
+  };
 };
 
 const TenantSettings = mongoose.model('TenantSettings', tenantSettingsSchema);

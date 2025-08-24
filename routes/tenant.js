@@ -116,6 +116,25 @@ router.get('/config/:tenantId', async (req, res) => {
 });
 
 /**
+ * PUBLIC ENDPOINT: Get unified booking settings for a tenant
+ */
+router.get('/:tenantId/booking-settings', async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
+
+    const tenant = await TenantSettings.findByTenantId(tenantId);
+    if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+
+    const settings = tenant.getNormalizedBookingSettings();
+    return res.json({ success: true, tenantId, bookingSettings: settings });
+  } catch (e) {
+    console.error('Error fetching booking settings:', e);
+    return res.status(500).json({ error: 'Failed to fetch booking settings' });
+  }
+});
+
+/**
  * PROTECTED ENDPOINT: Get user's tenant settings
  * Returns all tenant configurations belonging to the authenticated user
  */

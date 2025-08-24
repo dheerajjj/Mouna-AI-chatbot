@@ -2077,6 +2077,10 @@ app.get('/email-validation-test', (req, res) => {
     // NEW: Demo tenant routes for preview system
     const demoTenantRoutes = require('./routes/demoTenants');
     app.use('/api/demo-tenant', demoTenantRoutes);
+
+    // NEW: Bookings routes
+    const bookingsRoutes = require('./routes/bookings');
+    app.use('/api/bookings', bookingsRoutes);
     
     // Setup Progress Routes
     const progressRoutes = require('./routes/progressRoutes');

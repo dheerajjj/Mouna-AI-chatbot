@@ -30,7 +30,8 @@ const PLAN_FEATURES = {
       whiteLabeling: false,
       advancedIntegrations: false,
       customCSS: false,
-      removeMonuaBranding: false
+      removeMonuaBranding: false,
+      bookings: false
     },
     restrictions: {
       maxConcurrentChats: 1,
@@ -74,7 +75,8 @@ const PLAN_FEATURES = {
       customCSS: true,
       removeMonuaBranding: true,
       logoGallery: true,
-      logoUpload: false
+      logoUpload: false,
+      bookings: true
     },
     restrictions: {
       maxConcurrentChats: 3,
@@ -118,7 +120,8 @@ const PLAN_FEATURES = {
       customCSS: true,
       removeMonuaBranding: true,
       logoGallery: true,
-      logoUpload: true
+      logoUpload: true,
+      bookings: true
     },
     restrictions: {
       maxConcurrentChats: 10,
@@ -162,7 +165,8 @@ const PLAN_FEATURES = {
       customCSS: true,
       removeMonuaBranding: true,
       logoGallery: true,
-      logoUpload: true
+      logoUpload: true,
+      bookings: true
     },
     restrictions: {
       maxConcurrentChats: 'unlimited',
