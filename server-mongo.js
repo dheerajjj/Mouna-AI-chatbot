@@ -78,10 +78,10 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://checkout.razorpay.com", "https://cdnjs.cloudflare.com", "https://*.razorpay.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://checkout.razorpay.com", "https://cdnjs.cloudflare.com", "https://*.razorpay.com", "https://www.mouna-ai.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "http://localhost:3000", "https://localhost:3000", "https://mouna-ai-chatbot-production.up.railway.app", "https://api.razorpay.com", "https://*.razorpay.com"],
+      connectSrc: ["'self'", "http://localhost:3000", "https://localhost:3000", "https://mouna-ai-chatbot-production.up.railway.app", "https://api.razorpay.com", "https://*.razorpay.com", "https://www.mouna-ai.com"],
       frameSrc: ["'self'", "https://checkout.razorpay.com", "https://*.razorpay.com"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
@@ -92,43 +92,31 @@ app.use(helmet({
   }
 }));
 
-// CORS configuration - Allow GitHub Pages and other legitimate domains
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+// CORS configuration - Restrict to app domains; allow localhost for dev
+const allowedOrigins = (process.env.ALLOWED_ORIGINS?.split(',') || [
+  'https://www.mouna-ai.com',
   'http://localhost:3000',
   'http://localhost:8080',
-  'http://127.0.0.1:5500',
-  'https://five-coat-production.up.railway.app',
-  'file://',
-  'null'
-];
+  'http://127.0.0.1:5500'
+]).map(s => s.trim());
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list
-    if (allowedOrigins.indexOf(origin) !== -1) {
+
+    // Allow explicit origins
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
-    // Allow GitHub Pages domains (*.github.io)
-    if (origin.match(/^https:\/\/[\w-]+\.github\.io$/)) {
+
+    // Allow localhost variations for development
+    if (/^https?:\/\/localhost(:[0-9]+)?$/.test(origin)) {
       return callback(null, true);
     }
-    
-    // Allow any HTTPS domain for widget integration (production chatbot widget use)
-    if (origin.match(/^https:\/\/[\w.-]+\.[a-z]{2,}$/)) {
-      return callback(null, true);
-    }
-    
-    // Allow localhost for development
-    if (origin.match(/^https?:\/\/localhost(:[0-9]+)?$/)) {
-      return callback(null, true);
-    }
-    
+
     console.log(`❌ CORS blocked origin: ${origin}`);
-    callback(new Error('Not allowed by CORS'));
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

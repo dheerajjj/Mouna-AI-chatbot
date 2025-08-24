@@ -873,7 +873,7 @@
             
             switch (selectedMethod) {
                 case 'html':
-                    code = `&lt;script src="https://mounaai.com/widget.js" data-bot-id="${botId}" data-bot-name="${botName}"${stagingParam}&gt;&lt;/script&gt;`;
+                    code = `&lt;script src=\"https://www.mouna-ai.com/widget.js\" data-bot-id=\"${botId}\" data-bot-name=\"${botName}\"${stagingParam}&gt;&lt;/script&gt;`;
                     break;
                 case 'wordpress':
                     code = `// Add this to your WordPress functions.php or use our plugin
@@ -886,7 +886,7 @@ wp_localize_script('mouna-chatbot', 'mouna_config', array(
                     break;
                 case 'webflow':
                     code = `&lt;!-- Add this to your Webflow custom code (before &lt;/head&gt; tag) --&gt;
-&lt;script src="https://mounaai.com/widget.js" data-bot-id="${botId}" data-bot-name="${botName}"${stagingParam}&gt;&lt;/script&gt;`;
+&lt;script src=\"https://www.mouna-ai.com/widget.js\" data-bot-id=\"${botId}\" data-bot-name=\"${botName}\"${stagingParam}&gt;&lt;/script&gt;
                     break;
             }
             
