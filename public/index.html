@@ -570,6 +570,15 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             position: relative;
         }
+        /* Architecture flow diagram */
+        .demo-arch { display: flex; flex-direction: column; gap: 14px; }
+        .arch-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .arch-node { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-weight: 600; color: #1e293b; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .arch-node i { color: #0ea5e9; margin-right: 6px; }
+        .arch-arrow { color: #94a3b8; font-weight: 800; }
+        .arch-connect { color: #94a3b8; text-align: center; font-weight: 800; }
+        .arch-notes { margin-top: 8px; color: #4b5563; font-size: 0.95rem; padding-left: 1rem; }
+        .arch-notes li { margin: 4px 0; }
         
         .pricing-section {
             padding: 4rem 0;
@@ -997,19 +1006,39 @@
                         <li><i class="fas fa-check"></i> Analytics & Insights</li>
                     </ul>
                     <button class="btn btn-primary" onclick="startDemo()">Try Live Demo</button>
-                    <div style="margin-top:10px;color:#0f766e;font-size:0.95rem;">
-                        Tip: in the live demo, type “book” or “appointment” to see available times and click to confirm a booking.
-                    </div>
                 </div>
                 <div class="demo-preview">
-                    <div style="background: #f7fafc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-                        <p><strong>Visitor:</strong> Hi, I'm looking for information about your restaurant's menu.</p>
-                    </div>
-                    <div style="background: #e6fffa; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-                        <p><strong>AI Bot:</strong> Hello! I'd be happy to help you with our menu. We offer a variety of cuisines including Italian, Mexican, and Asian dishes. Would you like to know about any specific category or dietary preferences?</p>
-                    </div>
-                    <div style="background: #f7fafc; border-radius: 8px; padding: 1rem;">
-                        <p><strong>Visitor:</strong> Do you have vegan options?</p>
+                    <h4 style="margin:0 0 8px 0; color:#1f2937;">How Mouna works</h4>
+                    <div class="demo-arch" aria-label="Architecture overview">
+                        <div class="arch-row">
+                            <div class="arch-node"><i class="fas fa-user"></i>Website visitor</div>
+                            <div class="arch-arrow">→</div>
+                            <div class="arch-node"><i class="fas fa-comments"></i>Mouna Widget</div>
+                            <div class="arch-arrow">→</div>
+                            <div class="arch-node"><i class="fas fa-server"></i>Mouna API</div>
+                        </div>
+                        <div class="arch-row">
+                            <div class="arch-connect" style="width:100%;">↓</div>
+                        </div>
+                        <div class="arch-row">
+                            <div class="arch-node"><i class="fas fa-robot"></i>Auto‑training Service</div>
+                            <div class="arch-arrow">↔</div>
+                            <div class="arch-node"><i class="fas fa-book"></i>Knowledge Base</div>
+                        </div>
+                        <div class="arch-row">
+                            <div class="arch-connect" style="width:100%;">↓</div>
+                        </div>
+                        <div class="arch-row">
+                            <div class="arch-node"><i class="fas fa-calendar-check"></i>Bookings & Calendar</div>
+                            <div class="arch-arrow">→</div>
+                            <div class="arch-node"><i class="fas fa-paper-plane"></i>Email / WhatsApp</div>
+                        </div>
+                        <ul class="arch-notes">
+                            <li>No coding needed — paste one snippet.</li>
+                            <li>Auto‑trains from your website and updates over time.</li>
+                            <li>Lets customers book and receive confirmations instantly.</li>
+                            <li>Your data stays private and is GDPR compliant.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
