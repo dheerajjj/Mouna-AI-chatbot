@@ -271,16 +271,21 @@ async function getReportData(userId, dateRange, reportType) {
                     startTime: sessionStart,
                     endTime: sessionEnd,
                     messageCount: session.messages?.length || 0,
-                    messages: session.messages?.map(msg => {
+                    messages: (session.messages || []).map(msg => {
                         // Handle multiple possible field names for message content
-                        const messageText = msg.content || msg.message || msg.text || '';
+                        const fullText = msg.content || msg.message || msg.text || '';
+                        const sender = msg.role || msg.type || msg.sender || 'user';
+                        const ts = msg.timestamp || msg.createdAt || sessionStart;
                         return {
-                            timestamp: msg.timestamp,
-                            sender: msg.type || msg.sender, // Handle both 'type' and 'sender' fields
-                            message: messageText.substring(0, 200) + (messageText.length > 200 ? '...' : ''),
-                            type: msg.type || 'text'
+                            timestamp: ts,
+                            sender: sender,
+                            // Keep full text for downloads and analytics
+                            message: fullText,
+                            // Also provide a preview for any UI that wants truncation
+                            preview: fullText.length > 200 ? fullText.substring(0, 200) + '...' : fullText,
+                            type: msg.type || msg.role || 'text'
                         };
-                    }) || []
+                    })
                 };
             }).filter(conv => conv.messageCount > 0); // Only include conversations with messages
             
@@ -453,17 +458,40 @@ async function generateExcelReport(reportData) {
         const conversationsSheet = workbook.addWorksheet('Conversations');
         conversationsSheet.columns = [
             { header: 'Session ID', key: 'sessionId', width: 25 },
-            { header: 'Start Time', key: 'startTime', width: 20 },
-            { header: 'End Time', key: 'endTime', width: 20 },
-            { header: 'Message Count', key: 'messageCount', width: 15 }
+            { header: 'Start Time', key: 'startTime', width: 22 },
+            { header: 'End Time', key: 'endTime', width: 22 },
+            { header: 'Message Count', key: 'messageCount', width: 18 }
         ];
 
         reportData.conversations.forEach(conv => {
+            const start = conv.startTime instanceof Date ? conv.startTime : new Date(conv.startTime);
+            const end = conv.endTime instanceof Date ? conv.endTime : new Date(conv.endTime);
             conversationsSheet.addRow({
                 sessionId: conv.sessionId.toString(),
-                startTime: conv.startTime.toLocaleString(),
-                endTime: conv.endTime.toLocaleString(),
+                startTime: start.toLocaleString(),
+                endTime: end.toLocaleString(),
                 messageCount: conv.messageCount
+            });
+        });
+
+        // Detailed messages sheet
+        const messagesSheet = workbook.addWorksheet('Conversation Messages');
+        messagesSheet.columns = [
+            { header: 'Session ID', key: 'sessionId', width: 25 },
+            { header: 'Timestamp', key: 'timestamp', width: 22 },
+            { header: 'Sender', key: 'sender', width: 14 },
+            { header: 'Message', key: 'message', width: 100 }
+        ];
+
+        reportData.conversations.forEach(conv => {
+            (conv.messages || []).forEach(msg => {
+                const ts = msg.timestamp ? (msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)) : null;
+                messagesSheet.addRow({
+                    sessionId: conv.sessionId.toString(),
+                    timestamp: ts ? ts.toLocaleString() : '',
+                    sender: msg.sender,
+                    message: msg.message
+                });
             });
         });
     }
@@ -476,35 +504,60 @@ async function generateExcelReport(reportData) {
  * Generate CSV report
  */
 function generateCSVReport(reportData) {
+    // Helper to escape CSV values safely (handles commas, quotes, and newlines)
+    const esc = (val) => {
+        if (val === null || val === undefined) return '';
+        const str = String(val);
+        if (/[",\n]/.test(str)) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    };
+
     let csv = 'Mouna AI Chatbot Report\n';
-    csv += `Generated: ${reportData.generatedAt.toLocaleString()}\n`;
-    csv += `User: ${reportData.user.name} (${reportData.user.email})\n`;
-    csv += `Plan: ${reportData.user.plan}\n`;
-    csv += `Date Range: ${reportData.dateRange.start.toLocaleDateString()} to ${reportData.dateRange.end.toLocaleDateString()}\n\n`;
+    csv += `Generated,${esc(reportData.generatedAt.toLocaleString())}\n`;
+    csv += `User,${esc(`${reportData.user.name} (${reportData.user.email})`)}\n`;
+    csv += `Plan,${esc(reportData.user.plan)}\n`;
+    csv += `Date Range,${esc(`${reportData.dateRange.start.toLocaleDateString()} to ${reportData.dateRange.end.toLocaleDateString()}`)}\n\n`;
 
     if (reportData.usage) {
         csv += 'USAGE STATISTICS\n';
         csv += 'Metric,Value\n';
-        csv += `Total Sessions,${reportData.usage.totalSessions}\n`;
-        csv += `Total Messages,${reportData.usage.totalMessages}\n`;
-        csv += `Average Messages per Session,${reportData.usage.averageMessagesPerSession}\n`;
-        csv += `Average Sessions per Day,${reportData.usage.summary.avgSessionsPerDay}\n\n`;
+        csv += `${esc('Total Sessions')},${esc(reportData.usage.totalSessions)}\n`;
+        csv += `${esc('Total Messages')},${esc(reportData.usage.totalMessages)}\n`;
+        csv += `${esc('Average Messages per Session')},${esc(reportData.usage.averageMessagesPerSession)}\n`;
+        csv += `${esc('Average Sessions per Day')},${esc(reportData.usage.summary.avgSessionsPerDay)}\n\n`;
 
         if (reportData.usage.dailyBreakdown) {
             csv += 'DAILY BREAKDOWN\n';
             csv += 'Date,Sessions,Messages\n';
             Object.entries(reportData.usage.dailyBreakdown).forEach(([date, stats]) => {
-                csv += `${new Date(date).toLocaleDateString()},${stats.sessions},${stats.messages}\n`;
+                csv += `${esc(new Date(date).toLocaleDateString())},${esc(stats.sessions)},${esc(stats.messages)}\n`;
             });
             csv += '\n';
         }
     }
 
     if (reportData.conversations) {
-        csv += 'RECENT CONVERSATIONS\n';
+        // Summary section
+        csv += 'CONVERSATIONS SUMMARY\n';
         csv += 'Session ID,Start Time,End Time,Message Count\n';
         reportData.conversations.forEach(conv => {
-            csv += `${conv.sessionId},${conv.startTime.toLocaleString()},${conv.endTime.toLocaleString()},${conv.messageCount}\n`;
+            const start = conv.startTime instanceof Date ? conv.startTime : new Date(conv.startTime);
+            const end = conv.endTime instanceof Date ? conv.endTime : new Date(conv.endTime);
+            csv += `${esc(conv.sessionId)},${esc(start.toLocaleString())},${esc(end.toLocaleString())},${esc(conv.messageCount)}\n`;
+        });
+        csv += '\n';
+
+        // Detailed messages section
+        csv += 'DETAILED MESSAGES\n';
+        csv += 'Session ID,Timestamp,Sender,Message\n';
+        reportData.conversations.forEach(conv => {
+            (conv.messages || []).forEach(msg => {
+                const ts = msg.timestamp ? (msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)) : null;
+                const tsStr = ts ? ts.toLocaleString() : '';
+                csv += `${esc(conv.sessionId)},${esc(tsStr)},${esc(msg.sender)},${esc(msg.message)}\n`;
+            });
         });
     }
 
