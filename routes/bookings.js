@@ -3,6 +3,7 @@ const router = express.Router();
 const Booking = require('../models/Booking');
 const TenantSettings = require('../models/TenantSettings');
 const { PlanManager } = require('../config/planFeatures');
+const ResourceSlot = require('../models/ResourceSlot');
 
 // Utility: get day key from a date in a specific timezone (monday..sunday)
 function getWeekdayKey(date, timeZone) {
@@ -216,11 +217,27 @@ router.post('/', async (req, res) => {
     const requireApproval = tenant.bookingConfig?.requireApproval === true;
     const initialStatus = requireApproval ? 'pending' : 'confirmed';
 
-    // Attempt capacity-aware creation with buffer consideration
+    // Atomically acquire the slot start to prevent race conditions
+    const cap = resource.capacity || 1;
+    const acquire = await ResourceSlot.acquire({ tenantId, resourceId, start: startDt, capacity: cap });
+    if (!acquire.acquired) {
+      return res.status(409).json({ error: 'Slot capacity reached or already taken' });
+    }
+
+    // Attempt capacity-aware creation with buffer consideration (extra safety for overlaps)
     const payload = { tenantId, resourceId, start: startDt, end: endDt, user, status: initialStatus, source, payment, metadata };
-    const create = await Booking.createIfAvailable(payload, { capacity: resource.capacity || 1, bufferMinutes: settings.bufferMinutes || 0 });
-    if (!create.success) {
-      return res.status(409).json({ error: create.error || 'Slot not available' });
+    let create;
+    try {
+      create = await Booking.createIfAvailable(payload, { capacity: cap, bufferMinutes: settings.bufferMinutes || 0 });
+      if (!create.success) {
+        // Roll back slot acquisition
+        await ResourceSlot.release({ tenantId, resourceId, start: startDt });
+        return res.status(409).json({ error: create.error || 'Slot not available' });
+      }
+    } catch (err) {
+      // Roll back slot acquisition on unexpected error
+      await ResourceSlot.release({ tenantId, resourceId, start: startDt });
+      throw err;
     }
 
     return res.status(201).json({ success: true, booking: create.booking });
@@ -245,6 +262,10 @@ router.post('/:tenantId/:id/cancel', async (req, res) => {
     b.status = 'cancelled';
     b.metadata = { ...(b.metadata || {}), cancelReason: reason || 'unspecified', cancelledAt: new Date().toISOString() };
     await b.save();
+
+    // Release slot capacity for this booking's start
+    try { await ResourceSlot.release({ tenantId, resourceId: b.resourceId, start: b.start }); } catch (_) {}
+
     res.json({ success: true, booking: b });
   } catch (e) {
     console.error('Cancel booking error:', e);
