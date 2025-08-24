@@ -570,15 +570,15 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             position: relative;
         }
-        /* Architecture flow diagram */
-        .demo-arch { display: flex; flex-direction: column; gap: 14px; }
-        .arch-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .arch-node { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-weight: 600; color: #1e293b; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .arch-node i { color: #0ea5e9; margin-right: 6px; }
-        .arch-arrow { color: #94a3b8; font-weight: 800; }
-        .arch-connect { color: #94a3b8; text-align: center; font-weight: 800; }
-        .arch-notes { margin-top: 8px; color: #4b5563; font-size: 0.95rem; padding-left: 1rem; }
-        .arch-notes li { margin: 4px 0; }
+        /* AI motion visualization */
+        .ai-motion { position: relative; height: 360px; border-radius: 16px; overflow: hidden; background: radial-gradient(1200px 600px at 10% -10%, rgba(96,165,250,0.25), transparent), radial-gradient(900px 500px at 110% 110%, rgba(52,211,153,0.25), transparent), linear-gradient(180deg, #f8fafc, #ffffff); }
+        .ai-motion::before, .ai-motion::after { content: ""; position: absolute; width: 240px; height: 240px; border-radius: 50%; filter: blur(60px); opacity: 0.5; animation: float 10s ease-in-out infinite; }
+        .ai-motion::before { background: #34d399; top: -60px; left: -40px; }
+        .ai-motion::after { background: #60a5fa; bottom: -80px; right: -60px; animation-delay: 2s; }
+        .ai-motion canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .ai-caption { position: absolute; left: 16px; bottom: 16px; background: rgba(17,24,39,0.35); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.15); padding: 10px 12px; border-radius: 12px; max-width: 72%; backdrop-filter: blur(6px); }
+        .ai-caption h4 { margin: 0 0 4px 0; color: #f8fafc; }
+        .ai-badge { display: inline-block; background: #ef4444; color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 999px; margin-bottom: 6px; font-weight: 700; letter-spacing: .3px; }
         
         .pricing-section {
             padding: 4rem 0;
@@ -1008,37 +1008,13 @@
                     <button class="btn btn-primary" onclick="startDemo()">Try Live Demo</button>
                 </div>
                 <div class="demo-preview">
-                    <h4 style="margin:0 0 8px 0; color:#1f2937;">How Mouna works</h4>
-                    <div class="demo-arch" aria-label="Architecture overview">
-                        <div class="arch-row">
-                            <div class="arch-node"><i class="fas fa-user"></i>Website visitor</div>
-                            <div class="arch-arrow">→</div>
-                            <div class="arch-node"><i class="fas fa-comments"></i>Mouna Widget</div>
-                            <div class="arch-arrow">→</div>
-                            <div class="arch-node"><i class="fas fa-server"></i>Mouna API</div>
+                    <div class="ai-motion" aria-label="AI motion visualization">
+                        <canvas id="ai-mesh"></canvas>
+                        <div class="ai-caption">
+                            <div class="ai-badge">Live</div>
+                            <h4>Watch the AI in motion</h4>
+                            <div style="opacity:.9;">Dynamic flows inspired by how the assistant understands questions and plans the next step.</div>
                         </div>
-                        <div class="arch-row">
-                            <div class="arch-connect" style="width:100%;">↓</div>
-                        </div>
-                        <div class="arch-row">
-                            <div class="arch-node"><i class="fas fa-robot"></i>Auto‑training Service</div>
-                            <div class="arch-arrow">↔</div>
-                            <div class="arch-node"><i class="fas fa-book"></i>Knowledge Base</div>
-                        </div>
-                        <div class="arch-row">
-                            <div class="arch-connect" style="width:100%;">↓</div>
-                        </div>
-                        <div class="arch-row">
-                            <div class="arch-node"><i class="fas fa-calendar-check"></i>Bookings & Calendar</div>
-                            <div class="arch-arrow">→</div>
-                            <div class="arch-node"><i class="fas fa-paper-plane"></i>Email / WhatsApp</div>
-                        </div>
-                        <ul class="arch-notes">
-                            <li>No coding needed — paste one snippet.</li>
-                            <li>Auto‑trains from your website and updates over time.</li>
-                            <li>Lets customers book and receive confirmations instantly.</li>
-                            <li>Your data stays private and is GDPR compliant.</li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -1297,39 +1273,54 @@
             }, Math.random() * 1000 + 1000); // Random delay between 1-2 seconds
         }
         
+        // Lightweight AI motion canvas (neural mesh)
+        function initAIMesh() {
+            const canvas = document.getElementById('ai-mesh');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let w, h; const dpr = window.devicePixelRatio || 1;
+            function resize() { w = canvas.clientWidth; h = canvas.clientHeight; canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+            resize(); window.addEventListener('resize', resize);
+            const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const COUNT = reduced ? 24 : 60; const THRESH = reduced ? 90 : 130;
+            const nodes = Array.from({ length: COUNT }, () => ({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8 }));
+            let rafId;
+            function frame() {
+                ctx.clearRect(0, 0, w, h);
+                // Advance
+                for (const n of nodes) { n.x += n.vx; n.y += n.vy; if (n.x < 0 || n.x > w) n.vx *= -1; if (n.y < 0 || n.y > h) n.vy *= -1; }
+                // Connections
+                for (let i = 0; i < nodes.length; i++) {
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        const dx = nodes[i].x - nodes[j].x; const dy = nodes[i].y - nodes[j].y; const dist = Math.hypot(dx, dy);
+                        if (dist < THRESH) { const a = 1 - dist / THRESH; ctx.strokeStyle = `rgba(14,165,233,${a * 0.6})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(nodes[j].x, nodes[j].y); ctx.stroke(); }
+                    }
+                }
+                // Nodes
+                for (const n of nodes) { ctx.fillStyle = 'rgba(59,130,246,0.9)'; ctx.beginPath(); ctx.arc(n.x, n.y, 2.2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'rgba(59,130,246,0.12)'; ctx.beginPath(); ctx.arc(n.x, n.y, 9, 0, Math.PI * 2); ctx.fill(); }
+                rafId = requestAnimationFrame(frame);
+            }
+            // Pause when off-screen
+            const io = new IntersectionObserver((entries) => { const on = entries[0].isIntersecting; if (on) rafId = requestAnimationFrame(frame); else cancelAnimationFrame(rafId); }, { threshold: 0.1 });
+            io.observe(canvas);
+            rafId = requestAnimationFrame(frame);
+        }
+
         // Add some CSS animations
         const style = document.createElement('style');
         style.textContent = `
             @keyframes slideIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(20px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
             }
-            
-            .chat-input-demo:hover {
-                background: #e2e8f0 !important;
-                border-color: #10b981 !important;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-                transition: all 0.2s ease;
-            }
-            
-            .user-message {
-                margin-right: 0rem !important;
-                margin-left: 2rem !important;
-            }
-            
-            .ai-message {
-                margin-right: 2rem !important;
-                margin-left: 0rem !important;
-            }
+            .chat-input-demo:hover { background: #e2e8f0 !important; border-color: #10b981 !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); transition: all 0.2s ease; }
+            .user-message { margin-right: 0rem !important; margin-left: 2rem !important; }
+            .ai-message { margin-right: 2rem !important; margin-left: 0rem !important; }
         `;
         document.head.appendChild(style);
+
+        // Start AI motion after DOM is ready
+        initAIMesh();
     </script>
 </body>
 </html>
