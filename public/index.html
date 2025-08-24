@@ -1187,7 +1187,8 @@
             const script = document.createElement('script');
             script.id = 'chatbot-widget';
             // Use the booking-enabled widget (with quick replies)
-            script.src = '/widget.js?demo=true';
+            // Cache-bust to ensure latest widget with multi-language toggle is loaded
+            script.src = '/widget.js?demo=true&v=' + Date.now();
             // Pass demo key if available
             if (demoApiKey) script.setAttribute('data-api-key', demoApiKey);
             // Load a demo tenant with bookings enabled so users can see slots
