@@ -2,11 +2,13 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 // OAuth Configuration
+const APP_ORIGIN = (process.env.APP_ORIGIN || 'http://localhost:3000').replace(/\/$/, '');
 const OAUTH_CONFIG = {
     google: {
         clientID: process.env.GOOGLE_CLIENT_ID || 'your-google-client-id',
         clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'your-google-client-secret',
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || 'https://mouna-ai-chatbot-production.up.railway.app/auth/google/callback'
+        // Prefer explicit GOOGLE_CALLBACK_URL; otherwise derive from APP_ORIGIN
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || `${APP_ORIGIN}/auth/google/callback`
     }
 };
 

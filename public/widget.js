@@ -132,7 +132,7 @@
     // Configuration
     const WIDGET_CONFIG = {
         // API endpoint (will be set from script tag or defaults)
-        apiEndpoint: window.ChatbotWidgetAPI || 'https://mouna-ai-chatbot-production.up.railway.app',
+        apiEndpoint: window.ChatbotWidgetAPI || 'https://www.mouna-ai.com',
         apiKey: null,
         tenantId: null, // NEW: Tenant ID for configuration
         
