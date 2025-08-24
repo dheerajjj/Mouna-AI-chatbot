@@ -875,11 +875,11 @@
                     <button onclick="startDemo()" style="background: transparent; color: white; border: 2px solid rgba(255,255,255,0.3); padding: 1rem 2rem; border-radius: 8px; margin-left: 1rem; cursor: pointer; font-weight: 600;">See Live Demo</button>
                 </div>
                 <div style="margin-top: 2rem; color: rgba(255,255,255,0.8); font-size: 0.9rem;">
-                    <i class="fas fa-check" style="color: #10b981; margin-right: 0.5rem;"></i>Setup in under 2 minutes
+                    <i class="fas fa-check" style="color: #0f8b92; margin-right: 0.5rem;"></i>Setup in under 2 minutes
                     <span style="margin: 0 1rem;">•</span>
-                    <i class="fas fa-check" style="color: #10b981; margin-right: 0.5rem;"></i>No technical skills needed
+                    <i class="fas fa-check" style="color: #0f8b92; margin-right: 0.5rem;"></i>No technical skills needed
                     <span style="margin: 0 1rem;">•</span>
-                    <i class="fas fa-check" style="color: #10b981; margin-right: 0.5rem;"></i>Cancel anytime
+                    <i class="fas fa-check" style="color: #0f8b92; margin-right: 0.5rem;"></i>Cancel anytime
                 </div>
 
                 <!-- Feature badges row -->
@@ -905,10 +905,10 @@
                             <h4>Mouna AI Assistant</h4>
                             <p>Online • Responds in seconds</p>
                         </div>
-                        <div style="margin-left: auto; color: #10b981; font-size: 0.8rem;">✓ Verified</div>
+                        <div style="margin-left: auto; color: #0f8b92; font-size: 0.8rem;">✓ Verified</div>
                     </div>
                     <div class="chat-conversation" id="chat-messages">
-                        <div class="chat-message ai-message" style="background: linear-gradient(135deg, #e6fffa, #f0fdfa); border-left: 3px solid #10b981; animation: slideIn 0.5s ease-out;">
+                        <div class="chat-message ai-message" style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); border-left: 3px solid #0f8b92; animation: slideIn 0.5s ease-out;">
                             👋 Hi there! I'm Mouna, your AI assistant. I can help you with:
                             <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #0d9488;">
                                 • Product inquiries & recommendations<br>
@@ -920,9 +920,9 @@
                         <div class="chat-message user-message" style="background: #f1f5f9; margin-left: 2rem; animation: slideIn 0.5s ease-out 1s both;">
                             Hi! I'm interested in your premium plan. Can you tell me more about the features?
                         </div>
-                        <div class="chat-message ai-message" style="background: linear-gradient(135deg, #e6fffa, #f0fdfa); border-left: 3px solid #10b981; animation: slideIn 0.5s ease-out 2s both;">
+                        <div class="chat-message ai-message" style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); border-left: 3px solid #0f8b92; animation: slideIn 0.5s ease-out 2s both;">
                             Great choice! 🎉 Our Premium Plan includes:
-                            <div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(16,185,129,0.1); border-radius: 8px; font-size: 0.85rem;">
+                                <div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(15,139,146,0.12); border-radius: 8px; font-size: 0.85rem;">
                                 ✅ 5,000 AI conversations/month<br>
                                 ✅ Advanced analytics dashboard<br>
                                 ✅ Custom branding (remove watermark)<br>
@@ -1197,6 +1197,8 @@
             script.setAttribute('data-auto-open', 'immediate');
             script.setAttribute('data-auto-open-delay', '0');
             script.setAttribute('data-auto-open-frequency', 'session');
+            // Match widget color to site gradient
+            script.setAttribute('data-primary-color', '#0f8b92');
             
             script.onload = function() {
                 setTimeout(() => {
@@ -1314,7 +1316,7 @@
                 from { opacity: 0; transform: translateY(20px); }
                 to { opacity: 1; transform: translateY(0); }
             }
-            .chat-input-demo:hover { background: #e2e8f0 !important; border-color: #10b981 !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); transition: all 0.2s ease; }
+            .chat-input-demo:hover { background: #e2e8f0 !important; border-color: #0f8b92 !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15, 139, 146, 0.15); transition: all 0.2s ease; }
             .user-message { margin-right: 0rem !important; margin-left: 2rem !important; }
             .ai-message { margin-right: 2rem !important; margin-left: 0rem !important; }
         `;

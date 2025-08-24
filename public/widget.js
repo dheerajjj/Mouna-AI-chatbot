@@ -309,7 +309,12 @@
         const trigger = widget.querySelector('.chatbot-widget-trigger');
         if (title) title.textContent = getTranslation('title', lang);
         if (subtitle) subtitle.textContent = getTranslation('subtitle', lang);
-        if (inputField) inputField.placeholder = getTranslation('placeholder', lang);
+        if (inputField) {
+            inputField.placeholder = getTranslation('placeholder', lang);
+            inputField.setAttribute('lang', lang);
+            inputField.setAttribute('inputmode', 'text');
+            inputField.setAttribute('autocomplete', 'off');
+        }
         if (typingText) typingText.textContent = getTranslation('typing', lang);
         if (closeBtn) closeBtn.title = getTranslation('close', lang);
         if (trigger) trigger.title = getTranslation('open', lang);
@@ -317,6 +322,23 @@
         if (welcome) welcome.textContent = getTranslation('welcomeMessage', lang);
         const langBtn = widget.querySelector('#chatbot-language-toggle .chatbot-current-lang');
         if (langBtn) langBtn.textContent = SUPPORTED_LANGUAGES[lang]?.flag || '🌐';
+    }
+    async function transliterateText(text, language) {
+        if (!text || !language || language === 'en') return text;
+        try {
+            const response = await fetch(`${currentConfig.apiEndpoint}/api/transliterate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, toLanguage: language })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                return data.convertedText || data.transliteratedText || text;
+            }
+        } catch (error) {
+            // Fallback to original text on any error
+        }
+        return text;
     }
     function buildLanguageMenu() {
         let menu = widget.querySelector('#chatbot-lang-menu');
@@ -409,7 +431,8 @@
             if (data.ownerSubscription && (data.ownerSubscription.plan === 'professional' || data.ownerSubscription.plan === 'enterprise')) {
                 currentConfig.showBranding = false;
             }
-            if (tenantConfig.primaryColor) updateWidgetColors(tenantConfig.primaryColor);
+            // Respect explicitly-set primary color from script tag; otherwise allow tenant color
+            if (!currentConfig.primaryColorLocked && tenantConfig.primaryColor) updateWidgetColors(tenantConfig.primaryColor);
         } catch (e) {
             // Ignore errors, use defaults
         }
@@ -483,7 +506,10 @@
     function hideTyping() { const typingDiv = document.getElementById('chatbot-typing'); if (typingDiv) { typingDiv.style.display = 'none'; isTyping = false; } }
     async function handleUserMessage(message) {
         if (!message.trim()) return;
-        addMessage(message, true);
+        // Convert to selected language script for display and API
+        let displayText = message;
+        try { displayText = await transliterateText(message, currentLanguage); } catch (_) {}
+        addMessage(displayText, true);
         const inputField = document.getElementById('chatbot-input-field');
         const sendButton = document.getElementById('chatbot-send-button');
         if (inputField) inputField.value = '';
@@ -506,7 +532,7 @@
             await postBooking(bookingFlow.chosenSlot, bookingFlow.tempName || 'Guest', email);
             return;
         }
-        // Detect booking intent
+        // Detect booking intent (English keywords only for now)
         if (detectBookingIntent(message)) {
             addMessage('I can help you schedule an appointment.', false);
             await startBookingFlow();
@@ -515,7 +541,7 @@
 
         showTyping();
         try {
-            const response = await sendMessage(message);
+            const response = await sendMessage(displayText);
             await new Promise(r => setTimeout(r, currentConfig.typingDelay));
             hideTyping();
             addMessage(response.response, false);
@@ -608,6 +634,8 @@
             const tenantId = scriptTag.getAttribute('data-tenant-id'); if (tenantId) currentConfig.tenantId = tenantId;
             const attributes = ['primary-color','position','title','welcome-message','subtitle','auto-open','auto-open-delay'];
             attributes.forEach(attr => { const value = scriptTag.getAttribute(`data-${attr}`); if (value) { const configKey = attr.replace(/-([a-z])/g, (g) => g[1].toUpperCase()); currentConfig[configKey] = value; } });
+            // Lock brand color if explicitly provided
+            if (scriptTag.getAttribute('data-primary-color')) currentConfig.primaryColorLocked = true;
             const logoAttr = scriptTag.getAttribute('data-logo') || scriptTag.getAttribute('data-logo-url'); if (logoAttr) currentConfig.customLogo = logoAttr;
             const autoOpenMode = scriptTag.getAttribute('data-auto-open');
             const autoOpenDelayAttr = scriptTag.getAttribute('data-auto-open-delay');
