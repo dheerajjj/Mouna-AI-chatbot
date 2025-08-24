@@ -22,16 +22,40 @@ const generateToken = (user) => {
 };
 
 // Google OAuth Routes
-router.get('/google',
-    passport.authenticate('google', { 
-        scope: ['profile', 'email'],
-        prompt: 'select_account'
-    })
-);
+router.get('/google', (req, res, next) => {
+    try {
+        // Build callback URL dynamically based on incoming host/protocol
+        const protoHeader = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString();
+        const proto = protoHeader.split(',')[0].trim();
+        const host = (req.headers['x-forwarded-host'] || req.headers['host']);
+        const baseUrl = `${proto}://${host}`.replace(/\/$/, '');
+        const callbackURL = (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.startsWith('http'))
+            ? process.env.GOOGLE_CALLBACK_URL
+            : `${baseUrl}/auth/google/callback`;
+
+        return passport.authenticate('google', {
+            scope: ['profile', 'email'],
+            prompt: 'select_account',
+            callbackURL
+        })(req, res, next);
+    } catch (initError) {
+        console.error('❌ Error preparing Google OAuth request:', initError);
+        return res.redirect('/auth/failure?error=init_failed');
+    }
+});
 
 router.get('/google/callback', async (req, res, next) => {
     try {
-        passport.authenticate('google', (err, user, info) => {
+        // Ensure the same callback URL shape is used during the callback handling
+        const protoHeader = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString();
+        const proto = protoHeader.split(',')[0].trim();
+        const host = (req.headers['x-forwarded-host'] || req.headers['host']);
+        const baseUrl = `${proto}://${host}`.replace(/\/$/, '');
+        const callbackURL = (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.startsWith('http'))
+            ? process.env.GOOGLE_CALLBACK_URL
+            : `${baseUrl}/auth/google/callback`;
+
+        passport.authenticate('google', { callbackURL }, (err, user, info) => {
             if (err) {
                 console.error('❌ Google OAuth passport error:', err);
                 console.error('Error stack:', err.stack);
