@@ -25,9 +25,11 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
 router.get('/plans', async (req, res) => {
   try {
     const currency = 'INR';
+    const { ADDONS } = require('../config/pricing');
     // PRICING_PLANS is a flat structure, not nested by currency
     res.json({
       monthly: PRICING_PLANS,
+      addons: ADDONS,
       currency: currency
     });
   } catch (error) {
@@ -36,6 +38,17 @@ router.get('/plans', async (req, res) => {
   }
 });
 
+
+// List available add-on packs
+router.get('/addons', async (req, res) => {
+  try {
+    const { ADDONS } = require('../config/pricing');
+    res.json({ success: true, addons: ADDONS });
+  } catch (e) {
+    console.error('Addons fetch error:', e);
+    res.status(500).json({ error: 'Failed to fetch addons' });
+  }
+});
 
 // Create subscription with Razorpay
 router.post('/create-subscription', authenticateToken, async (req, res) => {
@@ -90,6 +103,82 @@ router.post('/create-subscription', authenticateToken, async (req, res) => {
       error: 'Failed to create subscription',
       details: error.message
     });
+  }
+});
+
+// Create add-on order
+router.post('/create-addon-order', authenticateToken, async (req, res) => {
+  try {
+    if (!razorpay) {
+      return res.status(503).json({ error: 'Payment service unavailable', message: 'Razorpay credentials not configured' });
+    }
+    const { addonId } = req.body;
+    const { ADDONS } = require('../config/pricing');
+    const addon = ADDONS[addonId];
+    if (!addon) return res.status(400).json({ error: 'Invalid add-on selected' });
+
+    const user = await DatabaseService.findUserById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const order = await razorpay.orders.create({
+      amount: addon.price * 100,
+      currency: 'INR',
+      receipt: `addon_${addonId}_${Math.random().toString(36).slice(2,9)}`,
+      notes: { type: 'addon', addon: addonId, user: user._id.toString() }
+    });
+
+    res.json({ success: true, order: { id: order.id, amount: order.amount, currency: order.currency, key: process.env.RAZORPAY_KEY_ID, addonId } });
+  } catch (e) {
+    console.error('Addon order error:', e);
+    res.status(500).json({ error: 'Failed to create add-on order' });
+  }
+});
+
+// Verify add-on payment and credit messages
+router.post('/verify-addon', authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, addonId } = req.body;
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !addonId) {
+      return res.status(400).json({ error: 'Missing required payment verification data' });
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ error: 'Payment verification failed - Invalid signature' });
+    }
+
+    const { ADDONS } = require('../config/pricing');
+    const addon = ADDONS[addonId];
+    if (!addon) return res.status(400).json({ error: 'Invalid add-on selected' });
+
+    const user = await DatabaseService.findUserById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Credit message credits atomically
+    await DatabaseService.incrementUserUsage(user._id, 'messageCredits', addon.messages);
+
+    // Optional: record transaction
+    try {
+      await DatabaseService.updateUser(user._id, {
+        'subscription.lastPayment': {
+          amount: addon.price,
+          currency: 'INR',
+          date: new Date(),
+          paymentId: razorpay_payment_id,
+          planId: addonId,
+          planName: addon.name
+        }
+      });
+    } catch {}
+
+    res.json({ success: true, credited: addon.messages });
+  } catch (e) {
+    console.error('Addon verify error:', e);
+    res.status(500).json({ error: 'Failed to verify add-on payment' });
   }
 });
 

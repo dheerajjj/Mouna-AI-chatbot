@@ -158,7 +158,7 @@ const PRICING_PLANS = {
     interval: 'month',
     icon: '🏢',
     features: {
-      monthlyMessages: 10000,
+      monthlyMessages: 3000,
       websites: 10,
       customization: 'advanced',
       analytics: 'advanced',
@@ -169,7 +169,7 @@ const PRICING_PLANS = {
       whiteLabel: 'basic'
     },
     featureList: [
-      '10,000 messages/month',
+      '3,000 messages/month',
       '2 client tenants maximum',
       'Basic white-label (logo/title)',
       'Advanced analytics',
@@ -189,7 +189,7 @@ const PRICING_PLANS = {
     interval: 'month',
     icon: '🚀',
     features: {
-      monthlyMessages: 50000,
+      monthlyMessages: 15000,
       websites: 'unlimited',
       customization: 'enterprise',
       analytics: 'enterprise',
@@ -203,7 +203,7 @@ const PRICING_PLANS = {
       rolesPermissions: true
     },
     featureList: [
-      '50,000 messages/month',
+      '15,000 messages/month',
       'Unlimited client tenants',
       'Full white-label (custom domain)',
       'Roles & permissions per tenant',
@@ -256,9 +256,9 @@ const USAGE_LIMITS = {
     personalTenantOnly: false
   },
   professional: {
-    messagesPerMonth: 5000,
+    messagesPerMonth: 3000,
     overageRate: 0.30, // ₹0.30 per extra message
-    maxOverageMessages: 2000,
+    maxOverageMessages: 4000,
     websites: 10,
     analytics: true,
     dashboard: true,
@@ -268,9 +268,9 @@ const USAGE_LIMITS = {
     whiteLabel: 'basic'
   },
   enterprise: {
-    messagesPerMonth: 'unlimited',
+    messagesPerMonth: 15000,
     overageRate: 0.20, // ₹0.20 per extra message
-    maxOverageMessages: 10000,
+    maxOverageMessages: 20000,
     websites: 'unlimited',
     analytics: true,
     dashboard: true,
@@ -285,10 +285,29 @@ const USAGE_LIMITS = {
 };
 
 
+// Message add-on packs (for overage top-ups)
+const ADDONS = {
+  messages_1k: {
+    id: 'messages_1k',
+    name: '1,000 extra messages',
+    messages: 1000,
+    price: 499, // ₹0.499/message target cost, adjust as needed
+    currency: 'INR'
+  },
+  messages_5k: {
+    id: 'messages_5k',
+    name: '5,000 extra messages',
+    messages: 5000,
+    price: 1499, // ₹0.30/message with volume discount
+    currency: 'INR'
+  }
+};
+
 module.exports = {
   CURRENCY_CONFIG,
   BASE_PRICING_PLANS,
   PRICING_PLANS,
   FEATURE_DESCRIPTIONS,
-  USAGE_LIMITS
+  USAGE_LIMITS,
+  ADDONS
 };

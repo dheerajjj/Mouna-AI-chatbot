@@ -1852,11 +1852,12 @@ async function startServer() {
           return res.json(__pricingCache.data);
         }
 
-        const { PRICING_PLANS, FEATURE_DESCRIPTIONS } = require('./config/pricing');
+        const { PRICING_PLANS, FEATURE_DESCRIPTIONS, ADDONS } = require('./config/pricing');
 
         const payload = {
           plans: PRICING_PLANS,
           featureDescriptions: FEATURE_DESCRIPTIONS,
+          addons: ADDONS,
           generatedAt: new Date().toISOString()
         };
         __pricingCache = { data: payload, ts: now };

@@ -79,6 +79,7 @@ function checkUsageLimit(limitType, increment = 1) {
       let isWithinLimit = true;
       let limit = 'unlimited';
       let nextPlan = null;
+      let willUseCredits = false;
       
       try {
         isWithinLimit = PlanManager.isWithinLimit(userPlan, limitType, newUsage);
@@ -86,6 +87,15 @@ function checkUsageLimit(limitType, increment = 1) {
         if (!isWithinLimit) {
           limit = PlanManager.getLimit(userPlan, limitType);
           nextPlan = PlanManager.getNextPlan(userPlan);
+          
+          // If over limit for messagesPerMonth, allow consuming messageCredits for paid plans
+          if (limitType === 'messagesPerMonth' && userPlan !== 'free') {
+            const credits = user.usage?.messageCredits || 0;
+            if (credits >= increment) {
+              willUseCredits = true;
+              isWithinLimit = true; // Allow request by consuming credits
+            }
+          }
         }
       } catch (planErr) {
         console.error('Error checking usage limits:', planErr);
@@ -94,7 +104,6 @@ function checkUsageLimit(limitType, increment = 1) {
       }
       
       if (!isWithinLimit) {
-        
         return res.status(429).json({
           error: `Usage limit exceeded for ${limitType}`,
           code: 'USAGE_LIMIT_EXCEEDED',
@@ -109,6 +118,9 @@ function checkUsageLimit(limitType, increment = 1) {
 
       // Store the increment for potential usage tracking
       req.usageIncrement = { [limitType]: increment };
+      if (willUseCredits) {
+        req.usageIncrement.messageCredits = -increment; // consume credits
+      }
       next();
     } catch (error) {
       console.error('Usage limit check error:', error);

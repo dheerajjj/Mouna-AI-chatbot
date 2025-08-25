@@ -94,6 +94,11 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
+    messageCredits: {
+      // Add-on credits purchased by user, consumed when plan limit is exceeded
+      type: Number,
+      default: 0
+    },
     totalMessages: {
       type: Number,
       default: 0
