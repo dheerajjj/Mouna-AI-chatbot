@@ -1534,20 +1534,13 @@
         // Load user subscription and tenant data
         async function loadUserData() {
             try {
+                // Prefer token if present, but gracefully fall back to cookie-based sessions
                 const token = localStorage.getItem('authToken');
-                if (!token) {
-                    console.log('No auth token found - redirecting to login for Integration');
-                    window.location.href = '/login?redirect=' + encodeURIComponent('/integration');
-                    return;
-                }
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
                 
-                // Load user profile and subscription
-                const profileResponse = await fetch('/api/profile', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                // Load user profile and subscription (cookies are sent automatically on same-origin)
+                const profileResponse = await fetch('/api/profile', { headers });
                 
                 if (profileResponse.ok) {
                     const { user } = await profileResponse.json();
@@ -1585,9 +1578,9 @@
                         updateIntegrationGuide(false);
                     }
                 } else if (profileResponse.status === 401) {
-                    console.warn('🔑 Authentication expired - redirecting to login');
+                    console.warn('🔑 Authentication required - redirecting to login');
                     localStorage.removeItem('authToken');
-                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                    window.location.href = '/login?redirect=' + encodeURIComponent('/integration');
                 } else {
                     console.error('❌ Failed to load user profile:', profileResponse.status);
                     // Fallback to basic integration
@@ -2497,16 +2490,10 @@
         async function loadUserProfile() {
             try {
                 const token = localStorage.getItem('authToken');
-                if (!token) {
-                    return;
-                }
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
                 
-                const response = await fetch('/api/profile', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                const response = await fetch('/api/profile', { headers });
                 
                 if (response.ok) {
                     const { user } = await response.json();
@@ -2515,6 +2502,8 @@
                     if (userNameElement && user.name) {
                         userNameElement.textContent = user.name;
                     }
+                } else if (response.status === 401) {
+                    console.warn('User not authenticated for profile display');
                 } else {
                     console.error('Failed to load user profile');
                 }
@@ -2530,13 +2519,23 @@
         }
         
         // Add some interactive animations
-        document.addEventListener('DOMContentLoaded', function() {
-            // Enforce authentication for Integration page access from public site
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Enforce authentication for Integration page access, supporting both
+            // token-in-localStorage and cookie-based sessions (e.g. Google OAuth)
             const token = localStorage.getItem('authToken');
             if (!token) {
-                const intended = '/integration';
-                window.location.replace('/login?redirect=' + encodeURIComponent(intended));
-                return;
+                try {
+                    const probe = await fetch('/api/profile', { headers: { 'Content-Type': 'application/json' } });
+                    if (!probe.ok) {
+                        const intended = '/integration';
+                        window.location.replace('/login?redirect=' + encodeURIComponent(intended));
+                        return;
+                    }
+                } catch (e) {
+                    const intended = '/integration';
+                    window.location.replace('/login?redirect=' + encodeURIComponent(intended));
+                    return;
+                }
             }
             // Load user data on page load
             loadUserData();

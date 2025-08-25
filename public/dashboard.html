@@ -913,30 +913,19 @@
             // Get plan from multiple possible sources
             const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
             
-            // Update Pro badges based on actual plan and feature availability
+            // Normalize label to reflect user's actual plan
+            const labelMap = { free: 'Free', starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
+            const planLabel = labelMap[currentPlan] || (currentPlan?.charAt(0).toUpperCase() + currentPlan?.slice(1)) || 'Free';
+            
+            // Update badges to show the user's current plan (keeps UI in sync)
             const proBadges = document.querySelectorAll('.pro-badge');
             proBadges.forEach(badge => {
-                // Check what feature this badge is for
-                const card = badge.closest('.card');
-                const cardTitle = card?.querySelector('h3')?.textContent || '';
-                
-                // Analytics is available for starter, professional, enterprise
-                const analyticsPlans = ['starter', 'professional', 'enterprise'];
-                
-                if (cardTitle.includes('Analytics') && analyticsPlans.includes(currentPlan)) {
-                    badge.textContent = 'Available';
-                    badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-                } else if (currentPlan !== 'free' && !cardTitle.includes('Analytics')) {
-                    // Other features that are truly "Pro" only
-                    badge.textContent = 'Available';
-                    badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-                } else {
-                    badge.textContent = cardTitle.includes('Analytics') ? 'Starter+' : 'Pro';
-                    badge.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-                }
+                badge.textContent = planLabel;
+                badge.style.background = 'linear-gradient(135deg, #64748b, #475569)';
+                badge.title = `Current plan: ${planLabel}`;
             });
             
-            console.log('✅ Plan-based features applied successfully for plan:', currentPlan);
+            console.log('✅ Plan label applied to badges:', planLabel);
         }
 
         // Close modal when clicking outside
