@@ -211,7 +211,13 @@
             }
         }
         
-        console.log(`OTP Verification Flow: ${flowType}, Email: ${currentEmail}`);
+        // Override redirect destination if provided via query param
+        const desiredRedirect = urlParams.get('redirect');
+        if (desiredRedirect) {
+            redirectDestination = desiredRedirect;
+        }
+        
+        console.log(`OTP Verification Flow: ${flowType}, Email: ${currentEmail}, Redirect: ${redirectDestination}`);
         document.getElementById('email-display').textContent = currentEmail;
 
         // OTP input handling

@@ -168,6 +168,9 @@
 
     <script>
         let userEmail = '';
+        // Capture optional redirect target from query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectTarget = urlParams.get('redirect');
         
         // Social auth loading indicator
         const googleBtn = document.getElementById('googleBtn');
@@ -232,9 +235,10 @@
                         successMessage.textContent = data.message || 'OTP sent to your email. Redirecting to verification page...';
                         successMessage.style.display = 'block';
                         
-                        // Redirect to verify-otp page with login flow
+                        // Redirect to verify-otp page with login flow (preserve intended redirect)
                         setTimeout(() => {
-                            window.location.href = `/verify-otp?email=${encodeURIComponent(email)}&flow=login`;
+                            const redirectParam = redirectTarget ? `&redirect=${encodeURIComponent(redirectTarget)}` : '';
+                            window.location.href = `/verify-otp?email=${encodeURIComponent(email)}&flow=login${redirectParam}`;
                         }, 1500);
                     } else if (data.success) {
                         // Direct login success (old flow compatibility)
@@ -243,7 +247,7 @@
                         successMessage.textContent = data.message;
                         successMessage.style.display = 'block';
                         setTimeout(() => {
-                            window.location.href = data.redirectTo || '/dashboard';
+                            window.location.href = (redirectTarget || data.redirectTo || '/dashboard');
                         }, 1000);
                     } else {
                         // Handle other success responses
@@ -309,7 +313,7 @@
                     successMessage.style.display = 'block';
                     
                     setTimeout(() => {
-                        window.location.href = '/dashboard';
+                        window.location.href = (redirectTarget || '/dashboard');
                     }, 1000);
                 } else {
                     errorMessage.textContent = data.error || 'Invalid OTP. Please try again.';

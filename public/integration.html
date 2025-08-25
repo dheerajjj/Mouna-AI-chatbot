@@ -1536,10 +1536,8 @@
             try {
                 const token = localStorage.getItem('authToken');
                 if (!token) {
-                    console.log('No auth token found - user may not be logged in');
-                    // Show default integration without tenant features
-                    updateIntegrationCode();
-                    updateIntegrationGuide(false);
+                    console.log('No auth token found - redirecting to login for Integration');
+                    window.location.href = '/login?redirect=' + encodeURIComponent('/integration');
                     return;
                 }
                 
@@ -2533,6 +2531,13 @@
         
         // Add some interactive animations
         document.addEventListener('DOMContentLoaded', function() {
+            // Enforce authentication for Integration page access from public site
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                const intended = '/integration';
+                window.location.replace('/login?redirect=' + encodeURIComponent(intended));
+                return;
+            }
             // Load user data on page load
             loadUserData();
             loadUserProfile();
