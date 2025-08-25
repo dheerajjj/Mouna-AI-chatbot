@@ -1295,6 +1295,15 @@
         }
 
         function previewWidget() {
+            // Plan gate: Preview requires Starter+
+            try {
+                const plan = (userSubscription?.plan || 'free').toLowerCase();
+                const allowed = ['starter','professional','enterprise'];
+                if (!allowed.includes(plan)) {
+                    window.location.href = '/pricing?suggested=starter&feature=widget-live&upgrade=starter';
+                    return;
+                }
+            } catch (e) { /* fallback to preview */ }
             // Create a preview modal with actual widget
             const modal = document.createElement('div');
             modal.style.cssText = `
@@ -1799,6 +1808,15 @@
         
         // Preview tenant configuration with specialized demo content
         function previewTenantConfig(configType) {
+            // Plan gate: Tenant previews are part of Starter+ (multi-tenant features are Professional+ in full use)
+            try {
+                const plan = (userSubscription?.plan || 'free').toLowerCase();
+                const allowed = ['starter','professional','enterprise'];
+                if (!allowed.includes(plan)) {
+                    window.location.href = '/pricing?suggested=starter&feature=tenant-preview&upgrade=starter';
+                    return;
+                }
+            } catch (e) {}
             const configs = {
                 restaurant: {
                     title: '🍽️ Restaurant Chatbot Demo',

@@ -385,6 +385,7 @@
         function handleSuggestedPlan() {
             const urlParams = new URLSearchParams(window.location.search);
             suggestedPlan = urlParams.get('suggested');
+            const feature = urlParams.get('feature');
             
             if (suggestedPlan && plans[suggestedPlan]) {
                 // Mark the suggested plan as popular to highlight it
@@ -401,7 +402,9 @@
                 
                 const subtitleElement = document.querySelector('.header p');
                 if (subtitleElement) {
-                    subtitleElement.textContent = `Unlock premium features with the ${planName} plan`;
+                    subtitleElement.textContent = feature 
+                        ? `Unlock ${feature.replace(/[-_]/g,' ')} with the ${planName} plan`
+                        : `Unlock premium features with the ${planName} plan`;
                 }
             }
         }
@@ -436,6 +439,15 @@
                 
                 const planCard = document.createElement('div');
                 planCard.className = `plan-card ${plan.popular ? 'popular' : ''}`;
+                planCard.setAttribute('data-plan', planId);
+                
+                if (planId === suggestedPlan) {
+                    planCard.style.borderColor = '#4f46e5';
+                    planCard.style.boxShadow = '0 10px 25px rgba(79,70,229,0.25)';
+                    setTimeout(() => {
+                        try { planCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+                    }, 50);
+                }
                 
                 planCard.innerHTML = `
                     <div class="plan-name">${plan.name}</div>
