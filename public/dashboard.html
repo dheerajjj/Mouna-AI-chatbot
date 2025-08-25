@@ -709,7 +709,17 @@
         
         function testWidget() {
             console.log('🧪 Test Widget clicked');
-            alert('🧪 Widget Test\n\nWidget testing functionality is available.\nRedirecting to integration page for setup.');
+            const plan = (window.currentUserPlan || 'free').toLowerCase();
+            // Testing the live widget and tenant-specific previews require Starter+
+            const allowedPlans = ['starter', 'professional', 'enterprise'];
+            if (!allowedPlans.includes(plan)) {
+                // Route Free users to pricing with a suggested upgrade
+                const url = '/pricing?suggested=starter&feature=widget-live&upgrade=starter';
+                console.log('🔒 Feature gated by plan. Redirecting to:', url);
+                window.location.href = url;
+                return;
+            }
+            alert('🧪 Widget Test\n\nRedirecting to integration page for setup.');
             window.location.href = '/integration';
         }
         
