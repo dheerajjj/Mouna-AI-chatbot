@@ -182,6 +182,98 @@ router.post('/verify-addon', authenticateToken, async (req, res) => {
   }
 });
 
+// Verify Razorpay payment (public fallback) and update user subscription without requiring auth
+router.post('/verify-payment-public', async (req, res) => {
+  try {
+    if (!razorpay) {
+      return res.status(503).json({ error: 'Payment service unavailable' });
+    }
+
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return res.status(400).json({ error: 'Missing required payment verification data' });
+    }
+
+    // Verify signature
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ error: 'Payment verification failed - Invalid signature' });
+    }
+
+    // Fetch order to get user and plan from notes
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+    const userIdStr = order?.notes?.user;
+    const planId = order?.notes?.plan;
+
+    if (!userIdStr || !planId) {
+      return res.status(400).json({ error: 'Order notes missing user or plan' });
+    }
+
+    // Get user
+    const user = await DatabaseService.findUserById(userIdStr);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Get plan details
+    const { PlanManager } = require('../config/planFeatures');
+    const planDetails = PlanManager.getPlanDetails(planId);
+    if (!planDetails || planId === 'free') {
+      return res.status(400).json({ error: 'Invalid plan selected' });
+    }
+
+    // Compute next billing
+    const now = new Date();
+    let nextBilling = new Date(now);
+    nextBilling.setMonth(now.getMonth() + 1);
+    if (nextBilling.getDate() !== now.getDate()) nextBilling.setDate(0);
+
+    // Update subscription
+    const currentPlan = user.subscription?.plan || 'free';
+    const subscriptionUpdate = {
+      'subscription.plan': planId,
+      'subscription.planName': planDetails.name,
+      'subscription.status': 'active',
+      'subscription.currentPeriodStart': now,
+      'subscription.currentPeriodEnd': nextBilling,
+      'subscription.nextBilling': nextBilling.toISOString().split('T')[0],
+      'subscription.billingCycle': planDetails.billingCycle,
+      'subscription.currency': planDetails.currency,
+      'subscription.amount': planDetails.price,
+      'subscription.razorpayPaymentId': razorpay_payment_id,
+      'subscription.razorpayOrderId': razorpay_order_id,
+      'subscription.lastPayment': {
+        amount: planDetails.price,
+        currency: planDetails.currency,
+        date: now,
+        paymentId: razorpay_payment_id,
+        planId: planId,
+        planName: planDetails.name
+      },
+      'subscription.updatedAt': now
+    };
+
+    if (currentPlan === 'free') {
+      subscriptionUpdate['usage.messagesThisMonth'] = 0;
+      subscriptionUpdate['usage.apiCallsPerMonth'] = 0;
+      subscriptionUpdate['usage.customResponses'] = 0;
+      subscriptionUpdate['usage.knowledgeBaseEntries'] = 0;
+      subscriptionUpdate['usage.widgetCustomizations'] = 0;
+      subscriptionUpdate['usage.maxFileUploads'] = 0;
+      subscriptionUpdate['usage.lastReset'] = now;
+    }
+
+    await DatabaseService.updateUser(user._id, subscriptionUpdate);
+
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('Public verify-payment error:', e);
+    return res.status(500).json({ error: 'Payment verification failed' });
+  }
+});
+
 // Verify Razorpay payment and update user subscription
 router.post('/verify-payment', authenticateToken, async (req, res) => {
   try {

@@ -794,8 +794,26 @@
                                 localStorage.setItem('selectedPlan', planId);
                                 localStorage.setItem('paymentAmount', `₹${(order.amount/100).toFixed(0)}`);
                                 localStorage.setItem('transactionId', response.razorpay_order_id);
+                                alert('Payment successful! You are now upgraded to ' + planId + ' plan. Redirecting...');
                                 window.location.href = `/payment-success?plan=${planId}&amount=${order.amount/100}&transaction_id=${response.razorpay_order_id}&razorpay_payment_id=${response.razorpay_payment_id}`;
                             } else {
+                                // Attempt public verification in case auth token was missing/expired
+                                try {
+                                    const pubResp = await fetch('/api/payments/verify-payment-public', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            razorpay_payment_id: response.razorpay_payment_id,
+                                            razorpay_order_id: response.razorpay_order_id,
+                                            razorpay_signature: response.razorpay_signature
+                                        })
+                                    });
+                                    if (pubResp.ok) {
+                                        alert('Payment successful! You are now upgraded to ' + planId + ' plan. Redirecting...');
+                                        window.location.href = `/payment-success?plan=${planId}&amount=${order.amount/100}&transaction_id=${response.razorpay_order_id}&razorpay_payment_id=${response.razorpay_payment_id}`;
+                                        return;
+                                    }
+                                } catch (ignore) {}
                                 window.location.href = `/payment-failed?error=payment_failed&order_id=${response.razorpay_order_id}&razorpay_error=${encodeURIComponent(verifyData.error || 'verification_failed')}`;
                             }
                         } catch (e) {
