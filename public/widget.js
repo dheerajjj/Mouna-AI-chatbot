@@ -430,12 +430,21 @@
             if (tenantConfig.enabledFeatures) {
                 Object.assign(currentConfig.enabledFeatures, tenantConfig.enabledFeatures);
             }
+            // Contact/handoff details from tenant
+            if (tenantConfig.contact) {
+                currentConfig.contact = tenantConfig.contact;
+            }
+            if (tenantConfig.whatsapp) {
+                currentConfig.whatsapp = tenantConfig.whatsapp;
+            }
             // White-labeling: hide branding for Pro/Enterprise
             if (data.ownerSubscription && (data.ownerSubscription.plan === 'professional' || data.ownerSubscription.plan === 'enterprise')) {
                 currentConfig.showBranding = false;
             }
             // Respect explicitly-set primary color from script tag; otherwise allow tenant color
             if (!currentConfig.primaryColorLocked && tenantConfig.primaryColor) updateWidgetColors(tenantConfig.primaryColor);
+            // Update handoff button visibility if present
+            try { const btn = widget.querySelector('#chatbot-handoff-toggle'); if (btn) { const has = (currentConfig?.whatsapp?.businessNumber || currentConfig?.contact?.phone || currentConfig?.contact?.email); btn.style.display = has ? 'inline-flex' : 'none'; } } catch (_) {}
         } catch (e) {
             // Ignore errors, use defaults
         }

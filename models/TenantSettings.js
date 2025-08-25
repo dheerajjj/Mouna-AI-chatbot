@@ -499,6 +499,15 @@ tenantSettingsSchema.methods.getWidgetConfig = function() {
     enabledFeatures: this.getEnabledFeatures(),
     businessHours: this.widgetCustomization.businessHours,
     autoResponses: this.widgetCustomization.autoResponses?.filter(ar => ar.enabled) || [],
+    // Expose tenant contact details for handoff in widget
+    contact: {
+      email: this.tenantInfo?.contactEmail || '',
+      phone: this.tenantInfo?.contactPhone || ''
+    },
+    whatsapp: {
+      enabled: !!this.integrations?.whatsapp?.enabled,
+      businessNumber: this.integrations?.whatsapp?.businessNumber || ''
+    },
     whiteLabel: {
       enabled: this.whiteLabel.enabled,
       level: this.whiteLabel.level,
