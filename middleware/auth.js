@@ -11,13 +11,28 @@ const authenticateToken = async (req, res, next) => {
   try {
     console.log('🔐 [AUTH] Authentication middleware started');
     
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+  // Extract token from Authorization header or authToken cookie (for OAuth flows)
+  const authHeader = req.headers['authorization'];
+  let token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) {
-      console.log('🚨 [AUTH] No token provided');
-      return res.status(401).json({ error: 'Access token required' });
+  if (!token && req.headers.cookie) {
+    try {
+      const cookies = Object.fromEntries(
+        req.headers.cookie.split(';').map(c => c.trim()).filter(Boolean).map(kv => {
+          const i = kv.indexOf('=');
+          return [decodeURIComponent(kv.slice(0, i)), decodeURIComponent(kv.slice(i + 1))];
+        })
+      );
+      token = cookies.authToken || token;
+    } catch (e) {
+      // ignore
     }
+  }
+
+  if (!token) {
+    console.log('🚨 [AUTH] No token provided (header or cookie)');
+    return res.status(401).json({ error: 'Access token required' });
+  }
 
     // Check if token is blacklisted
     if (tokenBlacklist.has(token)) {

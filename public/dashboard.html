@@ -789,19 +789,18 @@
         async function loadUserData() {
             try {
                 const token = localStorage.getItem('authToken');
-                if (!token) {
-                    window.location.href = '/login';
-                    return;
-                }
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
 
-                const response = await fetch('/api/profile', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                // Try loading profile with either header token or cookie-based session
+                const response = await fetch('/api/profile', { headers });
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        // Not authenticated via header or cookie — redirect to login
+                        window.location.href = '/login?redirect=' + encodeURIComponent('/dashboard');
+                        return;
+                    }
                     throw new Error('Failed to fetch user data');
                 }
 

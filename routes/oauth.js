@@ -86,6 +86,18 @@ router.get('/google/callback', async (req, res, next) => {
             try {
                 // Generate JWT token
                 const token = generateToken(user);
+
+                // Also set a cookie so server-side and cookie-based flows work without URL token
+                try {
+                    res.cookie('authToken', token, {
+                        httpOnly: true,
+                        sameSite: 'Lax',
+                        secure: true,
+                        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+                    });
+                } catch (cookieErr) {
+                    console.warn('⚠️ Failed to set auth cookie:', cookieErr?.message);
+                }
                 
                 // Successful authentication
                 console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
