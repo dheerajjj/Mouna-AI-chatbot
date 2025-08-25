@@ -247,7 +247,9 @@
                         successMessage.textContent = data.message;
                         successMessage.style.display = 'block';
                         setTimeout(() => {
-                            window.location.href = (redirectTarget || data.redirectTo || '/dashboard');
+                            const dest = (redirectTarget || data.redirectTo || '/dashboard');
+                            const url = dest + (dest.includes('?') ? '&' : '?') + `token=${encodeURIComponent(data.token)}`;
+                            window.location.href = url;
                         }, 1000);
                     } else {
                         // Handle other success responses

@@ -2156,7 +2156,59 @@ app.get('/email-validation-test', (req, res) => {
     });
 
     app.get('/integration', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public', 'integration.html'));
+        try {
+            // Helper: parse cookies from header without middleware
+            const parseCookies = (cookieHeader = '') => {
+                const out = {};
+                cookieHeader.split(';').map(c => c.trim()).filter(Boolean).forEach(kv => {
+                    const idx = kv.indexOf('=');
+                    if (idx > -1) {
+                        const k = decodeURIComponent(kv.slice(0, idx));
+                        const v = decodeURIComponent(kv.slice(idx + 1));
+                        out[k] = v;
+                    }
+                });
+                return out;
+            };
+
+            const cookies = parseCookies(req.headers.cookie || '');
+            const bearer = (req.headers.authorization || '').startsWith('Bearer ')
+                ? req.headers.authorization.slice(7)
+                : null;
+            const queryToken = req.query && req.query.token;
+            const cookieToken = cookies.authToken;
+            const token = queryToken || bearer || cookieToken;
+
+            const verify = (t) => {
+                if (!t) return false;
+                try {
+                    const jwt = require('jsonwebtoken');
+                    jwt.verify(t, process.env.JWT_SECRET);
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            };
+
+            // If token provided via query, set cookie then redirect to clean URL
+            if (queryToken && verify(queryToken)) {
+                res.cookie('authToken', queryToken, {
+                    httpOnly: false,
+                    sameSite: 'Lax',
+                    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+                });
+                return res.redirect(302, '/integration');
+            }
+
+            if (!verify(token)) {
+                return res.redirect(302, '/login?redirect=' + encodeURIComponent('/integration'));
+            }
+
+            return res.sendFile(path.join(__dirname, 'public', 'integration.html'));
+        } catch (err) {
+            // On any unexpected error, fall back to client-side auth
+            return res.sendFile(path.join(__dirname, 'public', 'integration.html'));
+        }
     });
 
     // Welcome dashboard for new users after OTP verification
