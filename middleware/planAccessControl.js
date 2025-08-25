@@ -8,7 +8,7 @@ const { PlanManager } = require('../config/planFeatures');
 function requireFeature(requiredFeature) {
   return (req, res, next) => {
     try {
-      const user = req.user;
+      const user = req.currentUser || req.user;
       if (!user) {
         return res.status(401).json({ 
           error: 'Authentication required',
@@ -64,7 +64,7 @@ function requireFeature(requiredFeature) {
 function checkUsageLimit(limitType, increment = 1) {
   return async (req, res, next) => {
     try {
-      const user = req.user;
+      const user = req.currentUser || req.user;
       if (!user) {
         return res.status(401).json({ 
           error: 'Authentication required',
@@ -144,12 +144,14 @@ function incrementUsage(DatabaseService) {
     
     res.send = function(data) {
       // Only increment if the response was successful
-      if (res.statusCode < 400 && req.usageIncrement && req.user) {
+      if (res.statusCode < 400 && req.usageIncrement && (req.currentUser || req.user)) {
         // Increment usage in background (don't wait for it)
         setImmediate(async () => {
           try {
+            const userId = (req.currentUser && req.currentUser._id) || (req.user && (req.user._id || req.user.userId));
+            if (!userId) return;
             for (const [limitType, increment] of Object.entries(req.usageIncrement)) {
-              await DatabaseService.incrementUserUsage(req.user._id, limitType, increment);
+              await DatabaseService.incrementUserUsage(userId, limitType, increment);
             }
           } catch (error) {
             console.error('Error incrementing usage:', error);
@@ -172,7 +174,7 @@ function incrementUsage(DatabaseService) {
 function requirePlan(allowedPlans) {
   return (req, res, next) => {
     try {
-      const user = req.user;
+      const user = req.currentUser || req.user;
       if (!user) {
         return res.status(401).json({ 
           error: 'Authentication required',
@@ -223,9 +225,10 @@ function requirePlan(allowedPlans) {
 function enrichWithPlanInfo(req, res, next) {
   const originalJson = res.json;
   
-  res.json = function(data) {
-    if (req.user && data) {
-      const userPlan = req.user.subscription?.plan || 'free';
+res.json = function(data) {
+    const user = req.currentUser || req.user;
+    if (user && data) {
+      const userPlan = user.subscription?.plan || 'free';
       
       try {
         const planDetails = PlanManager.getPlanDetails(userPlan);

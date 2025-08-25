@@ -9,6 +9,24 @@ const { authenticateToken } = require('./auth');
 // Plan feature gating
 const { requireFeature } = require('../middleware/planAccessControl');
 
+// Helper: attach hydrated user to request for feature gating
+async function attachCurrentUser(req, res, next) {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const user = await DatabaseService.findUserById(req.user.userId);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    req.currentUser = user;
+    next();
+  } catch (err) {
+    console.error('attachCurrentUser error:', err);
+    res.status(500).json({ error: 'Failed to load user' });
+  }
+}
+
 // Import subscription validation middleware
 const { 
   canCreateTenant, 
@@ -82,6 +100,8 @@ router.get('/config/:tenantId', async (req, res) => {
       plan: tenantSettings.userId.subscription.plan || 'free',
       status: tenantSettings.userId.subscription.status || 'active'
     } : { plan: 'free', status: 'active' };
+
+    console.log('[tenant/config] ownerSubscription:', ownerSubscription);
     
     res.json({
       success: true,
@@ -761,7 +781,7 @@ router.delete('/settings/:tenantId', authenticateToken, async (req, res) => {
  * PROTECTED ENDPOINT: Get tenant usage analytics
  * Returns usage statistics for a specific tenant
  */
-router.get('/analytics/:tenantId', authenticateToken, requireFeature('basicAnalytics'), async (req, res) => {
+router.get('/analytics/:tenantId', authenticateToken, attachCurrentUser, requireFeature('basicAnalytics'), async (req, res) => {
   try {
     const { tenantId } = req.params;
     const userId = req.user.userId;

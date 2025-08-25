@@ -599,6 +599,9 @@
                     <button class="btn btn-secondary" onclick="openBillingModal()">
                         <i class="fas fa-receipt"></i> Billing
                     </button>
+                    <button class="btn btn-secondary" onclick="refreshSubscription()" title="Force refresh subscription from server">
+                        <i class="fas fa-sync"></i> Refresh Subscription
+                    </button>
                 </div>
             </div>
             <!-- Integration Code Section -->
@@ -825,19 +828,7 @@
                 const headers = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = `Bearer ${token}`;
 
-                // Try loading profile with either header token or cookie-based session
-                const response = await fetch('/api/profile', { headers });
-
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        // Not authenticated via header or cookie — redirect to login
-                        window.location.href = '/login?redirect=' + encodeURIComponent('/dashboard');
-                        return;
-                    }
-                    throw new Error('Failed to fetch user data');
-                }
-
-                const data = await response.json();
+                const data = await fetchProfile(headers);
                 
                 if (data.user) {
                     console.log('👤 User data received:', data.user);
@@ -938,6 +929,22 @@
             }
         }
 
+        // Helper: profile fetch with retries and no-cache
+        async function fetchProfile(headers, retries = 2, delayMs = 700) {
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const resp = await fetch('/api/profile', { headers, cache: 'no-store' });
+                    if (resp.ok) return await resp.json();
+                } catch (e) {
+                    console.warn('Profile fetch attempt failed:', e.message);
+                }
+                if (attempt < retries) {
+                    await new Promise(r => setTimeout(r, delayMs));
+                }
+            }
+            throw new Error('Failed to fetch profile after retries');
+        }
+
         // Apply plan-based feature restrictions and enhancements
         function applyPlanBasedFeatures(user) {
             console.log('🔧 Applying plan-based features for user:', user.plan?.current?.id || user.subscription?.plan);
@@ -960,6 +967,38 @@
             console.log('✅ Plan label applied to badges:', planLabel);
         }
 
+        // Manual refresh button handler
+        async function refreshSubscription() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const data = await fetchProfile(headers, 3, 800);
+                if (data && data.user) {
+                    // Re-apply UI with the latest profile
+                    window.currentUserPlan = data.user.plan?.current?.id || data.user.subscription?.plan || 'free';
+                    applyPlanBasedFeatures(data.user);
+                    // Update status text
+                    const planName = data.user.plan?.current?.name || data.user.subscription?.planName || 'Free Plan';
+                    const planStatusElement = document.getElementById('plan-status-text');
+                    if (planStatusElement) planStatusElement.textContent = `${planName} Active`;
+                    // Update usage counters
+                    const monthlyUsageElement = document.getElementById('monthly-usage');
+                    const monthlyMessages = data.user.usage?.messagesThisMonth || 0;
+                    const limit = data.user.plan?.current?.limits?.messagesPerMonth;
+                    if (monthlyUsageElement) {
+                        monthlyUsageElement.textContent = (limit === 'unlimited' || limit === -1)
+                            ? `${monthlyMessages} / Unlimited`
+                            : `${monthlyMessages} / ${limit}`;
+                    }
+                }
+            } catch (e) {
+                console.error('Refresh subscription failed:', e);
+                alert('Could not refresh subscription. Please try again.');
+            }
+        }
+        
         // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('billing-modal');
