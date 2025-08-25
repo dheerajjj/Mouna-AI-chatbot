@@ -425,11 +425,29 @@
         
         async function fetchPricingData() {
             try {
+                // Try unified pricing endpoint first
                 const resp = await fetch('/api/pricing/plans', { headers: { 'Content-Type': 'application/json' } });
-                if (!resp.ok) throw new Error('Failed to fetch pricing config');
+                if (!resp.ok) throw new Error('Failed to fetch unified pricing config');
                 const data = await resp.json();
                 featureDescriptions = data.featureDescriptions || {};
-                plansUI = normalizePlans(data.plans || {});
+                let candidatePlans = data.plans || data.monthly || (data.data && (data.data.plans || data.data.monthly));
+
+                if (!candidatePlans || Object.keys(candidatePlans).length === 0) {
+                    // Fallback to legacy payments endpoint shape { monthly: { ... } }
+                    const legacyResp = await fetch('/api/payments/plans', { headers: { 'Content-Type': 'application/json' } });
+                    if (legacyResp.ok) {
+                        const legacyData = await legacyResp.json();
+                        candidatePlans = legacyData.monthly || {};
+                    }
+                }
+
+                plansUI = normalizePlans(candidatePlans || {});
+
+                // Final safety: if normalization produced no plans, use inline fallback
+                if (!plansUI || Object.keys(plansUI).length === 0) {
+                    console.warn('Pricing config returned empty; using fallback plans.');
+                    plansUI = normalizeFallbackPlans();
+                }
             } catch (e) {
                 console.warn('Pricing API failed, using fallback plans:', e.message);
                 plansUI = normalizeFallbackPlans();
