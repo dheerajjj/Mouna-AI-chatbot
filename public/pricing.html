@@ -268,6 +268,39 @@
         .faq-answer {
             color: #64748b;
         }
+        /* Tooltip styles */
+        .feature-item { position: relative; }
+        .feature-item .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px; height: 18px;
+            margin-left: 6px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+        }
+        .feature-item .info-icon:focus { outline: 2px solid #4f46e5; outline-offset: 2px; }
+        .feature-item .tooltip {
+            position: absolute;
+            left: 24px;
+            top: 50%; transform: translateY(-50%);
+            background: #111827;
+            color: white;
+            font-size: 12px;
+            line-height: 1.4;
+            padding: 8px 10px;
+            border-radius: 6px;
+            display: none;
+            max-width: 240px;
+            z-index: 20;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .feature-item .tooltip.show { display: block; }
     </style>
 </head>
 <body>
@@ -374,27 +407,226 @@
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadUserPlan();
-            handleSuggestedPlan();
-            renderPlans();
+            initPricing();
         });
 
         let currentUserPlan = 'free';
         let suggestedPlan = null;
+        let plansUI = null; // Will load from server, fallback to local if needed
+        let featureDescriptions = {};
+
+        async function initPricing() {
+            await loadUserPlan();
+            await fetchPricingData();
+            handleSuggestedPlan();
+            renderPlans();
+            wireTooltips();
+        }
+        
+        async function fetchPricingData() {
+            try {
+                const resp = await fetch('/api/pricing/plans', { headers: { 'Content-Type': 'application/json' } });
+                if (!resp.ok) throw new Error('Failed to fetch pricing config');
+                const data = await resp.json();
+                featureDescriptions = data.featureDescriptions || {};
+                plansUI = normalizePlans(data.plans || {});
+            } catch (e) {
+                console.warn('Pricing API failed, using fallback plans:', e.message);
+                plansUI = normalizeFallbackPlans();
+            }
+        }
+        
+        function normalizePlans(apiPlans) {
+            const result = {};
+            Object.entries(apiPlans).forEach(([id, p]) => {
+                const price = p.price ?? p.basePrice ?? 0;
+                const interval = p.interval || p.billingCycle || 'month';
+                const featuresArr = buildFeatureItems(p.features || {});
+                result[id] = {
+                    name: p.name,
+                    price: `₹${price}`,
+                    period: interval === 'month' ? 'per month' : `per ${interval}`,
+                    features: featuresArr,
+                    popular: !!p.popular
+                };
+            });
+            return result;
+        }
+        
+        function normalizeFallbackPlans() {
+            // Build from the legacy inline structure already present in this file as a safe fallback
+            const fallbackPlans = {
+                free: {
+                    name: "Free",
+                    price: "₹0",
+                    period: "forever",
+                    features: [
+                        { text: "100 messages per month", included: true, key: 'monthlyMessages' },
+                        { text: "1 personal tenant", included: true, key: 'tenants' },
+                        { text: "Basic UI customization", included: true, key: 'customization' },
+                        { text: "'Powered by' watermark", included: false, key: 'branding' },
+                        { text: "No analytics dashboard", included: false, key: 'dashboard' }
+                    ]
+                },
+                starter: {
+                    name: "Starter",
+                    price: "₹499",
+                    period: "per month",
+                    features: [
+                        { text: "1,000 messages per month", included: true, key: 'monthlyMessages' },
+                        { text: "Up to 2 client tenants", included: true, key: 'tenants' },
+                        { text: "Advanced AI responses", included: true },
+                        { text: "Basic dashboard & analytics", included: true, key: 'analytics' },
+                        { text: "API key integration", included: true, key: 'apiAccess' },
+                        { text: "Custom widget branding", included: true, key: 'branding' }
+                    ],
+                    popular: true
+                },
+                professional: {
+                    name: "Professional",
+                    price: "₹1,499",
+                    period: "per month",
+                    features: [
+                        { text: "5,000 messages per month", included: true, key: 'monthlyMessages' },
+                        { text: "Up to 5 client tenants", included: true, key: 'tenants' },
+                        { text: "White-labeling (no watermark)", included: true, key: 'branding' },
+                        { text: "Advanced dashboard + analytics", included: true, key: 'analytics' },
+                        { text: "API access", included: true, key: 'apiAccess' },
+                        { text: "Priority support", included: true, key: 'support' }
+                    ]
+                },
+                enterprise: {
+                    name: "Enterprise",
+                    price: "₹4,999",
+                    period: "per month",
+                    features: [
+                        { text: "Unlimited messages", included: true, key: 'monthlyMessages' },
+                        { text: "Unlimited client tenants", included: true, key: 'tenants' },
+                        { text: "Full white-labeling", included: true, key: 'branding' },
+                        { text: "Advanced analytics", included: true, key: 'analytics' },
+                        { text: "Priority support", included: true, key: 'support' },
+                        { text: "Multi-tenant management", included: true, key: 'tenants' }
+                    ]
+                }
+            };
+            return fallbackPlans;
+        }
+        
+        function buildFeatureItems(featuresObj) {
+            const out = [];
+            // monthly messages
+            if (featuresObj.monthlyMessages !== undefined) {
+                const mm = featuresObj.monthlyMessages;
+                out.push({ text: `${mm === 'unlimited' ? 'Unlimited' : mm.toLocaleString('en-IN')} messages per month`, included: true, key: 'monthlyMessages' });
+            }
+            // tenants (client tenants)
+            if (featuresObj.tenants !== undefined) {
+                const t = featuresObj.tenants;
+                out.push({ text: `${t === 'unlimited' ? 'Unlimited' : 'Up to ' + t} client tenants`, included: !!t || t === 'unlimited', key: 'tenants' });
+            }
+            // websites
+            if (featuresObj.websites !== undefined) {
+                const w = featuresObj.websites;
+                out.push({ text: `${w === 'unlimited' ? 'Unlimited' : w} websites/tenants support`, included: !!w || w === 'unlimited', key: 'websites' });
+            }
+            // analytics
+            if (featuresObj.analytics !== undefined) {
+                const a = featuresObj.analytics;
+                const label = a === true ? 'Analytics' : (typeof a === 'string' ? `${capitalize(a)} analytics` : 'Analytics');
+                out.push({ text: label, included: !!a, key: 'analytics' });
+            }
+            // dashboard
+            if (featuresObj.dashboard !== undefined) {
+                out.push({ text: featuresObj.dashboard ? 'Dashboard access' : 'No dashboard', included: !!featuresObj.dashboard, key: 'dashboard' });
+            }\r
+            // branding
+            if (featuresObj.branding !== undefined) {
+                const b = featuresObj.branding;
+                let label = 'Branding';
+                if (b === 'with_watermark') label = "'Powered by' watermark";
+                else if (b === 'removable') label = 'Removable watermark / custom branding';
+                else if (b === 'white_label') label = 'White-label (no watermark)';
+                out.push({ text: label, included: b !== 'with_watermark', key: 'branding' });
+            }
+            // apiAccess
+            if (featuresObj.apiAccess !== undefined) {
+                out.push({ text: 'API access', included: !!featuresObj.apiAccess, key: 'apiAccess' });
+            }
+            // webhooks
+            if (featuresObj.webhooks !== undefined) {
+                out.push({ text: 'Webhooks', included: !!featuresObj.webhooks, key: 'webhooks' });
+            }
+            // customIntegrations
+            if (featuresObj.customIntegrations !== undefined) {
+                out.push({ text: 'Custom integrations', included: !!featuresObj.customIntegrations, key: 'customIntegrations' });
+            }
+            // sla
+            if (featuresObj.sla !== undefined) {
+                out.push({ text: `SLA: ${featuresObj.sla}`, included: true, key: 'sla' });
+            }
+            // support
+            if (featuresObj.support !== undefined) {
+                const s = featuresObj.support;
+                const label = s.replace(/_/g,' ');
+                out.push({ text: `Support: ${label}`, included: true, key: 'support' });
+            }
+            // customization
+            if (featuresObj.customization !== undefined) {
+                const c = featuresObj.customization;
+                out.push({ text: `Customization: ${typeof c === 'string' ? capitalize(c) : (c ? 'Yes' : 'No')}`, included: !!c, key: 'customization' });
+            }
+            // responseTime
+            if (featuresObj.responseTime !== undefined) {
+                out.push({ text: `Response priority: ${featuresObj.responseTime}`, included: true, key: 'responseTime' });
+            }
+            return out;
+        }
+        
+        function capitalize(s){ try { return s.charAt(0).toUpperCase() + s.slice(1); } catch(e){ return s; } }
+        
+        function wireTooltips() {
+            document.addEventListener('click', (e) => {
+                const icon = e.target.closest('.info-icon');
+                if (!icon) return;
+                const tip = icon.nextElementSibling;
+                if (tip && tip.classList.contains('tooltip')) {
+                    tip.classList.toggle('show');
+                }
+            });
+            document.addEventListener('mouseover', (e) => {
+                const icon = e.target.closest('.info-icon');
+                if (!icon) return;
+                const tip = icon.nextElementSibling;
+                if (tip && tip.classList.contains('tooltip')) tip.classList.add('show');
+            });
+            document.addEventListener('mouseout', (e) => {
+                const icon = e.target.closest('.info-icon');
+                if (!icon) return;
+                const tip = icon.nextElementSibling;
+                if (tip && tip.classList.contains('tooltip')) tip.classList.remove('show');
+            });
+            document.addEventListener('focusout', (e) => {
+                const icon = e.target.closest('.info-icon');
+                if (!icon) return;
+                const tip = icon.nextElementSibling;
+                if (tip && tip.classList.contains('tooltip')) tip.classList.remove('show');
+            });
+        }
         
         function handleSuggestedPlan() {
             const urlParams = new URLSearchParams(window.location.search);
             suggestedPlan = urlParams.get('suggested');
             const feature = urlParams.get('feature');
             
-            if (suggestedPlan && plans[suggestedPlan]) {
+            if (!plansUI) return;
+            if (suggestedPlan && plansUI[suggestedPlan]) {
                 // Mark the suggested plan as popular to highlight it
-                Object.keys(plans).forEach(planId => {
-                    plans[planId].popular = planId === suggestedPlan;
+                Object.keys(plansUI).forEach(planId => {
+                    plansUI[planId].popular = planId === suggestedPlan;
                 });
                 
                 // Update page title to reflect suggestion
-                const planName = plans[suggestedPlan].name;
+                const planName = plansUI[suggestedPlan].name;
                 const headerElement = document.querySelector('.header h1');
                 if (headerElement) {
                     headerElement.textContent = `Upgrade to ${planName}`;
@@ -433,8 +665,9 @@
         function renderPlans() {
             const container = document.getElementById('plans-container');
             container.innerHTML = '';
+            const source = plansUI || {};
 
-            Object.entries(plans).forEach(([planId, plan]) => {
+            Object.entries(source).forEach(([planId, plan]) => {
                 const isCurrentPlan = planId === currentUserPlan;
                 
                 const planCard = document.createElement('div');
@@ -455,9 +688,10 @@
                     <div class="plan-period">${plan.period}</div>
                     <ul class="plan-features">
                         ${plan.features.map(feature => `
-                            <li>
-                                <i class="fas ${feature.included ? 'fa-check check' : 'fa-times cross'}"></i>
+                            <li class="feature-item">
+                                <i class="fas ${feature.included !== false ? 'fa-check check' : 'fa-times cross'}"></i>
                                 ${feature.text}
+                                ${feature.key && featureDescriptions[feature.key] ? `<span class=\"info-icon\" tabindex=\"0\" aria-label=\"More info about ${feature.key}\">i</span><span class=\"tooltip\">${featureDescriptions[feature.key]}</span>` : ''}
                             </li>
                         `).join('')}
                     </ul>

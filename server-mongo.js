@@ -177,6 +177,8 @@ const passport = require('passport');
 const { initializeOAuth } = require('./config/oauth');
 // Initialize OAuth strategies after DatabaseService is available
 let oauthInitialized = false;
+// Simple in-memory cache for pricing data
+let __pricingCache = { data: null, ts: 0 };
 
 // Note: Passport middleware will be initialized after session middleware
 
@@ -1838,6 +1840,31 @@ async function startServer() {
       } catch (error) {
         console.error('Pricing fetch error:', error);
         res.status(500).json({ error: 'Failed to fetch pricing plans' });
+      }
+    });
+
+    // Unified pricing config endpoint (single source of truth)
+    app.get('/api/pricing/plans', (req, res) => {
+      try {
+        const now = Date.now();
+        const CACHE_TTL_MS = 60 * 1000; // 1 minute cache
+        if (__pricingCache.data && (now - __pricingCache.ts) < CACHE_TTL_MS) {
+          return res.json(__pricingCache.data);
+        }
+
+        const { PRICING_PLANS, FEATURE_DESCRIPTIONS } = require('./config/pricing');
+
+        const payload = {
+          plans: PRICING_PLANS,
+          featureDescriptions: FEATURE_DESCRIPTIONS,
+          generatedAt: new Date().toISOString()
+        };
+        __pricingCache = { data: payload, ts: now };
+        res.setHeader('Cache-Control', 'public, max-age=60');
+        return res.json(payload);
+      } catch (e) {
+        console.error('Pricing config endpoint error:', e);
+        return res.status(500).json({ error: 'Failed to load pricing config' });
       }
     });
 
