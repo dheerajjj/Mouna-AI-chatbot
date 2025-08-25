@@ -2326,7 +2326,8 @@ app.get('/email-validation-test', (req, res) => {
       console.log('');
       
       if (!mongoConnected) {
-        console.log('⚠️  Note: Using mock database. Install and start MongoDB for production use.');
+        console.error('❌ MongoDB connection is required. Shutting down.');
+        process.exit(1);
       }
     });
 
@@ -2386,6 +2387,5 @@ initDB().then(() => {
   startServer();
 }).catch((error) => {
   console.error('❌ Failed to initialize database:', error);
-  // Try to start server anyway with fallback
-  startServer();
+  process.exit(1);
 });

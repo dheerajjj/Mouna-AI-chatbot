@@ -64,7 +64,7 @@ const PLAN_FEATURES = {
       basicAnalytics: true,
       advancedAnalytics: false,
       customBranding: true,
-      apiAccess: false,
+      apiAccess: true,
       prioritySupport: false,
       customPrompts: true,
       multiLanguageSupport: false,
@@ -137,7 +137,7 @@ const PLAN_FEATURES = {
   
   enterprise: {
     name: 'Enterprise Plan',
-    price: 2999,
+    price: 4999,
     currency: 'INR',
     billingCycle: 'monthly',
     limits: {

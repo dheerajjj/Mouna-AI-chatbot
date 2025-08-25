@@ -9,51 +9,44 @@ class DatabaseService {
 
   async initialize() {
     try {
-      // Try to connect to MongoDB first
+      // Try to connect to MongoDB
       const connection = await database.connect();
-      
-      if (connection) {
-        this.isMongoConnected = true;
-        
-        // Load MongoDB models
-        const { User, Subscription, MessageLog } = require('../models/User');
-        const ChatSession = require('../models/ChatSession');
-        
-        // Load auto-training models
-        const { 
-          TenantTrainingData, 
-          TrainingSession, 
-          CrawlJobMetrics, 
-          SchedulerMetrics, 
-          KnowledgeBaseItem 
-        } = require('../models/AutoTrainingSchemas');
-        
-        this.models = {
-          User,
-          Subscription, 
-          MessageLog,
-          ChatSession,
-          // Auto-training models
-          TenantTrainingData,
-          TrainingSession,
-          CrawlJobMetrics,
-          SchedulerMetrics,
-          KnowledgeBaseItem
-        };
-        
-        console.log('✅ Database Service initialized with MongoDB');
-        return true;
-      } else {
-        throw new Error('MongoDB connection failed');
-      }
+      if (!connection) throw new Error('MongoDB connection failed (no connection object)');
+
+      this.isMongoConnected = true;
+
+      // Load MongoDB models
+      const { User, Subscription, MessageLog } = require('../models/User');
+      const ChatSession = require('../models/ChatSession');
+
+      // Load auto-training models
+      const {
+        TenantTrainingData,
+        TrainingSession,
+        CrawlJobMetrics,
+        SchedulerMetrics,
+        KnowledgeBaseItem
+      } = require('../models/AutoTrainingSchemas');
+
+      this.models = {
+        User,
+        Subscription,
+        MessageLog,
+        ChatSession,
+        // Auto-training models
+        TenantTrainingData,
+        TrainingSession,
+        CrawlJobMetrics,
+        SchedulerMetrics,
+        KnowledgeBaseItem
+      };
+
+      console.log('✅ Database Service initialized with MongoDB');
+      return true;
     } catch (error) {
-      console.log('⚠️ MongoDB unavailable, falling back to mock database...');
-      this.isMongoConnected = false;
-      
-      // Load mock database
-      this.mockDB = require('../mockDB');
-      console.log('✅ Database Service initialized with Mock DB');
-      return false;
+      console.error('❌ Mongo-only mode: failed to initialize database:', error.message);
+      // Propagate error so caller can exit process
+      throw error;
     }
   }
 

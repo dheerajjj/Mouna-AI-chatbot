@@ -388,10 +388,27 @@
                 }
 
                 const data = await response.json();
+                const user = data.user || {};
+                const planId = (user.subscription && user.subscription.plan) || 'free';
+                const canAccess = !!(user.capabilities && user.capabilities.canAccessAnalytics);
+
+                if (!canAccess) {
+                    // Show upgrade prompt for analytics access
+                    const container = document.querySelector('.chart-container');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="text-align:center; padding: 2rem;">
+                                <i class="fas fa-lock" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                                <h3 style="color:#1e293b; margin-bottom:0.5rem;">Analytics is a paid feature</h3>
+                                <p style="color:#64748b; margin-bottom:1rem;">Your current plan (<strong>${planId}</strong>) does not include analytics access.</p>
+                                <a href="/pricing?suggested=starter&feature=analytics" class="btn"><i class="fas fa-arrow-up"></i> Upgrade to Starter</a>
+                            </div>`;
+                    }
+                }
                 
-                if (data.user && data.user.usage) {
-                    document.getElementById('total-conversations').textContent = data.user.usage.totalMessages || 0;
-                    document.getElementById('monthly-messages').textContent = data.user.usage.messagesThisMonth || 0;
+                if (user && user.usage) {
+                    document.getElementById('total-conversations').textContent = user.usage.totalMessages || 0;
+                    document.getElementById('monthly-messages').textContent = user.usage.messagesThisMonth || 0;
                     document.getElementById('avg-response-time').textContent = Math.floor(Math.random() * 300 + 150); // Simulated
                     document.getElementById('satisfaction-rate').textContent = '94%'; // Simulated
                 }

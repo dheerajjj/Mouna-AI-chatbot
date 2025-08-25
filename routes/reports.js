@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const planAccessControl = require('../middleware/planAccessControl');
+const { requireFeature } = require('../middleware/planAccessControl');
 const { ObjectId } = require('mongodb');
 
 // Import required libraries for different export formats
@@ -570,7 +570,7 @@ function generateCSVReport(reportData) {
  * Generate and download report
  * POST /api/reports/generate
  */
-router.post('/generate', authenticateToken, async (req, res) => {
+router.post('/generate', authenticateToken, requireFeature('basicAnalytics'), async (req, res) => {
     try {
         console.log('🐛 [DEBUG] Reports route hit - /api/reports/generate');
         console.log('🐛 [DEBUG] Request body:', JSON.stringify(req.body, null, 2));
@@ -793,7 +793,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
  * Get report preview data (without generating full report)
  * GET /api/reports/preview
  */
-router.get('/preview', authenticateToken, async (req, res) => {
+router.get('/preview', authenticateToken, requireFeature('basicAnalytics'), async (req, res) => {
     try {
         console.log('🐛 [DEBUG] Report preview route hit');
         console.log('🐛 [DEBUG] Preview req.user:', req.user);
@@ -859,7 +859,7 @@ router.get('/preview', authenticateToken, async (req, res) => {
  * Quick download usage report
  * GET /api/reports/usage/download
  */
-router.get('/usage/download', authenticateToken, async (req, res) => {
+router.get('/usage/download', authenticateToken, requireFeature('basicAnalytics'), async (req, res) => {
     try {
         console.log('🐛 [DEBUG] Quick usage download route hit');
         console.log('🐛 [DEBUG] Usage download req.user:', req.user);
@@ -911,7 +911,7 @@ router.get('/usage/download', authenticateToken, async (req, res) => {
  * Quick download conversation logs
  * GET /api/reports/conversations/download
  */
-router.get('/conversations/download', authenticateToken, async (req, res) => {
+router.get('/conversations/download', authenticateToken, requireFeature('basicAnalytics'), async (req, res) => {
     try {
         console.log('🐛 [DEBUG] Quick conversations download route hit');
         console.log('🐛 [DEBUG] Conversations download req.user:', req.user);
@@ -967,7 +967,7 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SAMPLE_DATA ===
      * Create sample data for testing reports
      * POST /api/reports/create-sample-data
      */
-    router.post('/create-sample-data', authenticateToken, async (req, res) => {
+router.post('/create-sample-data', authenticateToken, requireFeature('basicAnalytics'), async (req, res) => {
         try {
             // Enhanced user ID extraction with logging
             console.log('🐛 [DEBUG] Create sample data - req.user:', req.user);
@@ -1022,7 +1022,7 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SAMPLE_DATA ===
      * Clear sample data
      * DELETE /api/reports/clear-sample-data
      */
-    router.delete('/clear-sample-data', authenticateToken, async (req, res) => {
+router.delete('/clear-sample-data', authenticateToken, requireFeature('basicAnalytics'), async (req, res) => {
         try {
             // Enhanced user ID extraction with logging
             console.log('🐛 [DEBUG] Clear sample data - req.user:', req.user);

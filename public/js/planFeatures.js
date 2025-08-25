@@ -63,7 +63,7 @@ const PLAN_FEATURES = {
       basicAnalytics: true,
       advancedAnalytics: false,
       customBranding: true,
-      apiAccess: false,
+      apiAccess: true,
       prioritySupport: false,
       customPrompts: true,
       multiLanguageSupport: false,
@@ -92,7 +92,7 @@ const PLAN_FEATURES = {
     currency: 'INR',
     billingCycle: 'monthly',
     limits: {
-      messagesPerMonth: 5000,
+      messagesPerMonth: 3000,
       apiCallsPerMonth: 10000,
       customResponses: 200,
       knowledgeBaseEntries: 500,
@@ -130,11 +130,11 @@ const PLAN_FEATURES = {
   
   enterprise: {
     name: 'Enterprise Plan',
-    price: 2999,
+    price: 4999,
     currency: 'INR',
     billingCycle: 'monthly',
     limits: {
-      messagesPerMonth: 'unlimited',
+      messagesPerMonth: 15000,
       apiCallsPerMonth: 'unlimited',
       customResponses: 'unlimited',
       knowledgeBaseEntries: 'unlimited',

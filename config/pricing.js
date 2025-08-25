@@ -29,7 +29,7 @@ const BASE_PRICING_PLANS = {
   starter: {
     id: 'starter',
     name: 'Starter',
-    price: 299,
+    price: 499,
     currency: 'INR',
     interval: 'month',
     features: {
@@ -48,11 +48,11 @@ const BASE_PRICING_PLANS = {
   professional: {
     id: 'professional',
     name: 'Professional',
-    price: 999,
+    price: 1499,
     currency: 'INR',
     interval: 'month',
     features: {
-      monthlyMessages: 5000,
+      monthlyMessages: 3000,
       websites: 10,
       customization: true,
       analytics: 'advanced',
@@ -69,11 +69,11 @@ const BASE_PRICING_PLANS = {
   enterprise: {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 2999,
+    price: 4999,
     currency: 'INR',
     interval: 'month',
     features: {
-      monthlyMessages: 25000,
+      monthlyMessages: 15000,
       websites: 'unlimited',
       customization: true,
       analytics: 'enterprise',
@@ -263,7 +263,7 @@ const USAGE_LIMITS = {
     analytics: true,
     dashboard: true,
     apiAccess: true,
-    tenants: 5, // Up to 5 client tenants (as per frontend)
+    tenants: 2, // Up to 2 client tenants
     personalTenantOnly: false,
     whiteLabel: 'basic'
   },
