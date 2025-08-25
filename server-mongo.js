@@ -2219,7 +2219,7 @@ app.get('/email-validation-test', (req, res) => {
         res.redirect(301, '/dashboard');
     });
     
-    // Analytics dashboard page
+    // Analytics dashboard page (served as static HTML; UI enforces auth/gating)
     app.get('/analytics', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'analytics.html'));
     });

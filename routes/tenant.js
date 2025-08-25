@@ -6,6 +6,8 @@ const router = express.Router();
 
 // Import authentication middleware from auth.js
 const { authenticateToken } = require('./auth');
+// Plan feature gating
+const { requireFeature } = require('../middleware/planAccessControl');
 
 // Import subscription validation middleware
 const { 
@@ -759,7 +761,7 @@ router.delete('/settings/:tenantId', authenticateToken, async (req, res) => {
  * PROTECTED ENDPOINT: Get tenant usage analytics
  * Returns usage statistics for a specific tenant
  */
-router.get('/analytics/:tenantId', authenticateToken, async (req, res) => {
+router.get('/analytics/:tenantId', authenticateToken, requireFeature('basicAnalytics'), async (req, res) => {
   try {
     const { tenantId } = req.params;
     const userId = req.user.userId;
