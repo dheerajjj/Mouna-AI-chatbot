@@ -143,7 +143,21 @@ class DatabaseService {
     } else {
       const user = this.mockDB.users.find(u => u._id === userId);
       if (user) {
-        Object.assign(user, updateData);
+        // Support dot-notation updates for mock DB to mirror Mongo behavior
+        const setByPath = (obj, path, value) => {
+          const keys = path.split('.');
+          let cur = obj;
+          for (let i = 0; i < keys.length - 1; i++) {
+            const k = keys[i];
+            if (cur[k] == null || typeof cur[k] !== 'object') cur[k] = {};
+            cur = cur[k];
+          }
+          cur[keys[keys.length - 1]] = value;
+        };
+        for (const [key, value] of Object.entries(updateData)) {
+          if (key.includes('.')) setByPath(user, key, value);
+          else user[key] = value;
+        }
         return user;
       }
       return null;
