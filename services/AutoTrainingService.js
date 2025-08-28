@@ -9,7 +9,7 @@ const WebsiteCrawler = require('./crawling/WebsiteCrawler');
 const BusinessTypeDetector = require('./ai/BusinessTypeDetector');
 const KnowledgeBaseBuilder = require('./ai/KnowledgeBaseBuilder');
 const FeatureMapper = require('./ai/FeatureMapper');
-const DatabaseService = require('./DatabaseService');
+const DatabaseServiceInstance = require('./DatabaseService');
 const { v4: uuidv4 } = require('uuid');
 
 class AutoTrainingService {
@@ -18,7 +18,7 @@ class AutoTrainingService {
         this.businessDetector = new BusinessTypeDetector();
         this.knowledgeBuilder = new KnowledgeBaseBuilder();
         this.featureMapper = new FeatureMapper();
-        this.db = new DatabaseService();
+        this.db = DatabaseServiceInstance;
     }
 
     /**
