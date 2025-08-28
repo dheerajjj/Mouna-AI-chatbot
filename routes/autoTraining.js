@@ -10,9 +10,22 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { body, param, validationResult } = require('express-validator');
-const AutoTrainingService = require('../services/AutoTrainingService');
 const AutoTrainingProxy = require('../services/AutoTrainingProxy');
 const router = express.Router();
+
+// Lazy-load AutoTrainingService to avoid hard failures during module import
+let __autoTrainingService = null;
+function getAutoTrainingService() {
+    if (__autoTrainingService) return __autoTrainingService;
+    try {
+        const AutoTrainingService = require('../services/AutoTrainingService');
+        __autoTrainingService = new AutoTrainingService();
+        return __autoTrainingService;
+    } catch (e) {
+        console.warn('⚠️ AutoTrainingService unavailable at runtime:', e.message);
+        return null;
+    }
+}
 
 // Initialize proxy to optional microservice
 const autoTrainingProxy = new AutoTrainingProxy();
@@ -29,8 +42,8 @@ const autoTrainingLimiter = rateLimit({
     legacyHeaders: false
 });
 
-// Initialize auto-training service
-const autoTrainingService = new AutoTrainingService();
+// Initialize auto-training service lazily
+// const autoTrainingService = new AutoTrainingService();
 
 /**
  * POST /api/tenant/bootstrap
@@ -115,7 +128,11 @@ router.post('/bootstrap',
             };
 
             // Start training asynchronously
-            const trainingPromise = autoTrainingService.bootstrapTenant(
+            const svc = getAutoTrainingService();
+            if (!svc) {
+                return res.status(503).json({ success: false, error: 'AutoTrainingService unavailable' });
+            }
+            const trainingPromise = svc.bootstrapTenant(
                 websiteUrl,
                 finalTenantId,
                 trainingOptions
@@ -181,7 +198,11 @@ router.get('/training-status/:tenantId',
 
             console.log(`📊 Getting training status for tenant: ${tenantId}`);
 
-            const status = await autoTrainingService.getTrainingStatus(tenantId);
+            const svc = getAutoTrainingService();
+            if (!svc) {
+                return res.status(503).json({ success: false, error: 'AutoTrainingService unavailable' });
+            }
+            const status = await svc.getTrainingStatus(tenantId);
 
             res.json({
                 success: true,
@@ -247,7 +268,11 @@ router.post('/refresh/:tenantId',
             }
 
             // Start refresh process
-            const refreshPromise = autoTrainingService.refreshTenantData(tenantId, options);
+            const svc = getAutoTrainingService();
+            if (!svc) {
+                return res.status(503).json({ success: false, error: 'AutoTrainingService unavailable' });
+            }
+            const refreshPromise = svc.refreshTenantData(tenantId, options);
 
             // Return immediately
             res.status(202).json({
