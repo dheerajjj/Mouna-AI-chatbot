@@ -958,9 +958,22 @@
             
             // Update badges to show the user's current plan (keeps UI in sync)
             const proBadges = document.querySelectorAll('.pro-badge');
+
+            // Standard colors per plan (kept in sync with pricing visuals)
+            const planStyles = {
+                free:      { bg1: '#94a3b8', bg2: '#64748b', text: '#ffffff', border: '#cbd5e1' }, // slate
+                starter:   { bg1: '#34d399', bg2: '#059669', text: '#ffffff', border: '#a7f3d0' }, // emerald
+                professional: { bg1: '#3b82f6', bg2: '#1d4ed8', text: '#ffffff', border: '#93c5fd' }, // blue
+                enterprise: { bg1: '#f59e0b', bg2: '#b45309', text: '#111827', border: '#fde68a' }  // amber
+            };
+            const style = planStyles[currentPlan] || planStyles.free;
+
             proBadges.forEach(badge => {
-                badge.textContent = planLabel;
-                badge.style.background = 'linear-gradient(135deg, #64748b, #475569)';
+                badge.textContent = planLabel.toUpperCase();
+                badge.style.background = `linear-gradient(135deg, ${style.bg1}, ${style.bg2})`;
+                badge.style.color = style.text;
+                badge.style.border = `1px solid ${style.border}`;
+                badge.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
                 badge.title = `Current plan: ${planLabel}`;
             });
             
