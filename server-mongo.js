@@ -2090,6 +2090,24 @@ app.get('/email-validation-test', (req, res) => {
     const oauthRoutes = require('./routes/oauth');
     app.use('/auth', oauthRoutes);
     
+    // Auto-training routes for website crawling and chatbot setup (mount BEFORE tenant and generic /api middleware)
+    try {
+      const autoTrainingRoutes = require('./routes/autoTraining');
+      app.use('/api/tenant', autoTrainingRoutes);
+      console.log('✅ Auto-training routes initialized successfully');
+    } catch (error) {
+      console.warn('⚠️ Auto-training routes could not be initialized:', error.message);
+      console.warn('💡 Auto-training features will be disabled. This may be due to missing Puppeteer dependencies.');
+      // Register fallback routes for auto-training endpoints
+      app.all('/api/tenant/auto-training/*', (req, res) => {
+        res.status(503).json({
+          error: 'Auto-training service unavailable',
+          message: 'The auto-training feature requires additional system dependencies that are not available in this deployment.',
+          suggestion: 'Please contact support if you need auto-training functionality.'
+        });
+      });
+    }
+
     // NEW: Tenant configuration routes
     const tenantRoutes = require('./routes/tenant');
     app.use('/api/tenant', tenantRoutes);
@@ -2110,6 +2128,7 @@ app.get('/email-validation-test', (req, res) => {
     const bookingsRoutes = require('./routes/bookings');
     app.use('/api/bookings', bookingsRoutes);
     
+
     // Setup Progress Routes
     const progressRoutes = require('./routes/progressRoutes');
     app.use('/api', progressRoutes);
@@ -2117,25 +2136,6 @@ app.get('/email-validation-test', (req, res) => {
     // Reports routes
     const reportRoutes = require('./routes/reports');
     app.use('/api/reports', reportRoutes);
-    
-    // Auto-training routes for website crawling and chatbot setup
-    try {
-      const autoTrainingRoutes = require('./routes/autoTraining');
-      app.use('/api/tenant', autoTrainingRoutes);
-      console.log('✅ Auto-training routes initialized successfully');
-    } catch (error) {
-      console.warn('⚠️ Auto-training routes could not be initialized:', error.message);
-      console.warn('💡 Auto-training features will be disabled. This may be due to missing Puppeteer dependencies.');
-      
-      // Register fallback routes for auto-training endpoints
-      app.all('/api/tenant/auto-training/*', (req, res) => {
-        res.status(503).json({
-          error: 'Auto-training service unavailable',
-          message: 'The auto-training feature requires additional system dependencies that are not available in this deployment.',
-          suggestion: 'Please contact support if you need auto-training functionality.'
-        });
-      });
-    }
     
     // Serve pages
     app.get('/', (req, res) => {
