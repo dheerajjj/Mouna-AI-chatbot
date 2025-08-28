@@ -11,7 +11,11 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { body, param, validationResult } = require('express-validator');
 const AutoTrainingService = require('../services/AutoTrainingService');
+const AutoTrainingProxy = require('../services/AutoTrainingProxy');
 const router = express.Router();
+
+// Initialize proxy to optional microservice
+const autoTrainingProxy = new AutoTrainingProxy();
 
 // Rate limiting for auto-training endpoints
 const autoTrainingLimiter = rateLimit({
@@ -526,5 +530,27 @@ async function validateWebsite(websiteUrl) {
         };
     }
 }
+
+/**
+ * GET /api/tenant/auto-training/status
+ * Health and availability for the optional auto-training microservice
+ */
+router.get('/auto-training/status', async (req, res) => {
+    try {
+        const info = await autoTrainingProxy.getServiceInfo();
+        const isAvailable = !!(info && info.available);
+        const payload = {
+            success: true,
+            enabled: info?.enabled ?? true,
+            available: isAvailable,
+            url: info?.url,
+            health: info?.health || null,
+            info: info?.info || null
+        };
+        return res.status(isAvailable ? 200 : 503).json(payload);
+    } catch (error) {
+        return res.status(503).json({ success: false, available: false, error: error.message });
+    }
+});
 
 module.exports = router;
