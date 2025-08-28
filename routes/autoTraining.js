@@ -433,9 +433,9 @@ async function checkExistingTenant(tenantId) {
         // Implement tenant existence check
         // This should check your database for existing tenant
         
-        const DatabaseService = require('../services/DatabaseService');
-        const db = new DatabaseService();
-        
+        // Use the direct Mongo connection exported by the main server
+        const { getDb } = require('../server-mongo');
+        const db = getDb();
         const existingTenant = await db.collection('tenants').findOne({ tenantId });
         return !!existingTenant;
         
