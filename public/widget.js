@@ -302,7 +302,7 @@
         for (const k of keys) value = value?.[k];
         return value || TRANSLATIONS['en'][key] || key;
     }
-    function updateWidgetLanguage(lang) {
+function updateWidgetLanguage(lang) {
         currentLanguage = lang;
         const title = widget.querySelector('.chatbot-widget-title');
         const subtitle = widget.querySelector('.chatbot-widget-subtitle');
@@ -310,8 +310,8 @@
         const typingText = widget.querySelector('.chatbot-typing-text');
         const closeBtn = widget.querySelector('.chatbot-widget-close');
         const trigger = widget.querySelector('.chatbot-widget-trigger');
-        if (title) title.textContent = getTranslation('title', lang);
-        if (subtitle) subtitle.textContent = getTranslation('subtitle', lang);
+        if (title) title.textContent = (currentConfig && currentConfig.title) ? currentConfig.title : getTranslation('title', lang);
+        if (subtitle) subtitle.textContent = (currentConfig && currentConfig.subtitle) ? currentConfig.subtitle : getTranslation('subtitle', lang);
         if (inputField) {
             inputField.placeholder = getTranslation('placeholder', lang);
             inputField.setAttribute('lang', lang);
@@ -322,7 +322,7 @@
         if (closeBtn) closeBtn.title = getTranslation('close', lang);
         if (trigger) trigger.title = getTranslation('open', lang);
         const welcome = widget.querySelector('.chatbot-message-bot .chatbot-message-text');
-        if (welcome) welcome.textContent = getTranslation('welcomeMessage', lang);
+        if (welcome) welcome.textContent = (currentConfig && currentConfig.welcomeMessage) ? currentConfig.welcomeMessage : getTranslation('welcomeMessage', lang);
         const langBtn = widget.querySelector('#chatbot-language-toggle .chatbot-current-lang');
         if (langBtn) langBtn.textContent = SUPPORTED_LANGUAGES[lang]?.flag || '🌐';
     }
@@ -455,15 +455,18 @@
         style.innerHTML = `.ai-chatbot-widget{--primary-color:${primaryColor};--primary-color-hover:${primaryColor}dd;} .chatbot-widget-trigger{background:linear-gradient(135deg,${primaryColor},${primaryColor}aa)!important;} .chatbot-widget-header{background:linear-gradient(135deg,${primaryColor},${primaryColor}aa)!important;} .chatbot-message-user .chatbot-message-text{background:${primaryColor}!important;}`;
         document.head.appendChild(style);
     }
-    function createWidgetHTML() {
+function createWidgetHTML() {
         const currentTranslations = TRANSLATIONS[currentLanguage] || TRANSLATIONS['en'];
+        const titleText = (currentConfig && currentConfig.title) ? currentConfig.title : currentTranslations.title;
+        const subtitleText = (currentConfig && currentConfig.subtitle) ? currentConfig.subtitle : currentTranslations.subtitle;
+        const welcomeText = (currentConfig && currentConfig.welcomeMessage) ? currentConfig.welcomeMessage : currentTranslations.welcomeMessage;
         return `
             <div class="chatbot-widget-overlay" style="display: none;">
                 <div class="chatbot-widget-container">
                     <div class="chatbot-widget-header">
                         <div class="chatbot-widget-info">
-                            <h3 class="chatbot-widget-title">${currentTranslations.title}</h3>
-                            <p class="chatbot-widget-subtitle">${currentTranslations.subtitle}</p>
+                            <h3 class="chatbot-widget-title">${titleText}</h3>
+                            <p class="chatbot-widget-subtitle">${subtitleText}</p>
                         </div>
                         <div class="chatbot-widget-controls">
                             <button class="chatbot-language-toggle" id="chatbot-language-toggle" title="${currentTranslations.selectLanguage}">
@@ -475,7 +478,7 @@
                     <div class="chatbot-widget-messages" id="chatbot-messages">
                         <div class="chatbot-message chatbot-message-bot">
                             <div class="chatbot-message-content">
-                                <div class="chatbot-message-text">${currentTranslations.welcomeMessage}</div>
+                                <div class="chatbot-message-text">${welcomeText}</div>
                                 <div class="chatbot-message-time">${formatTime(new Date())}</div>
                             </div>
                         </div>
@@ -498,8 +501,9 @@
                 <span class="chatbot-widget-notification" id="chatbot-notification" style="display:none;"></span>
             </button>`;
     }
-    function createWidgetStyles() {
-        return `<style>.chatbot-widget-overlay{position:fixed;bottom:90px;right:20px;width:380px;max-width:calc(100vw - 40px);height:500px;max-height:calc(100vh - 120px);z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.4}.chatbot-widget-container{width:100%;height:100%;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.08);display:flex;flex-direction:column;overflow:hidden;position:relative}.chatbot-widget-header{background:${currentConfig.primaryColor};color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}.chatbot-widget-controls{display:flex;gap:8px;align-items:center}.chatbot-language-toggle{background:rgba(255,255,255,.1);border:none;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:12px;transition:background-color .2s}.chatbot-language-toggle:hover{background:rgba(255,255,255,.2)}.chatbot-widget-close{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:4px;border-radius:4px;transition:background-color .2s}.chatbot-widget-close:hover{background:rgba(255,255,255,.1)}.chatbot-widget-messages{flex:1;padding:20px;overflow-y:auto;background:#fafafa}.chatbot-message{margin-bottom:16px;display:flex;animation:fadeIn .3s ease-in}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}.chatbot-message-bot{justify-content:flex-start}.chatbot-message-user{justify-content:flex-end}.chatbot-message-content{max-width:80%;min-width:100px}.chatbot-message-text{padding:12px 16px;border-radius:18px;word-wrap:break-word;white-space:pre-wrap}.chatbot-message-bot .chatbot-message-text{background:#fff;color:#333;border-bottom-left-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.1)}.chatbot-message-user .chatbot-message-text{background:${currentConfig.primaryColor};color:#fff;border-bottom-right-radius:6px}.chatbot-message-time{font-size:11px;color:#999;margin-top:4px;padding:0 16px}.chatbot-widget-typing{padding:12px 20px;background:#fff;border-top:1px solid #eee;display:flex;align-items:center;gap:8px}.chatbot-typing-indicator{display:flex;gap:3px}.chatbot-typing-indicator span{width:8px;height:8px;border-radius:50%;background:#ccc;animation:typing 1.4s infinite ease-in-out}.chatbot-typing-indicator span:nth-child(1){animation-delay:-.32s}.chatbot-typing-indicator span:nth-child(2){animation-delay:-.16s}@keyframes typing{0%,80%,100%{transform:scale(.8);opacity:.5}40%{transform:scale(1);opacity:1}}.chatbot-typing-text{font-size:12px;color:#666}.chatbot-widget-input{display:flex;padding:16px 20px;background:#fff;border-top:1px solid #eee;gap:12px}#chatbot-input-field{flex:1;border:1px solid #ddd;border-radius:20px;padding:10px 16px;font-size:14px;outline:none;transition:border-color .2s}#chatbot-input-field:focus{border-color:${currentConfig.primaryColor}}#chatbot-send-button{background:${currentConfig.primaryColor};border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;transition:background-color .2s}#chatbot-send-button:hover{background:color-mix(in srgb, ${currentConfig.primaryColor} 90%, black)}#chatbot-send-button:disabled{background:#ccc;cursor:not-allowed}.chatbot-widget-branding{padding:8px 20px;background:#f8f8f8;text-align:center;border-top:1px solid #eee}.chatbot-widget-branding small{color:#999;font-size:11px}.chatbot-widget-trigger{position:fixed;bottom:20px;right:20px;width:60px;height:60px;background:${currentConfig.primaryColor};border:none;border-radius:50%;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#fff;transition:all .3s ease}.chatbot-widget-trigger:hover{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.25)}.chatbot-widget-notification{position:absolute;top:-5px;right:-5px;background:#ff4757;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;animation:pulse 2s infinite}@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}@media (max-width: 480px){.chatbot-widget-overlay{bottom:90px;left:10px;right:10px;width:auto;height:70vh;max-height:500px}.chatbot-widget-trigger{bottom:15px;right:15px;width:55px;height:55px}}</style>`;
+function createWidgetStyles() {
+        const baseFont = currentConfig.fontFamily || "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+        return `<style>.chatbot-widget-overlay{position:fixed;bottom:90px;right:20px;width:380px;max-width:calc(100vw - 40px);height:500px;max-height:calc(100vh - 120px);z-index:2147483647;font-family:${baseFont};font-size:14px;line-height:1.4}.chatbot-widget-container{width:100%;height:100%;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.08);display:flex;flex-direction:column;overflow:hidden;position:relative}.chatbot-widget-header{background:${currentConfig.primaryColor};color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}.chatbot-widget-controls{display:flex;gap:8px;align-items:center}.chatbot-language-toggle{background:rgba(255,255,255,.1);border:none;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:12px;transition:background-color .2s}.chatbot-language-toggle:hover{background:rgba(255,255,255,.2)}.chatbot-widget-close{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:4px;border-radius:4px;transition:background-color .2s}.chatbot-widget-close:hover{background:rgba(255,255,255,.1)}.chatbot-widget-messages{flex:1;padding:20px;overflow-y:auto;background:#fafafa}.chatbot-message{margin-bottom:16px;display:flex;animation:fadeIn .3s ease-in}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}.chatbot-message-bot{justify-content:flex-start}.chatbot-message-user{justify-content:flex-end}.chatbot-message-content{max-width:80%;min-width:100px}.chatbot-message-text{padding:12px 16px;border-radius:18px;word-wrap:break-word;white-space:pre-wrap}.chatbot-message-bot .chatbot-message-text{background:#fff;color:#333;border-bottom-left-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.1)}.chatbot-message-user .chatbot-message-text{background:${currentConfig.primaryColor};color:#fff;border-bottom-right-radius:6px}.chatbot-message-time{font-size:11px;color:#999;margin-top:4px;padding:0 16px}.chatbot-widget-typing{padding:12px 20px;background:#fff;border-top:1px solid #eee;display:flex;align-items:center;gap:8px}.chatbot-typing-indicator{display:flex;gap:3px}.chatbot-typing-indicator span{width:8px;height:8px;border-radius:50%;background:#ccc;animation:typing 1.4s infinite ease-in-out}.chatbot-typing-indicator span:nth-child(1){animation-delay:-.32s}.chatbot-typing-indicator span:nth-child(2){animation-delay:-.16s}@keyframes typing{0%,80%,100%{transform:scale(.8);opacity:.5}40%{transform:scale(1);opacity:1}}.chatbot-typing-text{font-size:12px;color:#666}.chatbot-widget-input{display:flex;padding:16px 20px;background:#fff;border-top:1px solid #eee;gap:12px}#chatbot-input-field{flex:1;border:1px solid #ddd;border-radius:20px;padding:10px 16px;font-size:14px;outline:none;transition:border-color .2s}#chatbot-input-field:focus{border-color:${currentConfig.primaryColor}}#chatbot-send-button{background:${currentConfig.primaryColor};border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;transition:background-color .2s}#chatbot-send-button:hover{background:color-mix(in srgb, ${currentConfig.primaryColor} 90%, black)}#chatbot-send-button:disabled{background:#ccc;cursor:not-allowed}.chatbot-widget-branding{padding:8px 20px;background:#f8f8f8;text-align:center;border-top:1px solid #eee}.chatbot-widget-branding small{color:#999;font-size:11px}.chatbot-widget-trigger{position:fixed;bottom:20px;right:20px;width:60px;height:60px;background:${currentConfig.primaryColor};border:none;border-radius:50%;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#fff;transition:all .3s ease}.chatbot-widget-trigger:hover{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.25)}.chatbot-widget-notification{position:absolute;top:-5px;right:-5px;background:#ff4757;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;animation:pulse 2s infinite}@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}@media (max-width: 480px){.chatbot-widget-overlay{bottom:90px;left:10px;right:10px;width:auto;height:70vh;max-height:500px}.chatbot-widget-trigger{bottom:15px;right:15px;width:55px;height:55px}}</style>`;
     }
     function addMessage(text, isUser = false, showTime = true) {
         const messagesContainer = document.getElementById('chatbot-messages');
@@ -640,12 +644,14 @@
     async function initializeWidget() {
         sessionId = generateSessionId();
         const scriptTag = document.querySelector('script[src*="widget"]') || document.querySelector('script[data-api-key]');
-        if (scriptTag) {
+if (scriptTag) {
             const apiKey = scriptTag.getAttribute('data-api-key'); if (apiKey) currentConfig.apiKey = apiKey;
             const apiUrl = scriptTag.getAttribute('data-api-url'); if (apiUrl) currentConfig.apiEndpoint = apiUrl;
             const tenantId = scriptTag.getAttribute('data-tenant-id'); if (tenantId) currentConfig.tenantId = tenantId;
             const attributes = ['primary-color','position','title','welcome-message','subtitle','auto-open','auto-open-delay'];
             attributes.forEach(attr => { const value = scriptTag.getAttribute(`data-${attr}`); if (value) { const configKey = attr.replace(/-([a-z])/g, (g) => g[1].toUpperCase()); currentConfig[configKey] = value; } });
+            // Additional font customization
+            const fontFamily = scriptTag.getAttribute('data-font-family'); if (fontFamily) currentConfig.fontFamily = fontFamily;
             // Lock brand color if explicitly provided
             if (scriptTag.getAttribute('data-primary-color')) currentConfig.primaryColorLocked = true;
             const logoAttr = scriptTag.getAttribute('data-logo') || scriptTag.getAttribute('data-logo-url'); if (logoAttr) currentConfig.customLogo = logoAttr;
