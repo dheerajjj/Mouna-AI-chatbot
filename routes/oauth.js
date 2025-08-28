@@ -3,6 +3,12 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
+// Quick status endpoint to indicate whether Google OAuth is configured
+router.get('/status', (req, res) => {
+  const enabled = !!process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your-google-client-id' && !!process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CLIENT_SECRET !== 'your-google-client-secret';
+  res.json({ googleEnabled: enabled });
+});
+
 // Generate JWT token for authenticated user
 const generateToken = (user) => {
     return jwt.sign(
