@@ -7,7 +7,7 @@
     "start": "node server-mongo.js",
     "dev": "nodemon server-mongo.js",
     "server": "node server-mongo.js",
-    "dev:watch": "nodemon server-mongo.js",
+    "dev:watch": "nodemon server-mongo.js",\r
     "setup": "node setup.js",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -19,7 +19,8 @@
     "deploy:heroku": "git push heroku main",
     "deploy:railway": "railway up",
     "deploy:render": "echo 'Push to GitHub to trigger Render deployment'",
-    "build": "echo 'No build step required'"
+    "build:sri": "node scripts/generate-sri.js",
+    "build": "npm run build:sri"
   },
   "keywords": [
     "ai",

@@ -73,6 +73,12 @@ try {
 
 // Security and middleware
 app.use(helmet({
+  // Allow widget.js and other static assets to be embedded from any origin
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // Do not require CORP/COEP for embedding
+  crossOriginEmbedderPolicy: false,
+  // Safer default that still allows popups (OAuth, Razorpay, etc.)
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -92,35 +98,17 @@ app.use(helmet({
   }
 }));
 
-// CORS configuration - Restrict to app domains; allow localhost for dev
-const allowedOrigins = (process.env.ALLOWED_ORIGINS?.split(',') || [
-  'https://www.mouna-ai.com',
-  'http://localhost:3000',
-  'http://localhost:8080',
-  'http://127.0.0.1:5500'
-]).map(s => s.trim());
-
+// CORS configuration – universal allow for public widget/APIs
+// Reflect the request Origin (works for any site) and do NOT use credentials.
+// This enables any customer domain worldwide to embed the widget and call our APIs safely.
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-
-    // Allow explicit origins
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    // Allow localhost variations for development
-    if (/^https?:\/\/localhost(:[0-9]+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-
-    console.log(`❌ CORS blocked origin: ${origin}`);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Requested-With']
+  origin: (origin, callback) => callback(null, true), // reflect any origin
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Requested-With', 'Accept'],
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Rate limiting
@@ -140,12 +128,20 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files with proper MIME types and cache headers
 app.use(express.static('public', {
   setHeaders: (res, path) => {
+    // Allow cross-origin embedding of static assets (e.g., widget.js)
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Timing-Allow-Origin', '*');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Prevent indexing of static assets by search engines
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+
     if (path.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache for JS files
+      res.setHeader('Cache-Control', 'public, max-age=86400, immutable'); // 1 day cache for JS files
     } else if (path.endsWith('.css')) {
       res.setHeader('Content-Type', 'text/css');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache for CSS files
+      res.setHeader('Cache-Control', 'public, max-age=86400, immutable'); // 1 day cache for CSS files
     } else if (path.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // No cache for HTML
     } else {
@@ -157,7 +153,12 @@ app.use(express.static('public', {
 // Serve images from the images folder
 app.use('/images', express.static('images', {
   setHeaders: (res, path) => {
-    // Add proper cache headers for images
+    // Allow cross-origin usage of images and set proper cache headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Timing-Allow-Origin', '*');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
     res.setHeader('Cache-Control', 'public, max-age=31536000');
     if (path.endsWith('.png')) {
       res.setHeader('Content-Type', 'image/png');
