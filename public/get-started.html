@@ -1106,11 +1106,20 @@
         }
 
         async function handleGoogleSignIn() {
-            // Robustly discover a working auth base, then navigate.
-            const candidates = ['/api/auth', '/auth'];
+            // Discover a working auth base, then navigate.
+            const external = 'https://mouna-ai-chatbot-production.up.railway.app';
+            const configured = (window.AUTH_BASES && Array.isArray(window.AUTH_BASES)) ? window.AUTH_BASES : [];
+            const candidates = [
+                '/api/auth',
+                '/auth',
+                ...configured.map(b => b.replace(/\/$/, '')),
+                `${external}/api/auth`,
+                `${external}/auth`
+            ];
             for (const base of candidates) {
                 try {
-                    const res = await fetch(`${base}/status`, { cache: 'no-store' });
+                    const url = base.startsWith('http') ? `${base}/status` : `${base}/status`;
+                    const res = await fetch(url, { cache: 'no-store', credentials: 'omit' });
                     if (res.ok) {
                         const ct = res.headers.get('content-type') || '';
                         if (ct.includes('application/json')) {
@@ -1123,7 +1132,7 @@
                     }
                 } catch (e) {}
             }
-            alert('Google sign-in is not reachable from this host right now. Please try email sign-in or contact support.');\r
+            alert('Google sign-in is not reachable from this host right now. Please try email sign-in or contact support.');
         }
 
         // Helper functions

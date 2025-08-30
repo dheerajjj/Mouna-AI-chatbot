@@ -184,15 +184,27 @@
         const loading = document.getElementById('loading');
 
         async function detectOAuthBase() {
-            const candidates = ['/api/auth', '/auth'];
+            // Candidate bases to try in order:
+            // 1) Same origin under /api/auth and /auth
+            // 2) Known backend host on Railway (both /api/auth and /auth)
+            const external = 'https://mouna-ai-chatbot-production.up.railway.app';
+            const configured = (window.AUTH_BASES && Array.isArray(window.AUTH_BASES)) ? window.AUTH_BASES : [];
+            const candidates = [
+                '/api/auth',
+                '/auth',
+                ...configured.map(b => b.replace(/\/$/, '')),
+                `${external}/api/auth`,
+                `${external}/auth`
+            ];
             for (const base of candidates) {
                 try {
-                    const res = await fetch(`${base}/status`, { cache: 'no-store' });
+                    const url = base.startsWith('http') ? `${base}/status` : `${base}/status`;
+                    const res = await fetch(url, { cache: 'no-store', credentials: 'omit' });
                     if (res.ok) {
                         const ct = res.headers.get('content-type') || '';
                         if (ct.includes('application/json')) {
                             const s = await res.json();
-                            if (s && s.googleEnabled) return base;
+                            if (s && s.googleEnabled) return base.replace(/\/$/, '');
                         }
                     }
                 } catch (e) { /* keep trying */ }
