@@ -30,17 +30,18 @@ const generateToken = (user) => {
 // Google OAuth Routes
 router.get('/google', (req, res, next) => {
     try {
-        // Build callback URL dynamically based on incoming host/protocol.
-        // Prefer the current request's host to avoid leaking the Railway domain.
+        // Build callback URL dynamically based on incoming host/protocol and the actual mount path (/auth or /api/auth)
         const rawProto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString();
         const proto = rawProto.split(',')[0].trim();
         const rawHost = (req.headers['x-forwarded-host'] || req.headers['host'] || '').toString();
         const host = rawHost.split(',')[0].trim();
+        // Detect the mount path the router is under. Express sets baseUrl to the mount path.
+        const mountPath = (req.baseUrl || '/auth').toString().replace(/\/$/, '');
 
         let callbackURL;
         if (host) {
             const baseUrl = `${proto}://${host}`.replace(/\/$/, '');
-            callbackURL = `${baseUrl}/auth/google/callback`;
+            callbackURL = `${baseUrl}${mountPath}/google/callback`;
         } else if (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.startsWith('http')) {
             callbackURL = process.env.GOOGLE_CALLBACK_URL;
         } else {
@@ -55,7 +56,7 @@ router.get('/google', (req, res, next) => {
         })(req, res, next);
     } catch (initError) {
         console.error('❌ Error preparing Google OAuth request:', initError);
-        return res.redirect('/auth/failure?error=init_failed');
+        return res.redirect(`${req.baseUrl || '/auth'}/failure?error=init_failed`);
     }
 });
 
@@ -66,11 +67,12 @@ router.get('/google/callback', async (req, res, next) => {
         const proto = rawProto.split(',')[0].trim();
         const rawHost = (req.headers['x-forwarded-host'] || req.headers['host'] || '').toString();
         const host = rawHost.split(',')[0].trim();
+        const mountPath = (req.baseUrl || '/auth').toString().replace(/\/$/, '');
 
         let callbackURL;
         if (host) {
             const baseUrl = `${proto}://${host}`.replace(/\/$/, '');
-            callbackURL = `${baseUrl}/auth/google/callback`;
+            callbackURL = `${baseUrl}${mountPath}/google/callback`;
         } else if (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.startsWith('http')) {
             callbackURL = process.env.GOOGLE_CALLBACK_URL;
         } else {
@@ -81,12 +83,12 @@ router.get('/google/callback', async (req, res, next) => {
             if (err) {
                 console.error('❌ Google OAuth passport error:', err);
                 console.error('Error stack:', err.stack);
-                return res.redirect('/auth/failure?error=passport_error');
+                return res.redirect(`${mountPath}/failure?error=passport_error`);
             }
             
             if (!user) {
                 console.error('❌ Google OAuth no user returned:', info);
-                return res.redirect('/auth/failure?error=no_user');
+                return res.redirect(`${mountPath}/failure?error=no_user`);
             }
             
             try {
@@ -121,13 +123,13 @@ router.get('/google/callback', async (req, res, next) => {
             } catch (tokenError) {
                 console.error('❌ Google OAuth token generation error:', tokenError);
                 console.error('Token error stack:', tokenError.stack);
-                res.redirect('/auth/failure?error=token_generation_failed');
+                res.redirect(`${mountPath}/failure?error=token_generation_failed`);
             }
         })(req, res, next);
     } catch (routeError) {
         console.error('❌ Google OAuth route error:', routeError);
         console.error('Route error stack:', routeError.stack);
-        res.redirect('/auth/failure?error=route_error');
+        res.redirect(`${req.baseUrl || '/auth'}/failure?error=route_error`);
     }
 });
 

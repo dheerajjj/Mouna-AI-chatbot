@@ -2089,7 +2089,8 @@ app.get('/email-validation-test', (req, res) => {
     
     // OAuth authentication routes
     const oauthRoutes = require('./routes/oauth');
-    app.use('/auth', oauthRoutes);
+    // Mount under both /auth and /api/auth so reverse proxies that only forward /api/* still reach the backend
+    app.use(['/auth', '/api/auth'], oauthRoutes);
     
     // Auto-training routes for website crawling and chatbot setup (mount BEFORE tenant and generic /api middleware)
     try {
