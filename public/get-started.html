@@ -1116,7 +1116,9 @@
                         if (ct.includes('application/json')) {
                             const s = await res.json();
                             if (s && s.googleEnabled) {
-                                window.location.href = `${base}/google`;
+                                const origin = window.location.origin;
+                                const next = '/quick-setup';
+                                window.location.href = `${base}/google?returnTo=${encodeURIComponent(origin)}&next=${encodeURIComponent(next)}`;
                                 return;
                             }
                         }
@@ -1124,7 +1126,11 @@
                 } catch (_) {}
             }
             // Last resort: navigate to Railway base (navigation bypasses CORS)
-            window.location.href = 'https://mouna-ai-chatbot-production.up.railway.app/auth/google';
+            (function(){
+                const origin = window.location.origin;
+                const next = '/quick-setup';
+                window.location.href = `https://mouna-ai-chatbot-production.up.railway.app/auth/google?returnTo=${encodeURIComponent(origin)}&next=${encodeURIComponent(next)}`;
+            })();
         }
 
         // Helper functions

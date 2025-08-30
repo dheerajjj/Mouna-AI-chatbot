@@ -3,6 +3,63 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
+// Helpers to validate and pass returnTo/next across the OAuth flow
+function getAllowedOrigins() {
+  const list = [];
+  try {
+    if (process.env.APP_ORIGIN && process.env.APP_ORIGIN.startsWith('http')) list.push(process.env.APP_ORIGIN.replace(/\/$/, ''));
+  } catch (_) {}
+  try {
+    if (process.env.DEFAULT_APP_ORIGIN && process.env.DEFAULT_APP_ORIGIN.startsWith('http')) list.push(process.env.DEFAULT_APP_ORIGIN.replace(/\/$/, ''));
+  } catch (_) {}
+  try {
+    if (process.env.ALLOWED_ORIGINS) {
+      process.env.ALLOWED_ORIGINS.split(',').forEach(o => {
+        const t = o.trim();
+        if (t && /^https?:\/\//i.test(t)) list.push(t.replace(/\/$/, ''));
+      });
+    }
+  } catch (_) {}
+  // Common dev origins
+  list.push('http://localhost:3000');
+  list.push('http://127.0.0.1:3000');
+  return Array.from(new Set(list));
+}
+
+function parseReturnParams(req) {
+  const state = { };
+  try {
+    const allowed = getAllowedOrigins();
+    const rawReturnTo = (req.query.returnTo || req.query.return_to || '').toString();
+    const rawNext = (req.query.next || '').toString();
+    if (rawReturnTo) {
+      try {
+        const u = new URL(rawReturnTo);
+        const origin = `${u.protocol}//${u.host}`;
+        if (allowed.includes(origin)) state.returnOrigin = origin;
+      } catch (_) {}
+    }
+    if (rawNext && /^\//.test(rawNext)) {
+      // Simple path validation to prevent open redirects
+      state.nextPath = rawNext;
+    }
+  } catch (_) {}
+  return state;
+}
+
+function encodeState(obj) {
+  try {
+    return Buffer.from(JSON.stringify(obj), 'utf8').toString('base64url');
+  } catch (_) { return ''; }
+}
+
+function decodeState(s) {
+  try {
+    const json = Buffer.from(s, 'base64url').toString('utf8');
+    return JSON.parse(json);
+  } catch (_) { return {}; }
+}
+
 // Quick status endpoint to indicate whether Google OAuth is configured
 // Add explicit CORS headers to avoid any proxy/policy variations blocking it
 router.options('/status', (req, res) => {
@@ -61,10 +118,15 @@ router.get('/google', (req, res, next) => {
             callbackURL = 'http://localhost:3000/auth/google/callback';
         }
 
+        // Carry returnTo/next across via OAuth state
+        const stateObj = parseReturnParams(req);
+        const state = encodeState(stateObj);
+
         return passport.authenticate('google', {
             scope: ['profile', 'email'],
             prompt: 'select_account',
-            callbackURL
+            callbackURL,
+            state: state || undefined
         })(req, res, next);
     } catch (initError) {
         console.error('❌ Error preparing Google OAuth request:', initError);
@@ -122,6 +184,19 @@ router.get('/google/callback', async (req, res, next) => {
                 // Successful authentication
                 console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
                 
+                // Decode any returnTo/next state passed during auth initiation
+                let returnOrigin = null;
+                let nextPath = null;
+                try {
+                    if (req.query && req.query.state) {
+                        const st = decodeState(req.query.state.toString());
+                        if (st && typeof st === 'object') {
+                            if (st.returnOrigin && /^https?:\/\//i.test(st.returnOrigin)) returnOrigin = st.returnOrigin.replace(/\/$/, '');
+                            if (st.nextPath && /^\//.test(st.nextPath)) nextPath = st.nextPath;
+                        }
+                    }
+                } catch (_) {}
+
                 // Prefer front-end origin if configured, so users always land on the main site
                 let frontOrigin = (process.env.APP_ORIGIN && process.env.APP_ORIGIN.startsWith('http'))
                     ? process.env.APP_ORIGIN.replace(/\/$/, '')
@@ -138,15 +213,26 @@ router.get('/google/callback', async (req, res, next) => {
                     }
                 } catch (_) {}
 
-                // Check if this is a new user (first-time signup)
+                // Build destination path
+                let defaultPath;
                 if (user.isNew) {
                     console.log('🆕 Redirecting new user to quick-setup');
-                    const path = `/quick-setup?token=${encodeURIComponent(token)}&provider=google&new=true`;
-                    res.redirect(frontOrigin ? `${frontOrigin}${path}` : path);
+                    defaultPath = `/quick-setup?token=${encodeURIComponent(token)}&provider=google&new=true`;
                 } else {
                     console.log('👤 Redirecting existing user to dashboard');
-                    const path = `/dashboard?token=${encodeURIComponent(token)}&provider=google`;
-                    res.redirect(frontOrigin ? `${frontOrigin}${path}` : path);
+                    defaultPath = `/dashboard?token=${encodeURIComponent(token)}&provider=google`;
+                }
+                // If a safe nextPath is provided, prefer it
+                const finalPath = (nextPath && /^\//.test(nextPath))
+                    ? `${nextPath}${nextPath.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}&provider=google${user.isNew ? '&new=true' : ''}`
+                    : defaultPath;
+
+                // Choose final origin preference: returnOrigin > frontOrigin > fallback path-only
+                const finalOrigin = returnOrigin || frontOrigin;
+                if (finalOrigin) {
+                    res.redirect(`${finalOrigin}${finalPath}`);
+                } else {
+                    res.redirect(finalPath);
                 }
             } catch (tokenError) {
                 console.error('❌ Google OAuth token generation error:', tokenError);

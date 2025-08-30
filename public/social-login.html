@@ -272,7 +272,9 @@
                 btn.href = 'https://mouna-ai-chatbot-production.up.railway.app/auth/google';
                 const base = await detectOAuthBase();
                 if (base) {
-                    btn.href = `${base}/google`;
+                    const origin = window.location.origin;
+                    const next = '/dashboard';
+                    btn.href = `${base}/google?returnTo=${encodeURIComponent(origin)}&next=${encodeURIComponent(next)}`;
                 }
                 socialButtons.forEach(button => {
                     button.addEventListener('click', function(e) {
