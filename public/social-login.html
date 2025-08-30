@@ -266,26 +266,19 @@
             }
 
             (async () => {
-                const base = await detectOAuthBase();
                 const btn = document.getElementById('googleBtn');
-                if (base && btn) {
+                if (!btn) return;
+                // Default to Railway base so the link works without detection
+                btn.href = 'https://mouna-ai-chatbot-production.up.railway.app/auth/google';
+                const base = await detectOAuthBase();
+                if (base) {
                     btn.href = `${base}/google`;
-                    socialButtons.forEach(button => {
-                        button.addEventListener('click', function(e) {
-                            loading.style.display = 'flex';
-                        });
-                    });
-                } else if (btn) {
-                    btn.setAttribute('aria-disabled', 'true');
-                    btn.style.pointerEvents = 'none';
-                    btn.style.opacity = '0.5';
-                    const msg = document.createElement('div');
-                    msg.style.color = '#e11d48';
-                    msg.style.fontSize = '0.9rem';
-                    msg.style.marginTop = '8px';
-                    msg.textContent = 'Sign-in temporarily unavailable. Backend auth route not reachable from this host.';
-                    btn.parentElement.appendChild(msg);
                 }
+                socialButtons.forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        loading.style.display = 'flex';
+                    });
+                });
             })();
 
             // Check for authentication status from URL parameters
