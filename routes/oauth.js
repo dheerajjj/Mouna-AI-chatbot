@@ -4,8 +4,20 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 
 // Quick status endpoint to indicate whether Google OAuth is configured
+// Add explicit CORS headers to avoid any proxy/policy variations blocking it
+router.options('/status', (req, res) => {
+  try {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  } catch (_) {}
+  return res.sendStatus(204);
+});
 router.get('/status', (req, res) => {
   const enabled = !!process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your-google-client-id' && !!process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CLIENT_SECRET !== 'your-google-client-secret';
+  try {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  } catch (_) {}
   res.json({ googleEnabled: enabled });
 });
 
