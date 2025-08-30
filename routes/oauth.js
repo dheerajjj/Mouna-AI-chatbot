@@ -122,15 +122,20 @@ router.get('/google/callback', async (req, res, next) => {
                 // Successful authentication
                 console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
                 
+                // Prefer front-end origin if configured, so users always land on the main site
+                const frontOrigin = (process.env.APP_ORIGIN && process.env.APP_ORIGIN.startsWith('http'))
+                    ? process.env.APP_ORIGIN.replace(/\/$/, '')
+                    : null;
+
                 // Check if this is a new user (first-time signup)
                 if (user.isNew) {
                     console.log('🆕 Redirecting new user to quick-setup');
-                    // New user from Get Started page → go to Quick Setup with token
-                    res.redirect(`/quick-setup?token=${encodeURIComponent(token)}&provider=google&new=true`);
+                    const path = `/quick-setup?token=${encodeURIComponent(token)}&provider=google&new=true`;
+                    res.redirect(frontOrigin ? `${frontOrigin}${path}` : path);
                 } else {
                     console.log('👤 Redirecting existing user to dashboard');
-                    // Existing user → go to dashboard with token
-                    res.redirect(`/dashboard?token=${encodeURIComponent(token)}&provider=google`);
+                    const path = `/dashboard?token=${encodeURIComponent(token)}&provider=google`;
+                    res.redirect(frontOrigin ? `${frontOrigin}${path}` : path);
                 }
             } catch (tokenError) {
                 console.error('❌ Google OAuth token generation error:', tokenError);
