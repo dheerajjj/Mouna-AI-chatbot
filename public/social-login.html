@@ -247,7 +247,7 @@
 
             async function detectOAuthBase() {
                 // Try same-origin with fetch. If unavailable, fall back to Railway base WITHOUT fetch to avoid CORS.
-                const externalBase = 'https://mouna-ai-chatbot-production.up.railway.app/auth';
+                const externalBase = 'https://www.mouna-ai.com/auth';
                 const configured = (window.AUTH_BASES && Array.isArray(window.AUTH_BASES)) ? window.AUTH_BASES : [];
                 const localCandidates = ['/api/auth', '/auth', ...configured.map(b => b.replace(/\/$/, ''))];
                 for (const base of localCandidates) {
@@ -269,7 +269,7 @@
                 const btn = document.getElementById('googleBtn');
                 if (!btn) return;
                 // Default to Railway base so the link works without detection
-                btn.href = 'https://mouna-ai-chatbot-production.up.railway.app/auth/google';
+                btn.href = 'https://www.mouna-ai.com/auth/google';
                 const explicitBackend = new URLSearchParams(window.location.search).get('backend');
                 const base = explicitBackend && /^https?:\/\//i.test(explicitBackend)
                     ? explicitBackend.replace(/\/$/, '')
