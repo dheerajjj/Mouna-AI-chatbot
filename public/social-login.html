@@ -270,7 +270,10 @@
                 if (!btn) return;
                 // Default to Railway base so the link works without detection
                 btn.href = 'https://mouna-ai-chatbot-production.up.railway.app/auth/google';
-                const base = await detectOAuthBase();
+                const explicitBackend = new URLSearchParams(window.location.search).get('backend');
+                const base = explicitBackend && /^https?:\/\//i.test(explicitBackend)
+                    ? explicitBackend.replace(/\/$/, '')
+                    : await detectOAuthBase();
                 if (base) {
                     const origin = window.location.origin;
                     const next = '/dashboard';

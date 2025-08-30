@@ -210,7 +210,11 @@
             if (!(googleBtn && loading)) return;
             // Set safest fallback first so the link works even if detection fails
             googleBtn.href = 'https://mouna-ai-chatbot-production.up.railway.app/auth/google';
-            const base = await detectOAuthBase();
+            // Allow explicit backend override via ?backend=https://your-backend
+            const explicitBackend = new URLSearchParams(window.location.search).get('backend');
+            const base = explicitBackend && /^https?:\/\//i.test(explicitBackend)
+                ? explicitBackend.replace(/\/$/, '')
+                : await detectOAuthBase();
             if (base) {
                 const origin = window.location.origin;
                 const next = '/dashboard';

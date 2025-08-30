@@ -1108,6 +1108,14 @@
         async function handleGoogleSignIn() {
             // Prefer same-origin, but if not available, navigate directly to Railway base WITHOUT fetch
             const localCandidates = ['/api/auth', '/auth'];
+            const explicitBackend = new URLSearchParams(window.location.search).get('backend');
+            if (explicitBackend && /^https?:\/\//i.test(explicitBackend)) {
+                const base = explicitBackend.replace(/\/$/, '');
+                const origin = window.location.origin;
+                const next = '/quick-setup';
+                window.location.href = `${base}/google?returnTo=${encodeURIComponent(origin)}&next=${encodeURIComponent(next)}`;
+                return;
+            }
             for (const base of localCandidates) {
                 try {
                     const res = await fetch(`${base}/status`, { cache: 'no-store', credentials: 'omit' });
