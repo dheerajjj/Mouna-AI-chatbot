@@ -123,9 +123,20 @@ router.get('/google/callback', async (req, res, next) => {
                 console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
                 
                 // Prefer front-end origin if configured, so users always land on the main site
-                const frontOrigin = (process.env.APP_ORIGIN && process.env.APP_ORIGIN.startsWith('http'))
+                let frontOrigin = (process.env.APP_ORIGIN && process.env.APP_ORIGIN.startsWith('http'))
                     ? process.env.APP_ORIGIN.replace(/\/$/, '')
                     : null;
+                // Robust fallback: if the current host is a Railway domain and APP_ORIGIN is not set,
+                // send users to the public site (can be overridden via DEFAULT_APP_ORIGIN)
+                try {
+                    const hostForCallback = (req.headers['x-forwarded-host'] || req.headers['host'] || '').toString();
+                    const defaultFront = (process.env.DEFAULT_APP_ORIGIN && process.env.DEFAULT_APP_ORIGIN.startsWith('http'))
+                        ? process.env.DEFAULT_APP_ORIGIN.replace(/\/$/, '')
+                        : 'https://www.mouna-ai.com';
+                    if (!frontOrigin && /railway\.app$/i.test(hostForCallback)) {
+                        frontOrigin = defaultFront;
+                    }
+                } catch (_) {}
 
                 // Check if this is a new user (first-time signup)
                 if (user.isNew) {
