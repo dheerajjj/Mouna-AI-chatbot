@@ -1106,20 +1106,11 @@
         }
 
         async function handleGoogleSignIn() {
-            // Discover a working auth base, then navigate.
-            const external = 'https://mouna-ai-chatbot-production.up.railway.app';
-            const configured = (window.AUTH_BASES && Array.isArray(window.AUTH_BASES)) ? window.AUTH_BASES : [];
-            const candidates = [
-                '/api/auth',
-                '/auth',
-                ...configured.map(b => b.replace(/\/$/, '')),
-                `${external}/api/auth`,
-                `${external}/auth`
-            ];
-            for (const base of candidates) {
+            // Prefer same-origin, but if not available, navigate directly to Railway base WITHOUT fetch
+            const localCandidates = ['/api/auth', '/auth'];
+            for (const base of localCandidates) {
                 try {
-                    const url = base.startsWith('http') ? `${base}/status` : `${base}/status`;
-                    const res = await fetch(url, { cache: 'no-store', credentials: 'omit' });
+                    const res = await fetch(`${base}/status`, { cache: 'no-store', credentials: 'omit' });
                     if (res.ok) {
                         const ct = res.headers.get('content-type') || '';
                         if (ct.includes('application/json')) {
@@ -1130,9 +1121,10 @@
                             }
                         }
                     }
-                } catch (e) {}
+                } catch (_) {}
             }
-            alert('Google sign-in is not reachable from this host right now. Please try email sign-in or contact support.');
+            // Last resort: navigate to Railway base (navigation bypasses CORS)
+            window.location.href = 'https://mouna-ai-chatbot-production.up.railway.app/auth/google';
         }
 
         // Helper functions

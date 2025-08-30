@@ -246,20 +246,13 @@
             const loading = document.getElementById('loading');
 
             async function detectOAuthBase() {
-                // Try same-origin first, then configured list, then Railway backend domain
-                const external = 'https://mouna-ai-chatbot-production.up.railway.app';
+                // Try same-origin with fetch. If unavailable, fall back to Railway base WITHOUT fetch to avoid CORS.
+                const externalBase = 'https://mouna-ai-chatbot-production.up.railway.app/auth';
                 const configured = (window.AUTH_BASES && Array.isArray(window.AUTH_BASES)) ? window.AUTH_BASES : [];
-                const candidates = [
-                    '/api/auth',
-                    '/auth',
-                    ...configured.map(b => b.replace(/\/$/, '')),
-                    `${external}/api/auth`,
-                    `${external}/auth`
-                ];
-                for (const base of candidates) {
+                const localCandidates = ['/api/auth', '/auth', ...configured.map(b => b.replace(/\/$/, ''))];
+                for (const base of localCandidates) {
                     try {
-                        const url = base.startsWith('http') ? `${base}/status` : `${base}/status`;
-                        const res = await fetch(url, { cache: 'no-store', credentials: 'omit' });
+                        const res = await fetch(`${base}/status`, { cache: 'no-store', credentials: 'omit' });
                         if (res.ok) {
                             const ct = res.headers.get('content-type') || '';
                             if (ct.includes('application/json')) {
@@ -267,9 +260,9 @@
                                 if (s && s.googleEnabled) return base.replace(/\/$/, '');
                             }
                         }
-                    } catch (e) { /* continue */ }
+                    } catch (_) { /* continue */ }
                 }
-                return null;
+                return externalBase;
             }
 
             (async () => {

@@ -184,22 +184,15 @@
         const loading = document.getElementById('loading');
 
         async function detectOAuthBase() {
-            // Candidate bases to try in order:
-            // 1) Same origin under /api/auth and /auth
-            // 2) Known backend host on Railway (both /api/auth and /auth)
-            const external = 'https://mouna-ai-chatbot-production.up.railway.app';
+            // Try same-origin endpoints with fetch (CORS-safe). If none work,
+            // fall back to the known Railway base WITHOUT a preflight fetch
+            // to avoid cross-origin CORS blocks.
+            const externalBase = 'https://mouna-ai-chatbot-production.up.railway.app/auth';
             const configured = (window.AUTH_BASES && Array.isArray(window.AUTH_BASES)) ? window.AUTH_BASES : [];
-            const candidates = [
-                '/api/auth',
-                '/auth',
-                ...configured.map(b => b.replace(/\/$/, '')),
-                `${external}/api/auth`,
-                `${external}/auth`
-            ];
-            for (const base of candidates) {
+            const localCandidates = ['/api/auth', '/auth', ...configured.map(b => b.replace(/\/$/, ''))];
+            for (const base of localCandidates) {
                 try {
-                    const url = base.startsWith('http') ? `${base}/status` : `${base}/status`;
-                    const res = await fetch(url, { cache: 'no-store', credentials: 'omit' });
+                    const res = await fetch(`${base}/status`, { cache: 'no-store', credentials: 'omit' });
                     if (res.ok) {
                         const ct = res.headers.get('content-type') || '';
                         if (ct.includes('application/json')) {
@@ -207,9 +200,10 @@
                             if (s && s.googleEnabled) return base.replace(/\/$/, '');
                         }
                     }
-                } catch (e) { /* keep trying */ }
+                } catch (_) { /* try next */ }
             }
-            return null;
+            // Last resort: use Railway backend directly (navigation is not subject to CORS)
+            return externalBase;
         }
 
         (async () => {
