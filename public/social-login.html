@@ -245,11 +245,45 @@
             const socialButtons = document.querySelectorAll('.social-btn');
             const loading = document.getElementById('loading');
 
-            socialButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    loading.style.display = 'flex';
-                });
-            });
+            async function detectOAuthBase() {
+                const candidates = ['/api/auth', '/auth'];
+                for (const base of candidates) {
+                    try {
+                        const res = await fetch(`${base}/status`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const ct = res.headers.get('content-type') || '';
+                            if (ct.includes('application/json')) {
+                                const s = await res.json();
+                                if (s && s.googleEnabled) return base;
+                            }
+                        }
+                    } catch (e) { /* continue */ }
+                }
+                return null;
+            }
+
+            (async () => {
+                const base = await detectOAuthBase();
+                const btn = document.getElementById('googleBtn');
+                if (base && btn) {
+                    btn.href = `${base}/google`;
+                    socialButtons.forEach(button => {
+                        button.addEventListener('click', function(e) {
+                            loading.style.display = 'flex';
+                        });
+                    });
+                } else if (btn) {
+                    btn.setAttribute('aria-disabled', 'true');
+                    btn.style.pointerEvents = 'none';
+                    btn.style.opacity = '0.5';
+                    const msg = document.createElement('div');
+                    msg.style.color = '#e11d48';
+                    msg.style.fontSize = '0.9rem';
+                    msg.style.marginTop = '8px';
+                    msg.textContent = 'Sign-in temporarily unavailable. Backend auth route not reachable from this host.';
+                    btn.parentElement.appendChild(msg);
+                }
+            })();
 
             // Check for authentication status from URL parameters
             const urlParams = new URLSearchParams(window.location.search);

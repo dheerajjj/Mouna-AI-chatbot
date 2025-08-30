@@ -1105,9 +1105,25 @@
             }
         }
 
-        function handleGoogleSignIn() {
-            // Implement Google OAuth flow (use /api/auth to survive proxies that only forward /api/*)
-            window.location.href = '/api/auth/google';
+        async function handleGoogleSignIn() {
+            // Robustly discover a working auth base, then navigate.
+            const candidates = ['/api/auth', '/auth'];
+            for (const base of candidates) {
+                try {
+                    const res = await fetch(`${base}/status`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const ct = res.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const s = await res.json();
+                            if (s && s.googleEnabled) {
+                                window.location.href = `${base}/google`;
+                                return;
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+            alert('Google sign-in is not reachable from this host right now. Please try email sign-in or contact support.');\r
         }
 
         // Helper functions

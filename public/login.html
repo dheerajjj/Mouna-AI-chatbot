@@ -182,28 +182,45 @@
         // Social auth loading indicator
         const googleBtn = document.getElementById('googleBtn');
         const loading = document.getElementById('loading');
-        if (googleBtn && loading) {
-            googleBtn.addEventListener('click', function() {
-                loading.style.display = 'flex';
-            });
-            // Detect if Google OAuth is enabled on the server; if not, disable the button and show a hint
-            try {
-                fetch('/auth/status').then(r => r.json()).then(s => {
-                    if (!s.googleEnabled) {
-                        loading.style.display = 'none';
-                        googleBtn.setAttribute('aria-disabled', 'true');
-                        googleBtn.style.pointerEvents = 'none';
-                        googleBtn.style.opacity = '0.5';
-                        const msg = document.createElement('div');
-                        msg.style.color = '#e11d48';
-                        msg.style.fontSize = '0.9rem';
-                        msg.style.margin = '8px 0 0 0';
-                        msg.textContent = 'Google sign-in is temporarily unavailable. Please use email/password.';
-                        googleBtn.parentElement.appendChild(msg);
+
+        async function detectOAuthBase() {
+            const candidates = ['/api/auth', '/auth'];
+            for (const base of candidates) {
+                try {
+                    const res = await fetch(`${base}/status`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const ct = res.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const s = await res.json();
+                            if (s && s.googleEnabled) return base;
+                        }
                     }
-                }).catch(() => {});
-            } catch(_) {}
+                } catch (e) { /* keep trying */ }
+            }
+            return null;
         }
+
+        (async () => {
+            if (!(googleBtn && loading)) return;
+            const base = await detectOAuthBase();
+            if (base) {
+                googleBtn.href = `${base}/google`;
+                googleBtn.addEventListener('click', function() {
+                    loading.style.display = 'flex';
+                });
+            } else {
+                // Disable button if we cannot reach backend (likely proxy rewrite issue)
+                googleBtn.setAttribute('aria-disabled', 'true');
+                googleBtn.style.pointerEvents = 'none';
+                googleBtn.style.opacity = '0.5';
+                const msg = document.createElement('div');
+                msg.style.color = '#e11d48';
+                msg.style.fontSize = '0.9rem';
+                msg.style.margin = '8px 0 0 0';
+                msg.textContent = 'Sign-in temporarily unavailable. Backend auth route not reachable from this host.';
+                googleBtn.parentElement.appendChild(msg);
+            }
+        })();
         
         document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
