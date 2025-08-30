@@ -7,7 +7,7 @@
     "start": "node server-mongo.js",
     "dev": "nodemon server-mongo.js",
     "server": "node server-mongo.js",
-    "dev:watch": "nodemon server-mongo.js",\r
+    "dev:watch": "nodemon server-mongo.js",
     "setup": "node setup.js",
     "test": "jest",
     "test:watch": "jest --watch",
