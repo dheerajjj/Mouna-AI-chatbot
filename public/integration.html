@@ -1473,9 +1473,20 @@
         // Global state
         let userApiKey = null;
         let userSubscription = null;
+        let userWidgetConfig = {}; // Capture saved widget customizations
         let tenants = [];
         let allTenants = []; // Store all tenants for filtering
         let selectedTenant = null;
+
+        // Safe HTML escape for snippet values
+        function htmlEscape(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
         
         // Populate tenant dropdown
         function populateTenantDropdown() {
@@ -1555,10 +1566,12 @@
                     const { user } = await profileResponse.json();
                     userApiKey = user.apiKey;
                     userSubscription = user.subscription;
+                    userWidgetConfig = user.widgetConfig || {};
                     
                     console.log('✅ User profile loaded:', {
                         hasApiKey: !!userApiKey,
-                        subscription: userSubscription
+                        subscription: userSubscription,
+                        hasWidgetConfig: !!userWidgetConfig && Object.keys(userWidgetConfig).length > 0
                     });
                     
                     // Show tenant selection for Starter and paid plans
@@ -1683,41 +1696,61 @@
             const widgetSnippet = document.getElementById('widget-snippet');
             const exampleCode = document.getElementById('example-code');
             
-            let apiKeyValue = userApiKey || 'YOUR_API_KEY';
-            let tenantParam = '';
-            
-            // Add tenant parameter for paid plans with selected tenant
-            if (selectedTenant) {
-                tenantParam = `<br>        <span class="attr">data-tenant-id</span>=<span class="string">"${selectedTenant.tenantId}"</span>`;
-            }
-            
+            const apiKeyValue = userApiKey || 'YOUR_API_KEY';
+            const tenantLine = selectedTenant ? `<br>        <span class=\"attr\">data-tenant-id</span>=<span class=\"string\">\"${htmlEscape(selectedTenant.tenantId)}\"</span>` : '';
+
+            // Pull saved customizations with sensible defaults
+            const primaryColor = userWidgetConfig.primaryColor || '#667eea';
+            const position = userWidgetConfig.position || 'bottom-right';
+            const title = userWidgetConfig.title ? htmlEscape(userWidgetConfig.title) : '';
+            const welcomeMessage = userWidgetConfig.welcomeMessage ? htmlEscape(userWidgetConfig.welcomeMessage) : '';
+            const subtitle = userWidgetConfig.subtitle ? htmlEscape(userWidgetConfig.subtitle) : '';
+            const logo = userWidgetConfig.customLogoUrl ? htmlEscape(userWidgetConfig.customLogoUrl) : (userWidgetConfig.customLogo ? htmlEscape(userWidgetConfig.customLogo) : '');
+            const autoOpenMode = userWidgetConfig.autoOpenMode || userWidgetConfig.autoOpen || 'never';
+            const autoOpenDelay = typeof userWidgetConfig.autoOpenDelay === 'number' ? userWidgetConfig.autoOpenDelay : undefined;
+            const autoOpenFrequency = userWidgetConfig.autoOpenFrequency || 'always';
+
+            // Build attribute lines
+            const attrLines = [
+                `        <span class=\"attr\">data-api-key</span>=<span class=\"string\">\"${htmlEscape(apiKeyValue)}\"</span>` + tenantLine,
+                `        <span class=\"attr\">data-primary-color</span>=<span class=\"string\">\"${htmlEscape(primaryColor)}\"</span>`,
+                `        <span class=\"attr\">data-position</span>=<span class=\"string\">\"${htmlEscape(position)}\"</span>`
+            ];
+
+            if (title) attrLines.push(`        <span class=\"attr\">data-title</span>=<span class=\"string\">\"${title}\"</span>`);
+            if (subtitle) attrLines.push(`        <span class=\"attr\">data-subtitle</span>=<span class=\"string\">\"${subtitle}\"</span>`);
+            if (welcomeMessage) attrLines.push(`        <span class=\"attr\">data-welcome-message</span>=<span class=\"string\">\"${welcomeMessage}\"</span>`);
+            if (logo) attrLines.push(`        <span class=\"attr\">data-logo</span>=<span class=\"string\">\"${logo}\"</span>`);
+            if (autoOpenMode && autoOpenMode !== 'never') attrLines.push(`        <span class=\"attr\">data-auto-open</span>=<span class=\"string\">\"${htmlEscape(autoOpenMode)}\"</span>`);
+            if (autoOpenMode === 'time' && typeof autoOpenDelay === 'number') attrLines.push(`        <span class=\"attr\">data-auto-open-delay</span>=<span class=\"string\">\"${htmlEscape(String(Math.max(1, autoOpenDelay)))}\"</span>`);
+            if (autoOpenFrequency && autoOpenFrequency !== 'always') attrLines.push(`        <span class=\"attr\">data-auto-open-frequency</span>=<span class=\"string\">\"${htmlEscape(autoOpenFrequency)}\"</span>`);
+
             // Update widget snippet
-            widgetSnippet.innerHTML = `
-<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://www.mouna-ai.com/widget.js"</span><br>
-        <span class="attr">data-api-key</span>=<span class="string">"${apiKeyValue}"</span>${tenantParam}<br>
-        <span class="attr">data-primary-color</span>=<span class="string">"#667eea"</span><br>
-        <span class="attr">data-position</span>=<span class="string">"bottom-right"</span><span class="tag">&gt;&lt;/script&gt;</span>
-            `.trim();
-            
-            // Update example code
-            const tenantExampleParam = selectedTenant ? `<br>            <span class="attr">data-tenant-id</span>=<span class="string">"${selectedTenant.tenantId}"</span>` : '';
-            
+            widgetSnippet.innerHTML = [
+                `<span class=\"tag\">&lt;script</span> <span class=\"attr\">src</span>=<span class=\"string\">\"https://www.mouna-ai.com/widget.js\"</span>`,
+                ...attrLines,
+                `<span class=\"tag\">&gt;&lt;/script&gt;</span>`
+            ].join('<br>');
+
+            // Update example code with same attributes
+            const exampleAttrLines = attrLines.map(line => '            ' + line.trim());
             exampleCode.innerHTML = `
-<span class="tag">&lt;!DOCTYPE html&gt;</span><br>
-<span class="tag">&lt;html</span> <span class="attr">lang</span>=<span class="string">"en"</span><span class="tag">&gt;</span><br>
-<span class="tag">&lt;head&gt;</span><br>
-    <span class="tag">&lt;meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span><span class="tag">&gt;</span><br>
-    <span class="tag">&lt;title&gt;</span>My Website<span class="tag">&lt;/title&gt;</span><br>
-<span class="tag">&lt;/head&gt;</span><br>
-<span class="tag">&lt;body&gt;</span><br>
-    <span class="tag">&lt;h1&gt;</span>Welcome to My Website<span class="tag">&lt;/h1&gt;</span><br>
-    <span class="tag">&lt;p&gt;</span>Your website content goes here...<span class="tag">&lt;/p&gt;</span><br>
+<span class=\"tag\">&lt;!DOCTYPE html&gt;</span><br>
+<span class=\"tag\">&lt;html</span> <span class=\"attr\">lang</span>=<span class=\"string\">\"en\"</span><span class=\"tag\">&gt;</span><br>
+<span class=\"tag\">&lt;head&gt;</span><br>
+    <span class=\"tag\">&lt;meta</span> <span class=\"attr\">charset</span>=<span class=\"string\">\"UTF-8\"</span><span class=\"tag\">&gt;</span><br>
+    <span class=\"tag\">&lt;title&gt;</span>My Website<span class=\"tag\">&lt;/title&gt;</span><br>
+<span class=\"tag\">&lt;/head&gt;</span><br>
+<span class=\"tag\">&lt;body&gt;</span><br>
+    <span class=\"tag\">&lt;h1&gt;</span>Welcome to My Website<span class=\"tag\">&lt;/h1&gt;</span><br>
+    <span class=\"tag\">&lt;p&gt;</span>Your website content goes here...<span class=\"tag\">&lt;/p&gt;</span><br>
     <br>
-    <span class="comment">&lt;!-- Add the chatbot widget just before closing body tag --&gt;</span><br>
-    <span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://www.mouna-ai.com/widget.js"</span><br>
-            <span class="attr">data-api-key</span>=<span class="string">"${apiKeyValue}"</span>${tenantExampleParam}<span class="tag">&gt;&lt;/script&gt;</span><br>
-<span class="tag">&lt;/body&gt;</span><br>
-<span class="tag">&lt;/html&gt;</span>
+    <span class=\"comment\">&lt;!-- Add the chatbot widget just before closing body tag --&gt;</span><br>
+    <span class=\"tag\">&lt;script</span> <span class=\"attr\">src</span>=<span class=\"string\">\"https://www.mouna-ai.com/widget.js\"</span><br>
+${exampleAttrLines.join('<br>')}<br>
+    <span class=\"tag\">&lt;/script&gt;</span><br>
+<span class=\"tag\">&lt;/body&gt;</span><br>
+<span class=\"tag\">&lt;/html&gt;</span>
             `.trim();
         }
         
