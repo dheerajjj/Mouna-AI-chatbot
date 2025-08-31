@@ -93,36 +93,54 @@ class KnowledgeBaseService {
             refreshMaxAgeMs = this.cacheExpiry
         } = options;
 
-        const needWarmup = this.isKnowledgeStale(domain, refreshMaxAgeMs);
+        // Derive composite key for subpath-based sites (e.g., github.io/user/project)
+        let hostKey = domain;
+        let pathKey = null;
+        try {
+            if (sourceUrl) {
+                const u = new URL(sourceUrl);
+                hostKey = u.host || domain;
+                const seg = (u.pathname || '').split('/').filter(Boolean)[0];
+                if (seg) pathKey = `${hostKey}/${seg}`;
+            }
+        } catch (_) {}
+
+        const keyToCheck = pathKey || hostKey;
+        const needWarmup = this.isKnowledgeStale(keyToCheck, refreshMaxAgeMs);
         if (!needWarmup) return false;
 
         // 1) Build a minimal knowledge base synchronously
-        const baseUrl = sourceUrl || `${preferHttps ? 'https' : 'http'}://${domain}`;
+        const baseUrl = sourceUrl || `${preferHttps ? 'https' : 'http'}://${hostKey}`;
         let preview = null;
         try {
             preview = await this.extractQuickPreview(baseUrl, quickTimeoutMs);
         } catch (_) {}
 
         if (preview) {
+            const previewPath = new URL(preview.url).pathname || '/';
+            const pagesObj = { [previewPath]: preview };
             const knowledge = {
-                domain,
+                domain: hostKey,
+                path_base: pathKey ? ('/' + pathKey.split('/').slice(1).join('/').split('/')[0]) : null,
                 extracted_at: new Date().toISOString(),
                 last_updated: new Date(),
-                pages: { [new URL(preview.url).pathname || '/']: preview },
+                pages: pagesObj,
                 meta_info: {},
-                content_summary: this.generateContentSummary({ [(new URL(preview.url).pathname || '/')]: preview })
+                content_summary: this.generateContentSummary(pagesObj)
             };
-            this.knowledgeBases.set(domain, knowledge);
-            console.log(`⚡ Quick knowledge warmup stored for ${domain}`);
+            // Store under host and under pathKey (if any)
+            this.knowledgeBases.set(hostKey, knowledge);
+            if (pathKey) this.knowledgeBases.set(pathKey, knowledge);
+            console.log(`⚡ Quick knowledge warmup stored for ${pathKey || hostKey}`);
         }
 
         // 2) Full extraction in the background (non-blocking)
         // Include the specific sourceUrl (path) when available so subpath sites are captured (e.g., GitHub Pages projects)
         const startUrls = [];
         try { if (sourceUrl) startUrls.push(sourceUrl); } catch (_) {}
-        startUrls.push(`https://${domain}`, `http://${domain}`);
-        this.extractWebsiteKnowledge(domain, startUrls).catch(err => {
-            console.warn(`Background extraction failed for ${domain}:`, err.message);
+        startUrls.push(`https://${hostKey}`, `http://${hostKey}`);
+        this.extractWebsiteKnowledge(pathKey || hostKey, startUrls).catch(err => {
+            console.warn(`Background extraction failed for ${pathKey || hostKey}:`, err.message);
         });
 
         return true;
@@ -296,16 +314,27 @@ class KnowledgeBaseService {
     /**
      * Extract knowledge from a website
      */
-    async extractWebsiteKnowledge(domain, urls = []) {
+    async extractWebsiteKnowledge(domainKey, urls = []) {
         try {
-            console.log(`📖 Extracting knowledge for domain: ${domain}`);
+            console.log(`📖 Extracting knowledge for key: ${domainKey}`);
             
             if (urls.length === 0) {
-                urls = [`http://${domain}`, `https://${domain}`];
+                urls = [`http://${domainKey}`, `https://${domainKey}`];
             }
 
+            // Infer host and base path from first URL if possible
+            let host = domainKey;
+            let basePath = null;
+            try {
+                const u0 = new URL(urls[0]);
+                host = u0.host || domainKey;
+                const seg = (u0.pathname || '').split('/').filter(Boolean)[0];
+                if (seg) basePath = '/' + seg;
+            } catch (_) {}
+
             const knowledge = {
-                domain: domain,
+                domain: host,
+                path_base: basePath,
                 extracted_at: new Date().toISOString(),
                 pages: {},
                 meta_info: {},
@@ -329,14 +358,17 @@ class KnowledgeBaseService {
             // Generate content summary
             knowledge.content_summary = this.generateContentSummary(knowledge.pages);
 
-            // Cache the knowledge
-            this.knowledgeBases.set(domain, knowledge);
+            // Cache the knowledge under both host key and path key (if applicable)
+            const hostKey = host;
+            const pathKey = basePath ? `${host}${basePath}` : null;
+            this.knowledgeBases.set(hostKey, knowledge);
+            if (pathKey) this.knowledgeBases.set(pathKey, knowledge);
             
-            console.log(`✅ Knowledge extracted for ${domain}: ${Object.keys(knowledge.pages).length} pages`);
+            console.log(`✅ Knowledge extracted for ${pathKey || hostKey}: ${Object.keys(knowledge.pages).length} pages`);
             return knowledge;
 
         } catch (error) {
-            console.error(`Error extracting knowledge for ${domain}:`, error);
+            console.error(`Error extracting knowledge for ${domainKey}:`, error);
             throw error;
         }
     }
@@ -512,7 +544,7 @@ class KnowledgeBaseService {
         }
 
         // Try without port
-        const domainWithoutPort = domain.split(':')[0];
+        const domainWithoutPort = (domain || '').split(':')[0];
         if (this.knowledgeBases.has(domainWithoutPort)) {
             return this.knowledgeBases.get(domainWithoutPort);
         }
@@ -533,6 +565,24 @@ class KnowledgeBaseService {
     }
 
     /**
+     * Get knowledge base for a full URL (prefers host+basePath key)
+     */
+    getKnowledgeForUrl(url) {
+        try {
+            const u = new URL(url);
+            const host = u.host;
+            const seg = (u.pathname || '').split('/').filter(Boolean)[0];
+            const pathKey = seg ? `${host}/${seg}` : null;
+            if (pathKey && this.knowledgeBases.has(pathKey)) return this.knowledgeBases.get(pathKey);
+            if (this.knowledgeBases.has(host)) return this.knowledgeBases.get(host);
+            // Fallbacks
+            return this.getKnowledgeBase(host);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    /**
      * Generate contextual prompt based on knowledge base
      */
     generateContextualPrompt(domain, language = 'en') {
@@ -550,6 +600,16 @@ class KnowledgeBaseService {
             // General website knowledge base
             return this.generateGeneralPrompt(knowledge, language);
         }
+    }
+
+    /**
+     * Convenience: generate prompt from a full page URL
+     */
+    generateContextualPromptForUrl(pageUrl, language = 'en') {
+        const knowledge = this.getKnowledgeForUrl(pageUrl);
+        if (!knowledge) return null;
+        if (knowledge.company) return this.generateMounaPrompt(knowledge, language);
+        return this.generateGeneralPrompt(knowledge, language);
     }
 
     /**

@@ -136,9 +136,12 @@ app.use(express.static('public', {
     // Prevent indexing of static assets by search engines
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
 
-    if (path.endsWith('.js')) {
+            if (path.endsWith('widget.js') || path.endsWith('widget-fixed.js')) {
       res.setHeader('Content-Type', 'application/javascript');
-      res.setHeader('Cache-Control', 'public, max-age=86400, immutable'); // 1 day cache for JS files
+      res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate'); // very short cache for widget scripts
+    } else if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Cache-Control', 'public, max-age=86400, immutable'); // 1 day cache for other JS files
     } else if (path.endsWith('.css')) {
       res.setHeader('Content-Type', 'text/css');
       res.setHeader('Cache-Control', 'public, max-age=86400, immutable'); // 1 day cache for CSS files
@@ -1320,7 +1323,7 @@ async function startServer() {
               const domain = u.host;
               const fullUrl = u.toString();
               // Fast minimal knowledge so first chat feels site-aware
-              knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: fullUrl, quickTimeoutMs: 3500 }).catch(() => {});
+              knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: fullUrl, quickTimeoutMs: 6000 }).catch(() => {});
 
               // Optional: trigger deeper crawl via auto-training service if available
               try {
@@ -1567,11 +1570,11 @@ async function startServer() {
 
         // Ensure at least minimal knowledge for this domain (fast warmup)
         try {
-          await knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: refererUrl || `https://${domain}`, quickTimeoutMs: 3500 });
+          await knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: refererUrl || `https://${domain}`, quickTimeoutMs: 6000 });
         } catch (e) { console.warn('ensureKnowledgeForDomain error:', e.message); }
         
         // Get contextual system prompt from knowledge base
-        let systemPrompt = knowledgeService.generateContextualPrompt(domain, detectedLanguage);
+        let systemPrompt = knowledgeService.generateContextualPromptForUrl(refererUrl || `https://${domain}`, detectedLanguage);
         
         if (!systemPrompt) {
           // Fallback to default language-specific prompt
