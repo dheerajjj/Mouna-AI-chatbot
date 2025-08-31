@@ -869,7 +869,9 @@ widgetPreview.innerHTML = `<img src=\"/images/logo.png\" alt=\"Mouna\" style=\"w
                 const delayEl = document.getElementById('auto-open-delay');
                 const frequencyEl = document.getElementById('auto-open-frequency');
 
-                let attrs = `data-api-key=\"your-api-key\" data-color=\"${primaryColor}\" data-position=\"${position}\" data-logo=\"{{your_logo_url}}\"`;
+                // Prefer remote configuration: only include api key and optional tenant id placeholder
+                let attrs = `data-api-key=\"your-api-key\" data-tenant-id=\"{{your_tenant_id}}\"`;
+                // Behaviors are safe to include
                 if (modeEl && modeEl.value && modeEl.value !== 'never') {
                     attrs += ` data-auto-open=\"${modeEl.value}\"`;
                 }

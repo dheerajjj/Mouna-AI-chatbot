@@ -426,16 +426,43 @@ class KnowledgeBaseService {
     extractContactInfo($) {
         const contactInfo = {};
 
-        // Email extraction
-        const emails = $('a[href^="mailto:"]').map((i, el) => 
-            $(el).attr('href').replace('mailto:', '')
+        // Email extraction (anchors)
+        const emailAnchors = $('a[href^="mailto:"]').map((i, el) => 
+            ($(el).attr('href') || '').replace('mailto:', '')
         ).get();
-        if (emails.length > 0) contactInfo.emails = emails;
 
-        // Phone extraction
-        const phones = $('a[href^="tel:"]').map((i, el) => 
-            $(el).attr('href').replace('tel:', '')
+        // Phone extraction (anchors)
+        const phoneAnchors = $('a[href^="tel:"]').map((i, el) => 
+            ($(el).attr('href') || '').replace('tel:', '')
         ).get();
+
+        // Fallback: scan full page text for emails and phone numbers
+        let pageText = '';
+        try { pageText = $('body').text().replace(/\s+/g, ' ').trim(); } catch (_) {}
+
+        // Regex for common email patterns
+        const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+        const foundEmails = (pageText.match(emailRegex) || []);
+
+        // Regex for Indian phone numbers and generic international formats
+        // Matches patterns like +91-9876543210, +91 98765 43210, 09876543210, 9876543210, (040) 1234 5678
+        const phoneRegex = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,4}\)?[-.\s]?)?\d{3,4}[-.\s]?\d{3,4}[-.\s]?\d{0,4}/g;
+        const rawPhones = (pageText.match(phoneRegex) || [])
+            .map(p => p.replace(/[^+\d]/g, ''))             // keep digits and leading +
+            .filter(p => {
+                // Keep 10-13 digit numbers (typical mobile/with country code)
+                const d = p.startsWith('+') ? p.slice(1) : p;
+                return d.length >= 10 && d.length <= 13;
+            });
+
+        function uniq(arr) {
+            return Array.from(new Set(arr.filter(Boolean)));
+        }
+
+        const emails = uniq([ ...emailAnchors, ...foundEmails ]);
+        const phones = uniq([ ...phoneAnchors, ...rawPhones ]);
+
+        if (emails.length > 0) contactInfo.emails = emails;
         if (phones.length > 0) contactInfo.phones = phones;
 
         // Address extraction (look for common address patterns)
@@ -479,6 +506,8 @@ class KnowledgeBaseService {
             main_topics: [],
             key_features: [],
             contact_methods: [],
+            emails: [],
+            phones: [],
             pricing_plans: 0
         };
 
@@ -493,7 +522,12 @@ class KnowledgeBaseService {
             }
             
             if (pageData.contact_info.emails) {
-                summary.contact_methods.push(...pageData.contact_info.emails);
+                summary.emails.push(...pageData.contact_info.emails);
+                summary.contact_methods.push(...pageData.contact_info.emails.map(e => `email:${e}`));
+            }
+            if (pageData.contact_info.phones) {
+                summary.phones.push(...pageData.contact_info.phones);
+                summary.contact_methods.push(...pageData.contact_info.phones.map(p => `phone:${p}`));
             }
             
             if (pageData.pricing.length > 0) {
@@ -505,6 +539,8 @@ class KnowledgeBaseService {
         summary.main_topics = [...new Set(summary.main_topics)];
         summary.key_features = [...new Set(summary.key_features)];
         summary.contact_methods = [...new Set(summary.contact_methods)];
+        summary.emails = [...new Set(summary.emails)];
+        summary.phones = [...new Set(summary.phones)];
 
         return summary;
     }
@@ -824,10 +860,13 @@ KEY FEATURES:
 ${summary.key_features.slice(0, 10).map(feature => `• ${feature}`).join('\n')}
 
 CONTACT INFORMATION:
-${summary.contact_methods.map(contact => `• ${contact}`).join('\n')}
+${summary.emails.length ? `Emails: ${summary.emails.join(', ')}` : ''}
+${summary.phones.length ? `Phones: ${summary.phones.join(', ')}` : ''}
 
 INSTRUCTIONS:
 - Answer questions specifically about this website and its content
+- If the user asks for contact details (phone/email/address), extract and provide them directly from the knowledge.
+- If asked to book/schedule and booking feature is unavailable, collect name, email, and preferred time and offer to connect them via the provided phone/email.
 - Provide helpful information based on the extracted website knowledge
 - If you don't have specific information, acknowledge it and offer to help with general inquiries
 - Always maintain a professional and helpful tone

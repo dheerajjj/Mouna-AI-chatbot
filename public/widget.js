@@ -651,9 +651,12 @@ if (scriptTag) {
             const tenantId = scriptTag.getAttribute('data-tenant-id'); if (tenantId) currentConfig.tenantId = tenantId;
             const attributes = ['primary-color','position','title','welcome-message','subtitle','auto-open','auto-open-delay'];
             attributes.forEach(attr => { const value = scriptTag.getAttribute(`data-${attr}`); if (value) { const configKey = attr.replace(/-([a-z])/g, (g) => g[1].toUpperCase()); currentConfig[configKey] = value; } });
+            // Support legacy alias data-color (do NOT lock color when using alias)
+            const colorAlias = scriptTag.getAttribute('data-color');
+            if (colorAlias && !scriptTag.getAttribute('data-primary-color')) { currentConfig.primaryColor = colorAlias; }
             // Additional font customization
             const fontFamily = scriptTag.getAttribute('data-font-family'); if (fontFamily) currentConfig.fontFamily = fontFamily;
-            // Lock brand color if explicitly provided
+            // Lock brand color only if explicitly provided via data-primary-color
             if (scriptTag.getAttribute('data-primary-color')) currentConfig.primaryColorLocked = true;
             const logoAttr = scriptTag.getAttribute('data-logo') || scriptTag.getAttribute('data-logo-url'); if (logoAttr) currentConfig.customLogo = logoAttr;
             const autoOpenMode = scriptTag.getAttribute('data-auto-open');

@@ -1568,6 +1568,12 @@
                 }
             });
 
+            // Support legacy alias data-color (do NOT lock color when using alias)
+            const colorAlias = scriptTag.getAttribute('data-color');
+            if (colorAlias && !scriptTag.getAttribute('data-primary-color')) {
+                currentConfig.primaryColor = colorAlias;
+            }
+
             // Custom logo from script attribute (data-logo)
             const logoAttr = scriptTag.getAttribute('data-logo') || scriptTag.getAttribute('data-logo-url');
             if (logoAttr) {
