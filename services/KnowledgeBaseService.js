@@ -117,8 +117,11 @@ class KnowledgeBaseService {
         }
 
         // 2) Full extraction in the background (non-blocking)
-        // Do not await – callers should proceed using the quick knowledge above.
-        this.extractWebsiteKnowledge(domain).catch(err => {
+        // Include the specific sourceUrl (path) when available so subpath sites are captured (e.g., GitHub Pages projects)
+        const startUrls = [];
+        try { if (sourceUrl) startUrls.push(sourceUrl); } catch (_) {}
+        startUrls.push(`https://${domain}`, `http://${domain}`);
+        this.extractWebsiteKnowledge(domain, startUrls).catch(err => {
             console.warn(`Background extraction failed for ${domain}:`, err.message);
         });
 

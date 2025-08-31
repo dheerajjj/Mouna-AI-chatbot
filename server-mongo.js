@@ -1313,13 +1313,14 @@ async function startServer() {
 
         // Background: warm up knowledge for the embedding domain (no blocking)
         try {
-          const ref = req.headers.referer || req.get('Origin');
-          if (ref) {
+          const page = req.query.page || req.query.pageUrl || req.headers.referer || req.get('Origin');
+          if (page) {
             try {
-              const u = new URL(ref);
+              const u = new URL(page);
               const domain = u.host;
+              const fullUrl = u.toString();
               // Fast minimal knowledge so first chat feels site-aware
-              knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: ref, quickTimeoutMs: 3500 }).catch(() => {});
+              knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: fullUrl, quickTimeoutMs: 3500 }).catch(() => {});
 
               // Optional: trigger deeper crawl via auto-training service if available
               try {
@@ -1329,7 +1330,7 @@ async function startServer() {
                   try {
                     if (await atp.isServiceAvailable()) {
                       // Non-blocking light crawl; ignore result
-                      atp.crawlWebsite(`${u.protocol}//${domain}`, { maxPages: 10, timeout: 20000 }).catch(() => {});
+                      atp.crawlWebsite(fullUrl, { maxPages: 10, timeout: 20000 }).catch(() => {});
                     }
                   } catch (_) {}
                 })();
@@ -1494,7 +1495,7 @@ async function startServer() {
     // Chat endpoint
     app.post('/ask', validateApiKey, checkUsageLimit('messagesPerMonth', 1), incrementUsage(DatabaseService), async (req, res) => {
       try {
-      const { message, sessionId, website, language, tenantId } = req.body;
+      const { message, sessionId, website, language, tenantId, pageUrl } = req.body;
       const user = req.user;
       
       console.log('🏢 Request includes tenant ID:', tenantId);
@@ -1550,13 +1551,15 @@ async function startServer() {
         // Extract domain from referrer or session data for context
         let domain = 'localhost:3000'; // Default for demo
         let refererUrl = null;
-        if (req.headers.referer) {
+        // Prefer explicit pageUrl from client (full path), then Referer
+        const candidateUrl = pageUrl || req.headers.referer;
+        if (candidateUrl) {
           try {
-            const refererURL = new URL(req.headers.referer);
+            const refererURL = new URL(candidateUrl);
             domain = refererURL.host;
             refererUrl = refererURL.toString();
           } catch (error) {
-            console.warn('Could not parse referer for domain:', req.headers.referer);
+            console.warn('Could not parse page/referrer URL for domain:', candidateUrl);
           }
         }
         
@@ -1585,7 +1588,8 @@ async function startServer() {
           (async () => {
             try {
               if (await atp.isServiceAvailable()) {
-                atp.crawlWebsite(`https://${domain}`, { maxPages: 15, timeout: 25000 }).catch(() => {});
+                const startUrl = refererUrl ? refererUrl : `https://${domain}`;
+                atp.crawlWebsite(startUrl, { maxPages: 15, timeout: 25000 }).catch(() => {});
               }
             } catch (_) {}
           })();

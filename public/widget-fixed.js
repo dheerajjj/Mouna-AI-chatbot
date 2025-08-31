@@ -311,7 +311,9 @@
                     language: currentLanguage,
                     tenantId: currentConfig.tenantId, // Include tenant ID for context
                     userAgent: navigator.userAgent,
-                    referrer: document.referrer
+                    referrer: document.referrer,
+                    pageUrl: (typeof location !== 'undefined' ? location.href : ''),
+                    pageTitle: (typeof document !== 'undefined' ? document.title : '')
                 })
             });
             
@@ -330,9 +332,10 @@
     async function loadConfiguration() {
         try {
             // Prefer API-key scoped config when available
-            const url = currentConfig.apiKey
+            let url = currentConfig.apiKey
                 ? `${currentConfig.apiEndpoint}/config/${encodeURIComponent(currentConfig.apiKey)}`
                 : `${currentConfig.apiEndpoint}/config`;
+            try { const page = encodeURIComponent(window.location && window.location.href ? window.location.href : ''); if (page) url += (url.includes('?') ? '&' : '?') + `page=${page}`; } catch (_) {}
             const response = await fetch(url);
             if (response.ok) {
                 const config = await response.json();

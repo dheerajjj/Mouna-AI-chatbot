@@ -386,14 +386,15 @@ function updateWidgetLanguage(lang) {
         const response = await fetch(`${currentConfig.apiEndpoint}/ask`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-API-Key': currentConfig.apiKey || '' },
-            body: JSON.stringify({ message, sessionId, language: currentLanguage, tenantId: currentConfig.tenantId, userAgent: navigator.userAgent, referrer: document.referrer })
+            body: JSON.stringify({ message, sessionId, language: currentLanguage, tenantId: currentConfig.tenantId, userAgent: navigator.userAgent, referrer: document.referrer, pageUrl: (typeof location !== 'undefined' ? location.href : '') , pageTitle: (typeof document !== 'undefined' ? document.title : '') })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         return await response.json();
     }
     async function loadConfiguration() {
         try {
-            const url = currentConfig.apiKey ? `${currentConfig.apiEndpoint}/config/${encodeURIComponent(currentConfig.apiKey)}` : `${currentConfig.apiEndpoint}/config`;
+            let url = currentConfig.apiKey ? `${currentConfig.apiEndpoint}/config/${encodeURIComponent(currentConfig.apiKey)}` : `${currentConfig.apiEndpoint}/config`;
+            try { const page = encodeURIComponent(window.location && window.location.href ? window.location.href : ''); if (page) url += (url.includes('?') ? '&' : '?') + `page=${page}`; } catch (_) {}
             const response = await fetch(url);
             if (response.ok) {
                 const config = await response.json();
