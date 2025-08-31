@@ -1324,6 +1324,8 @@ async function startServer() {
               const fullUrl = u.toString();
               // Fast minimal knowledge so first chat feels site-aware
               knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: fullUrl, quickTimeoutMs: 6000 }).catch(() => {});
+              // Also kick off a deeper crawl internally (non-blocking)
+              knowledgeService.ensureFullCrawlForUrl(fullUrl).catch(() => {});
 
               // Optional: trigger deeper crawl via auto-training service if available
               try {
@@ -1332,8 +1334,8 @@ async function startServer() {
                 (async () => {
                   try {
                     if (await atp.isServiceAvailable()) {
-                      // Non-blocking light crawl; ignore result
-                      atp.crawlWebsite(fullUrl, { maxPages: 10, timeout: 20000 }).catch(() => {});
+                      // Non-blocking deeper crawl; ignore result
+                      atp.crawlWebsite(fullUrl, { maxPages: 60, timeout: 30000 }).catch(() => {});
                     }
                   } catch (_) {}
                 })();
@@ -1572,9 +1574,12 @@ async function startServer() {
         try {
           await knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: refererUrl || `https://${domain}`, quickTimeoutMs: 6000 });
         } catch (e) { console.warn('ensureKnowledgeForDomain error:', e.message); }
+        // Fire-and-forget deeper crawl for better coverage
+        try { knowledgeService.ensureFullCrawlForUrl(refererUrl || `https://${domain}`).catch(()=>{}); } catch (_) {}
         
-        // Get contextual system prompt from knowledge base
-        let systemPrompt = knowledgeService.generateContextualPromptForUrl(refererUrl || `https://${domain}`, detectedLanguage);
+        // Build knowledge-grounded prompt + context
+        const { systemPrompt: sysPrompt, contextText } = knowledgeService.buildAnswerContextForUrl(refererUrl || `https://${domain}`, message, detectedLanguage);
+        let systemPrompt = sysPrompt;
         
         if (!systemPrompt) {
           // Fallback to default language-specific prompt
@@ -1715,18 +1720,11 @@ async function startServer() {
           const completion = await openai.chat.completions.create({
             model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
             messages: [
-              {
-                role: 'system',
-                content: systemPrompt
-              },
-              {
-                role: 'system',
-                content: `All assistant replies must be in ${SUPPORTED_LANGUAGES[detectedLanguage]?.name || detectedLanguage} using its native script. Do not switch languages unless explicitly asked to translate.`
-              },
-              {
-                role: 'user',
-                content: message
-              }
+              { role: 'system', content: systemPrompt },
+              { role: 'system', content: `Use only the following website CONTEXT when answering. If the answer is not present, politely say you don't have that information.` },
+              ...(contextText ? [{ role: 'system', content: contextText }] : []),
+              { role: 'system', content: `All assistant replies must be in ${SUPPORTED_LANGUAGES[detectedLanguage]?.name || detectedLanguage} using its native script. Do not switch languages unless explicitly asked to translate.` },
+              { role: 'user', content: message }
             ],
             max_tokens: 500,
             temperature: 0.7,

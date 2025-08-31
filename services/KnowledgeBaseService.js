@@ -312,61 +312,36 @@ class KnowledgeBaseService {
     }
 
     /**
-     * Extract knowledge from a website
+     * Extract knowledge from a website (deep crawl under host and optional basePath)
      */
     async extractWebsiteKnowledge(domainKey, urls = []) {
         try {
             console.log(`📖 Extracting knowledge for key: ${domainKey}`);
-            
-            if (urls.length === 0) {
-                urls = [`http://${domainKey}`, `https://${domainKey}`];
-            }
+            if (urls.length === 0) urls = [`http://${domainKey}`, `https://${domainKey}`];
 
-            // Infer host and base path from first URL if possible
-            let host = domainKey;
-            let basePath = null;
-            try {
-                const u0 = new URL(urls[0]);
-                host = u0.host || domainKey;
-                const seg = (u0.pathname || '').split('/').filter(Boolean)[0];
-                if (seg) basePath = '/' + seg;
-            } catch (_) {}
+            // Use the first URL as the crawl root
+            const rootUrl = urls[0];
+            const crawlResult = await this.crawlSite(rootUrl, { maxPages: 120, timeoutMs: 12000 });
+            const { host, basePath, pages } = crawlResult;
 
             const knowledge = {
                 domain: host,
                 path_base: basePath,
                 extracted_at: new Date().toISOString(),
-                pages: {},
-                meta_info: {},
-                content_summary: {},
+                pages,
+                meta_info: { crawl: { started_at: crawlResult.startedAt, finished_at: crawlResult.finishedAt, pages_crawled: Object.keys(pages).length, root: rootUrl } },
+                content_summary: this.generateContentSummary(pages),
                 last_updated: new Date()
             };
 
-            // Extract from each URL
-            for (const url of urls) {
-                try {
-                    const pageData = await this.extractPageContent(url);
-                    if (pageData) {
-                        const urlKey = new URL(url).pathname || 'home';
-                        knowledge.pages[urlKey] = pageData;
-                    }
-                } catch (error) {
-                    console.warn(`Could not extract from ${url}:`, error.message);
-                }
-            }
-
-            // Generate content summary
-            knowledge.content_summary = this.generateContentSummary(knowledge.pages);
-
-            // Cache the knowledge under both host key and path key (if applicable)
+            // Cache under host key and host+basePath (if any)
             const hostKey = host;
             const pathKey = basePath ? `${host}${basePath}` : null;
             this.knowledgeBases.set(hostKey, knowledge);
             if (pathKey) this.knowledgeBases.set(pathKey, knowledge);
-            
-            console.log(`✅ Knowledge extracted for ${pathKey || hostKey}: ${Object.keys(knowledge.pages).length} pages`);
-            return knowledge;
 
+            console.log(`✅ Knowledge extracted (deep) for ${pathKey || hostKey}: ${Object.keys(knowledge.pages).length} pages`);
+            return knowledge;
         } catch (error) {
             console.error(`Error extracting knowledge for ${domainKey}:`, error);
             throw error;
@@ -532,6 +507,167 @@ class KnowledgeBaseService {
         summary.contact_methods = [...new Set(summary.contact_methods)];
 
         return summary;
+    }
+
+    // Normalize and filter links to stay within host and basePath boundary
+    normalizeAndFilterLink(href, baseUrl, host, basePath) {
+        try {
+            if (!href) return null;
+            href = href.trim();
+            if (href.startsWith('#')) return null;
+            if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) return null;
+
+            const abs = new URL(href, baseUrl);
+            if (abs.host !== host) return null; // same host only
+
+            // Enforce basePath boundary if provided (e.g., '/vk')
+            if (basePath && basePath.length > 1) {
+                const p = abs.pathname || '/';
+                if (!p.startsWith(basePath.endsWith('/') ? basePath : basePath + '/')) {
+                    // Allow exact basePath root as well
+                    if (p !== basePath) return null;
+                }
+            }
+
+            // Remove fragments and normalize trailing slash
+            abs.hash = '';
+            let out = abs.toString();
+            if (out.endsWith('#')) out = out.slice(0, -1);
+            return out;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    // Deep crawl a site starting from a URL. Returns {host, basePath, pages, startedAt, finishedAt}
+    async crawlSite(startUrl, options = {}) {
+        const maxPages = typeof options.maxPages === 'number' ? options.maxPages : 120;
+        const timeoutMs = typeof options.timeoutMs === 'number' ? options.timeoutMs : 12000;
+        const startedAt = new Date().toISOString();
+
+        // Determine host and basePath from startUrl
+        let host = '';
+        let basePath = null;
+        try {
+            const u = new URL(startUrl);
+            host = u.host;
+            const seg = (u.pathname || '').split('/').filter(Boolean)[0];
+            if (seg) basePath = '/' + seg;
+        } catch (e) {
+            throw new Error(`Invalid start URL for crawl: ${startUrl}`);
+        }
+
+        const queue = [startUrl];
+        const visited = new Set();
+        const pages = {};
+
+        while (queue.length > 0 && visited.size < maxPages) {
+            const url = queue.shift();
+            if (!url || visited.has(url)) continue;
+            visited.add(url);
+
+            try {
+                const response = await axios.get(url, {
+                    timeout: timeoutMs,
+                    headers: { 'User-Agent': 'Mouna-AI-Chatbot-Crawler/1.0' }
+                });
+                const $ = cheerio.load(response.data);
+
+                // Extract page content using existing logic for consistency
+                const pageData = {
+                    url,
+                    title: $('title').first().text().trim(),
+                    meta_description: $('meta[name="description"]').attr('content') || '',
+                    meta_keywords: $('meta[name="keywords"]').attr('content') || '',
+                    headings: {
+                        h1: $('h1').map((i, el) => $(el).text().trim()).get(),
+                        h2: $('h2').map((i, el) => $(el).text().trim()).get(),
+                        h3: $('h3').map((i, el) => $(el).text().trim()).get()
+                    },
+                    paragraphs: $('p').map((i, el) => $(el).text().trim()).get().filter(t => t.length > 20),
+                    navigation: $('nav a, .nav a, .menu a').map((i, el) => ({ text: $(el).text().trim(), href: $(el).attr('href') })).get(),
+                    contact_info: this.extractContactInfo($),
+                    features: $('ul li, .features li, .services li').map((i, el) => $(el).text().trim()).get().filter(t => t.length > 10),
+                    pricing: this.extractPricingInfo($),
+                    extracted_at: new Date().toISOString()
+                };
+
+                const pathKey = new URL(url).pathname || '/';
+                pages[pathKey] = pageData;
+
+                // Discover links
+                const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
+                for (const href of links) {
+                    const normalized = this.normalizeAndFilterLink(href, url, host, basePath);
+                    if (!normalized) continue;
+                    if (!visited.has(normalized) && !queue.includes(normalized) && visited.size + queue.length < maxPages) {
+                        queue.push(normalized);
+                    }
+                }
+            } catch (e) {
+                console.warn('Crawl fetch failed for', url, e.message);
+                continue;
+            }
+        }
+
+        const finishedAt = new Date().toISOString();
+        return { host, basePath, pages, startedAt, finishedAt };
+    }
+
+    // Retrieve pages most relevant to a query
+    getRelevantPages(knowledge, query, topK = 5) {
+        if (!knowledge || !knowledge.pages) return [];
+        const q = (query || '').toLowerCase();
+        if (!q) return [];
+        const scores = [];
+        for (const [pathKey, page] of Object.entries(knowledge.pages)) {
+            const hayTitle = (page.title || '').toLowerCase();
+            const hayDesc = (page.meta_description || '').toLowerCase();
+            const hayHead = [...(page.headings?.h1 || []), ...(page.headings?.h2 || []), ...(page.headings?.h3 || [])].join(' \n ').toLowerCase();
+            const hayParas = (page.paragraphs || []).slice(0, 50).join(' \n ').toLowerCase();
+            let score = 0;
+            // Heuristics
+            if (hayTitle.includes(q)) score += 8;
+            if (hayDesc.includes(q)) score += 5;
+            if (hayHead.includes(q)) score += 6;
+            // Count occurrences in content (basic)
+            const occur = (hayParas.match(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+            score += Math.min(occur, 5) * 2;
+            // Slight boost for homepage/about/contact paths
+            if (/^\/?(index\.html)?$/.test(pathKey) || pathKey === '/' || /about|contact|menu|services|rooms|booking|reservation/i.test(pathKey)) score += 2;
+            if (score > 0) scores.push({ pathKey, page, score });
+        }
+        scores.sort((a, b) => b.score - a.score);
+        return scores.slice(0, topK);
+    }
+
+    // Build a compact context string from pages
+    buildContextFromPages(entries, maxChars = 4000) {
+        let out = 'CONTEXT:\n';
+        for (const { pathKey, page } of entries) {
+            const head = [page.title, ...(page.headings?.h1 || [])].filter(Boolean).slice(0, 3).join(' • ');
+            const paras = (page.paragraphs || []).slice(0, 8).join('\n');
+            const section = `\n---\nPATH: ${pathKey}\nTITLE: ${head}\nDESC: ${(page.meta_description || '').slice(0, 300)}\nCONTENT:\n${paras}\n`;
+            if ((out + section).length > maxChars) break;
+            out += section;
+        }
+        return out;
+    }
+
+    // Build a knowledge-grounded system prompt and context for a URL + query
+    buildAnswerContextForUrl(pageUrl, userQuery, language = 'en') {
+        const knowledge = this.getKnowledgeForUrl(pageUrl);
+        if (!knowledge) return { systemPrompt: null, contextText: null };
+
+        // Base system prompt (company-specific or general)
+        let systemPrompt = (knowledge.company)
+            ? this.generateMounaPrompt(knowledge, language)
+            : this.generateGeneralPrompt(knowledge, language);
+
+        // Enrich with query-relevant context
+        const top = this.getRelevantPages(knowledge, userQuery, 5);
+        const contextText = this.buildContextFromPages(top, 5000);
+        return { systemPrompt, contextText };
     }
 
     /**
@@ -720,13 +856,32 @@ INSTRUCTIONS:
                 });
                 console.log(`✅ Custom knowledge injected for ${domain}`);
             } else {
-                // Extract from website
+                // Extract from website (deep)
                 await this.extractWebsiteKnowledge(domain);
             }
             
             return true;
         } catch (error) {
             console.error(`Failed to update knowledge base for ${domain}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * Ensure full deep crawl for a page URL (host+subpath) if knowledge is missing/stale
+     */
+    async ensureFullCrawlForUrl(pageUrl, options = {}) {
+        try {
+            const u = new URL(pageUrl);
+            const host = u.host;
+            const seg = (u.pathname || '').split('/').filter(Boolean)[0];
+            const pathKey = seg ? `${host}/${seg}` : host;
+            const stale = this.isKnowledgeStale(pathKey, options.refreshMaxAgeMs || this.cacheExpiry);
+            if (!stale) return false;
+            await this.extractWebsiteKnowledge(pathKey, [pageUrl]);
+            return true;
+        } catch (e) {
+            console.warn('ensureFullCrawlForUrl failed:', e.message);
             return false;
         }
     }
