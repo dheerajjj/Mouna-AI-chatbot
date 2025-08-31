@@ -1310,6 +1310,33 @@ async function startServer() {
     app.get('/config/:apiKey?', async (req, res) => {
       try {
         const apiKey = req.params.apiKey || req.query.apiKey;
+
+        // Background: warm up knowledge for the embedding domain (no blocking)
+        try {
+          const ref = req.headers.referer || req.get('Origin');
+          if (ref) {
+            try {
+              const u = new URL(ref);
+              const domain = u.host;
+              // Fast minimal knowledge so first chat feels site-aware
+              knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: ref, quickTimeoutMs: 3500 }).catch(() => {});
+
+              // Optional: trigger deeper crawl via auto-training service if available
+              try {
+                const AutoTrainingProxy = require('./services/AutoTrainingProxy');
+                const atp = new AutoTrainingProxy();
+                (async () => {
+                  try {
+                    if (await atp.isServiceAvailable()) {
+                      // Non-blocking light crawl; ignore result
+                      atp.crawlWebsite(`${u.protocol}//${domain}`, { maxPages: 10, timeout: 20000 }).catch(() => {});
+                    }
+                  } catch (_) {}
+                })();
+              } catch (_) { /* optional */ }
+            } catch (_) { /* ignore URL parse errors */ }
+          }
+        } catch (_) { /* ignore warmup errors */ }
         
         if (apiKey) {
           const user = await DatabaseService.findUserByApiKey(apiKey);
@@ -1522,16 +1549,23 @@ async function startServer() {
         
         // Extract domain from referrer or session data for context
         let domain = 'localhost:3000'; // Default for demo
+        let refererUrl = null;
         if (req.headers.referer) {
           try {
             const refererURL = new URL(req.headers.referer);
             domain = refererURL.host;
+            refererUrl = refererURL.toString();
           } catch (error) {
             console.warn('Could not parse referer for domain:', req.headers.referer);
           }
         }
         
         console.log('🌐 Extracted domain for knowledge context:', domain);
+
+        // Ensure at least minimal knowledge for this domain (fast warmup)
+        try {
+          await knowledgeService.ensureKnowledgeForDomain(domain, { sourceUrl: refererUrl || `https://${domain}`, quickTimeoutMs: 3500 });
+        } catch (e) { console.warn('ensureKnowledgeForDomain error:', e.message); }
         
         // Get contextual system prompt from knowledge base
         let systemPrompt = knowledgeService.generateContextualPrompt(domain, detectedLanguage);
@@ -1543,6 +1577,19 @@ async function startServer() {
         } else {
           console.log('🧠 Using knowledge-based contextual prompt for domain:', domain);
         }
+
+        // Kick off deeper background crawl via auto-training service (non-blocking)
+        try {
+          const AutoTrainingProxy = require('./services/AutoTrainingProxy');
+          const atp = new AutoTrainingProxy();
+          (async () => {
+            try {
+              if (await atp.isServiceAvailable()) {
+                atp.crawlWebsite(`https://${domain}`, { maxPages: 15, timeout: 25000 }).catch(() => {});
+              }
+            } catch (_) {}
+          })();
+        } catch (_) { /* optional */ }
         
         // TENANT-SPECIFIC CONTEXT: Load and apply tenant configuration if available
         let tenantContext = null;

@@ -22,6 +22,110 @@ class KnowledgeBaseService {
     }
 
     /**
+     * Determine whether a domain's knowledge is missing or stale
+     * @param {string} domain
+     * @param {number} maxAgeMs
+     */
+    isKnowledgeStale(domain, maxAgeMs = this.cacheExpiry) {
+        try {
+            const kb = this.getKnowledgeBase(domain);
+            if (!kb) return true;
+            const ts = new Date(kb.last_updated || kb.extracted_at || 0).getTime();
+            if (!ts) return true;
+            return (Date.now() - ts) > maxAgeMs;
+        } catch (_) {
+            return true;
+        }
+    }
+
+    /**
+     * Quick preview extraction for a single URL with a tight timeout to avoid blocking UX
+     * Returns a minimal pageData object or null.
+     */
+    async extractQuickPreview(url, timeoutMs = 4000) {
+        try {
+            const response = await axios.get(url, {
+                timeout: timeoutMs,
+                headers: { 'User-Agent': 'Mouna-AI-Chatbot-QuickPreview/1.0' }
+            });
+            const $ = cheerio.load(response.data);
+            const pageData = {
+                url,
+                title: $('title').first().text().trim(),
+                meta_description: $('meta[name="description"]').attr('content') || '',
+                headings: {
+                    h1: $('h1').map((i, el) => $(el).text().trim()).get().slice(0, 5),
+                    h2: $('h2').map((i, el) => $(el).text().trim()).get().slice(0, 8)
+                },
+                // keep it lightweight – just a few longer paragraphs
+                paragraphs: $('p').map((i, el) => $(el).text().trim()).get()
+                    .filter(t => t && t.length > 40).slice(0, 12),
+                navigation: $('nav a, .nav a, .menu a').map((i, el) => ({
+                    text: $(el).text().trim(),
+                    href: $(el).attr('href')
+                })).get().slice(0, 20),
+                contact_info: this.extractContactInfo($),
+                features: $('ul li, .features li, .services li').map((i, el) => $(el).text().trim()).get()
+                    .filter(t => t && t.length > 10).slice(0, 20),
+                pricing: this.extractPricingInfo($),
+                extracted_at: new Date().toISOString()
+            };
+            return pageData;
+        } catch (e) {
+            console.warn('Quick preview failed for', url, e.message);
+            return null;
+        }
+    }
+
+    /**
+     * Ensure we have at least minimal knowledge for a domain.
+     * Optionally warm up using the specific source URL where the widget is embedded.
+     * If knowledge is missing/stale, this will:
+     *  - Synchronously build a minimal knowledge base using extractQuickPreview (fast)
+     *  - Asynchronously kick off a full extractWebsiteKnowledge(domain)
+     * Returns true if a warmup occurred (knowledge was created/updated), false otherwise.
+     */
+    async ensureKnowledgeForDomain(domain, options = {}) {
+        const {
+            sourceUrl = null,
+            preferHttps = true,
+            quickTimeoutMs = 4000,
+            refreshMaxAgeMs = this.cacheExpiry
+        } = options;
+
+        const needWarmup = this.isKnowledgeStale(domain, refreshMaxAgeMs);
+        if (!needWarmup) return false;
+
+        // 1) Build a minimal knowledge base synchronously
+        const baseUrl = sourceUrl || `${preferHttps ? 'https' : 'http'}://${domain}`;
+        let preview = null;
+        try {
+            preview = await this.extractQuickPreview(baseUrl, quickTimeoutMs);
+        } catch (_) {}
+
+        if (preview) {
+            const knowledge = {
+                domain,
+                extracted_at: new Date().toISOString(),
+                last_updated: new Date(),
+                pages: { [new URL(preview.url).pathname || '/']: preview },
+                meta_info: {},
+                content_summary: this.generateContentSummary({ [(new URL(preview.url).pathname || '/')]: preview })
+            };
+            this.knowledgeBases.set(domain, knowledge);
+            console.log(`⚡ Quick knowledge warmup stored for ${domain}`);
+        }
+
+        // 2) Full extraction in the background (non-blocking)
+        // Do not await – callers should proceed using the quick knowledge above.
+        this.extractWebsiteKnowledge(domain).catch(err => {
+            console.warn(`Background extraction failed for ${domain}:`, err.message);
+        });
+
+        return true;
+    }
+
+    /**
      * Initialize knowledge base for Mouna AI Chatbot Widget
      */
     initializeMounaKnowledge() {
