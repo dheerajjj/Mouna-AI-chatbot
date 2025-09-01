@@ -165,7 +165,7 @@ class EmailService {
     };
 
     try {
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await this.sendInternal(mailOptions);
       console.log('✅ Welcome email sent to:', userEmail);
       return result;
     } catch (error) {
@@ -235,7 +235,7 @@ class EmailService {
     };
 
     try {
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await this.sendInternal(mailOptions);
       console.log('✅ OTP email sent to:', userEmail);
       return result;
     } catch (error) {
@@ -308,7 +308,7 @@ class EmailService {
     };
 
     try {
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await this.sendInternal(mailOptions);
       console.log('✅ Signup OTP email sent to:', userEmail);
       return result;
     } catch (error) {
@@ -392,7 +392,7 @@ class EmailService {
     };
 
     try {
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await this.sendInternal(mailOptions);
       console.log('✅ Login OTP email sent to:', userEmail);
       return result;
     } catch (error) {
@@ -425,13 +425,58 @@ class EmailService {
       html
     };
     try {
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await this.sendInternal(mailOptions);
       console.log('✅ Email sent to:', to, 'subject:', subject);
       return result;
     } catch (error) {
       console.error('❌ Failed to send email:', error);
       throw error;
     }
+  }
+
+  // Internal send function with SendGrid HTTP API fallback (avoids blocked SMTP)
+  async sendInternal(mailOptions) {
+    const useSendgrid = !!process.env.SENDGRID_API_KEY;
+    if (useSendgrid) {
+      try {
+        // Build SendGrid payload
+        const payload = {
+          personalizations: [
+            {
+              to: [{ email: mailOptions.to }],
+              subject: mailOptions.subject
+            }
+          ],
+          from: { email: mailOptions.from },
+          content: []
+        };
+        if (mailOptions.html) payload.content.push({ type: 'text/html', value: mailOptions.html });
+        if (mailOptions.text) payload.content.push({ type: 'text/plain', value: mailOptions.text });
+        if (!payload.content.length && mailOptions.subject) {
+          payload.content.push({ type: 'text/plain', value: mailOptions.subject });
+        }
+
+        const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`SendGrid API error ${res.status}: ${text}`);
+        }
+        return { messageId: res.headers.get('x-message-id') || 'sendgrid-http' };
+      } catch (apiErr) {
+        console.error('❌ SendGrid HTTP API failed:', apiErr.message);
+        // Fall through to SMTP as a secondary attempt
+      }
+    }
+
+    // Default to transporter
+    return this.transporter.sendMail(mailOptions);
   }
 }
 
