@@ -450,8 +450,9 @@ class EmailService {
           from: { email: mailOptions.from },
           content: []
         };
-        if (mailOptions.html) payload.content.push({ type: 'text/html', value: mailOptions.html });
+        // SendGrid requires text/plain first, then text/html
         if (mailOptions.text) payload.content.push({ type: 'text/plain', value: mailOptions.text });
+        if (mailOptions.html) payload.content.push({ type: 'text/html', value: mailOptions.html });
         if (!payload.content.length && mailOptions.subject) {
           payload.content.push({ type: 'text/plain', value: mailOptions.subject });
         }
