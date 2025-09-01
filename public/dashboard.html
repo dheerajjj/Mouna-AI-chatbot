@@ -841,12 +841,22 @@
                         userNameElement.textContent = data.user.name || 'User';
                     }
                     
-                    // Get current plan information
-                    const currentPlan = data.user.plan?.current?.id || data.user.subscription?.plan || 'free';
-                    const planName = data.user.plan?.current?.name || data.user.subscription?.planName || 'Free Plan';
-                    const planLimits = data.user.plan?.current?.limits || { messagesPerMonth: 100 };
+                    // Derive current plan strictly from subscription first to avoid mismatches
+                    const currentPlan = (data.user.subscription && data.user.subscription.plan) ||
+                                        (data.user.plan && data.user.plan.current && data.user.plan.current.id) ||
+                                        'free';
                     
-                    console.log('📋 Detected plan:', { currentPlan, planName, planLimits });
+                    // Canonical names and limits per plan (frontend mirror)
+                    const planNames = { free: 'Free Plan', starter: 'Starter Plan', professional: 'Professional Plan', enterprise: 'Enterprise Plan' };
+                    const planLimitsByPlan = { free: 100, starter: 1000, professional: 3000, enterprise: 15000 };
+                    const planCurrencies = { free: 'INR', starter: 'INR', professional: 'INR', enterprise: 'INR' };
+                    const planPrices = { free: 0, starter: 499, professional: 1499, enterprise: 4999 };
+                    const planBillingCycle = 'monthly';
+
+                    const planName = planNames[currentPlan] || 'Free Plan';
+                    const limit = planLimitsByPlan[currentPlan] ?? 100;
+                    
+                    console.log('📋 Detected plan (client-enforced):', { currentPlan, planName, limit });
                     
                     // Update plan status
                     const planStatusElement = document.getElementById('plan-status-text');
@@ -857,9 +867,6 @@
                     // Update usage stats
                     const totalMessages = data.user.usage?.totalMessages || 0;
                     const monthlyMessages = data.user.usage?.messagesThisMonth || 0;
-                    const limit = planLimits.messagesPerMonth;
-                    
-                    console.log('📊 Usage stats:', { totalMessages, monthlyMessages, limit });
                     
                     const totalConversationsElement = document.getElementById('total-conversations');
                     if (totalConversationsElement) {
@@ -901,10 +908,10 @@
                         modalNextBilling.textContent = nextBillingText;
                     }
                     
-                    // Update billing amount
-                    const planPrice = data.user.plan?.current?.price || 0;
-                    const currency = data.user.plan?.current?.currency || 'INR';
-                    const billingCycle = data.user.plan?.current?.billingCycle || 'monthly';
+                    // Update billing amount from client mapping to avoid server mismatch
+                    const planPrice = planPrices[currentPlan] || 0;
+                    const currency = planCurrencies[currentPlan] || 'INR';
+                    const billingCycle = planBillingCycle;
                     const modalAmount = document.getElementById('modal-amount');
                     if (modalAmount) {
                         modalAmount.textContent = `${currency === 'INR' ? '₹' : '$'}${planPrice}/${billingCycle}`;
@@ -914,7 +921,10 @@
                     window.currentUserPlan = currentPlan;
                     
                     // Apply plan-based feature restrictions
-                    applyPlanBasedFeatures(data.user);
+                    applyPlanBasedFeatures({
+                        ...data.user,
+                        subscription: { ...(data.user.subscription || {}), plan: currentPlan }
+                    });
                     
                     console.log('✅ Dashboard loaded successfully with user data');
                 }
