@@ -2,6 +2,9 @@ const express = require('express');
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
+// Add OTP + Email services for post-OAuth verification step
+const OTPService = require('../services/OTPService');
+const EmailService = require('../services/EmailService');
 
 // Helpers to validate and pass returnTo/next across the OAuth flow
 function getAllowedOrigins() {
@@ -166,22 +169,7 @@ router.get('/google/callback', async (req, res, next) => {
             }
             
             try {
-                // Generate JWT token
-                const token = generateToken(user);
-
-                // Also set a cookie so server-side and cookie-based flows work without URL token
-                try {
-                    res.cookie('authToken', token, {
-                        httpOnly: true,
-                        sameSite: 'Lax',
-                        secure: true,
-                        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-                    });
-                } catch (cookieErr) {
-                    console.warn('⚠️ Failed to set auth cookie:', cookieErr?.message);
-                }
-                
-                // Successful authentication
+                // Successful authentication — REQUIRE OTP before issuing session
                 console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
                 
                 // Decode any returnTo/next state passed during auth initiation
@@ -213,26 +201,35 @@ router.get('/google/callback', async (req, res, next) => {
                     }
                 } catch (_) {}
 
-                // Build destination path
-                let defaultPath;
+                // Build destination (post-OTP) path
+                let postLoginPath;
                 if (user.isNew) {
-                    console.log('🆕 Redirecting new user to quick-setup');
-                    defaultPath = `/quick-setup?token=${encodeURIComponent(token)}&provider=google&new=true`;
+                    console.log('🆕 New Google user created — will route to quick-setup after OTP');
+                    postLoginPath = '/quick-setup';
                 } else {
-                    console.log('👤 Redirecting existing user to dashboard');
-                    defaultPath = `/dashboard?token=${encodeURIComponent(token)}&provider=google`;
+                    postLoginPath = '/dashboard';
                 }
-                // If a safe nextPath is provided, prefer it
-                const finalPath = (nextPath && /^\//.test(nextPath))
-                    ? `${nextPath}${nextPath.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}&provider=google${user.isNew ? '&new=true' : ''}`
-                    : defaultPath;
+                // If a safe nextPath was provided, prefer it after OTP
+                const redirectAfterOtp = (nextPath && /^\//.test(nextPath)) ? nextPath : postLoginPath;
 
-                // Choose final origin preference: returnOrigin > frontOrigin > fallback path-only
+                // Send Login OTP to user.email
+                (async () => {
+                    try {
+                        const otp = await OTPService.generateAndStoreOTP(user.email, 'login');
+                        await EmailService.sendLoginOTPEmail(user.email, user.name || 'there', otp);
+                        console.log('🔐 Login OTP sent for Google OAuth user:', user.email);
+                    } catch (otpErr) {
+                        console.error('❌ Failed to send login OTP after Google OAuth:', otpErr);
+                    }
+                })();
+
+                // Redirect to OTP verification page with flow=login
                 const finalOrigin = returnOrigin || frontOrigin;
+                const verifyPath = `/verify-otp?email=${encodeURIComponent(user.email)}&flow=login&provider=google&redirect=${encodeURIComponent(redirectAfterOtp)}`;
                 if (finalOrigin) {
-                    res.redirect(`${finalOrigin}${finalPath}`);
+                    res.redirect(`${finalOrigin}${verifyPath}`);
                 } else {
-                    res.redirect(finalPath);
+                    res.redirect(verifyPath);
                 }
             } catch (tokenError) {
                 console.error('❌ Google OAuth token generation error:', tokenError);
