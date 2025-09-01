@@ -169,7 +169,7 @@ router.get('/google/callback', async (req, res, next) => {
             }
             
             try {
-                // Successful authentication — issue session directly (skip email OTP for OAuth)
+                // Successful authentication — REQUIRE OTP before issuing session
                 console.log('✅ Google OAuth successful for:', user.email, 'isNew:', user.isNew);
                 
                 // Decode any returnTo/next state passed during auth initiation
@@ -201,26 +201,36 @@ router.get('/google/callback', async (req, res, next) => {
                     }
                 } catch (_) {}
 
-                // Build destination path
+                // Build destination (post-OTP) path
                 let postLoginPath;
                 if (user.isNew) {
-                    console.log('🆕 New Google user created — routing to quick-setup');
+                    console.log('🆕 New Google user created — will route to quick-setup after OTP');
                     postLoginPath = '/quick-setup';
                 } else {
                     postLoginPath = '/dashboard';
                 }
-                // If a safe nextPath was provided, prefer it
-                const finalPath = (nextPath && /^\//.test(nextPath)) ? nextPath : postLoginPath;
+                // If a safe nextPath was provided, prefer it after OTP
+                const redirectAfterOtp = (nextPath && /^\//.test(nextPath)) ? nextPath : postLoginPath;
 
-                // Generate JWT and redirect
-                const token = generateToken(user);
-                const finalOrigin = returnOrigin || frontOrigin;
-                const redirectUrl = `${finalPath}${finalPath.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
-                if (finalOrigin) {
-                    res.redirect(`${finalOrigin}${redirectUrl}`);
-                } else {
-                    res.redirect(redirectUrl);
-                }
+                // Send Login OTP to user.email, then redirect to verify page
+                (async () => {
+                    try {
+                        const otp = await OTPService.generateAndStoreOTP(user.email, 'login');
+                        await EmailService.sendLoginOTPEmail(user.email, user.name || 'there', otp);
+                        console.log('🔐 Login OTP sent for Google OAuth user:', user.email);
+
+                        const finalOrigin = returnOrigin || frontOrigin;
+                        const verifyPath = `/verify-otp?email=${encodeURIComponent(user.email)}&flow=login&provider=google&redirect=${encodeURIComponent(redirectAfterOtp)}`;
+                        if (finalOrigin) {
+                            return res.redirect(`${finalOrigin}${verifyPath}`);
+                        } else {
+                            return res.redirect(verifyPath);
+                        }
+                    } catch (otpErr) {
+                        console.error('❌ Failed to send login OTP after Google OAuth:', otpErr);
+                        return res.redirect(`${mountPath}/failure?error=otp_send_failed`);
+                    }
+                })();
             } catch (tokenError) {
                 console.error('❌ Google OAuth token generation error:', tokenError);
                 console.error('Token error stack:', tokenError.stack);
