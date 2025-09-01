@@ -3,7 +3,29 @@
 ## Overview
 Your app now has a complete OTP-based signup and login flow with real email sending capabilities. Here's how to set it up:
 
-## 1. Gmail SMTP Setup (Recommended)
+## 1. Titan SMTP Setup (Recommended for support@mouna-ai.com)
+
+If your mailbox is hosted on Titan (e.g., support@mouna-ai.com), configure SMTP with these environment variables in Railway:
+
+```bash
+# Required
+EMAIL_PROVIDER=titan
+EMAIL_USER=support@mouna-ai.com
+EMAIL_PASS={{TITAN_APP_PASSWORD}}
+
+# Optional overrides (defaults shown)
+SMTP_HOST=smtp.titan.email
+SMTP_PORT=587
+SMTP_SECURE=false
+EMAIL_FROM=support@mouna-ai.com
+```
+
+Notes:
+- Generate an app password in your Titan control panel, then set it as EMAIL_PASS.
+- Keep EMAIL_PASS secret in Railway Variables. Do not commit it.
+- The app automatically falls back to console logging if credentials are missing.
+
+## 2. Gmail SMTP Setup
 
 ### Step 1: Enable 2-Factor Authentication on Gmail
 1. Go to your Google Account settings
@@ -25,7 +47,7 @@ EMAIL_USER=your-gmail-address@gmail.com
 EMAIL_PASS=your-16-character-app-password
 ```
 
-## 2. Alternative Email Services
+## 3. Alternative Email Services
 
 ### SendGrid (Production Recommended)
 ```bash
@@ -42,7 +64,7 @@ MAILGUN_DOMAIN=your-mailgun-domain
 EMAIL_FROM=noreply@yourdomain.com
 ```
 
-## 3. Railway Deployment
+## 4. Railway Deployment
 
 1. Go to your Railway dashboard
 2. Select your project
@@ -51,7 +73,7 @@ EMAIL_FROM=noreply@yourdomain.com
    - `EMAIL_USER` = your Gmail address
    - `EMAIL_PASS` = your Gmail app password
 
-## 4. Testing the Setup
+## 5. Testing the Setup
 
 ### Test Email Sending
 Run this in your server console or create a test route:
@@ -79,7 +101,7 @@ testEmail();
 4. Verify the OTP works
 5. Complete account creation
 
-## 5. Features Implemented
+## 6. Features Implemented
 
 ### Signup Flow
 - ✅ Email validation with SMTP verification
@@ -104,7 +126,7 @@ testEmail();
 - ✅ Email existence verification
 - ✅ Disposable email blocking
 
-## 6. Current Status
+## 7. Current Status
 
 Without email credentials, the system will:
 - ✅ Generate OTPs correctly
@@ -116,7 +138,7 @@ With email credentials, the system will:
 - ✅ Complete the full signup flow
 - ✅ Provide professional user experience
 
-## 7. Monitoring & Debugging
+## 8. Monitoring & Debugging
 
 ### Server Logs
 Watch for these log messages:
@@ -129,7 +151,7 @@ The EmailService automatically falls back to console logging if credentials are 
 - `✅ Email transporter configured successfully`
 - `⚠️ Email credentials not found. Email notifications will be logged to console.`
 
-## 8. Next Steps
+## 9. Next Steps
 
 1. **Set up email credentials** (critical for production)
 2. **Test the complete flow** with real emails

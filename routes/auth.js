@@ -1079,19 +1079,23 @@ router.post('/resend-login-otp', [
     }
 
     const { email } = req.body;
-    
-    // Find user
-    const user = await DatabaseService.findUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid request' });
-    }
+
+    // Note: Allow resending OTP for both existing and new users (universal login)
+    // If a user exists, we can personalize the email with their name; otherwise, use email prefix.
+    let displayName = email.split('@')[0];
+    try {
+      const maybeUser = await DatabaseService.findUserByEmail(email);
+      if (maybeUser && maybeUser.name) {
+        displayName = maybeUser.name;
+      }
+    } catch (_) { /* non-fatal */ }
 
     // Resend OTP for login verification
     try {
       const otp = await OTPService.generateAndStoreOTP(email, 'login');
       
       // Send OTP via email
-      EmailService.sendLoginOTPEmail(email, user.name, otp).catch(error => {
+      EmailService.sendLoginOTPEmail(email, displayName, otp).catch(error => {
         console.error('Failed to send login OTP email:', error);
       });
       

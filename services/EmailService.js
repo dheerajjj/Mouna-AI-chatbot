@@ -7,24 +7,56 @@ class EmailService {
   }
 
   initialize() {
-    // Use Gmail SMTP (you can change this to any email provider)
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER, // Your email
-        pass: process.env.EMAIL_PASS  // Your app password
+    // Prefer explicit SMTP settings if provided (Railway/Titan friendly)
+    const provider = (process.env.EMAIL_PROVIDER || process.env.EMAIL_SERVICE || '').toLowerCase();
+    const hasSmtpVars = !!(process.env.SMTP_HOST || process.env.SMTP_PORT || process.env.SMTP_SECURE);
+
+    try {
+      if (hasSmtpVars || provider === 'smtp' || provider === 'titan' || (process.env.EMAIL_USER && /@mouna-ai\.com$/i.test(process.env.EMAIL_USER))) {
+        const host = process.env.SMTP_HOST || (provider === 'titan' || (process.env.EMAIL_USER && /@mouna-ai\.com$/i.test(process.env.EMAIL_USER)) ? 'smtp.titan.email' : 'smtp.gmail.com');
+        const port = parseInt(process.env.SMTP_PORT || (host === 'smtp.titan.email' ? '587' : '587'), 10);
+        const secure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true' || port === 465; // true for 465, false for 587
+        const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+        const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+
+        if (user && pass) {
+          this.transporter = nodemailer.createTransport({
+            host,
+            port,
+            secure,
+            auth: { user, pass }
+          });
+          console.log(`✅ Email transporter configured (SMTP: ${host}:${port}, secure=${secure})`);
+        }
       }
-    });
+
+      // Fallback to Gmail service if not configured above and creds exist
+      if (!this.transporter && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        this.transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+          }
+        });
+        console.log('✅ Email transporter configured (Gmail service)');
+      }
+    } catch (initErr) {
+      console.warn('⚠️ Failed to initialize SMTP transporter:', initErr.message);
+      this.transporter = null;
+    }
 
     // Fallback to console logging if email credentials are not provided
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.log('⚠️ Email credentials not found. Email notifications will be logged to console.');
+    if (!this.transporter) {
+      console.log('⚠️ Email credentials not found or invalid. Email notifications will be logged to console.');
       this.transporter = {
         sendMail: (options) => {
           console.log('📧 EMAIL WOULD BE SENT:');
+          console.log('📧 From:', options.from);
           console.log('📧 To:', options.to);
           console.log('📧 Subject:', options.subject);
-          console.log('📧 Content:', options.text);
+          if (options.text) console.log('📧 Text:', options.text);
+          if (options.html) console.log('📧 HTML length:', options.html.length);
           console.log('📧 ========================');
           return Promise.resolve({ messageId: 'mock-id' });
         }
@@ -34,7 +66,7 @@ class EmailService {
 
   async sendWelcomeEmail(userEmail, userName) {
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@mounaai.com',
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@mouna-ai.com',
       to: userEmail,
       subject: 'Welcome to Mouna AI Chatbot Platform! 🤖',
       html: `
@@ -132,7 +164,7 @@ class EmailService {
 
   async sendOTPEmail(userEmail, userName, otp) {
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@mounaai.com',
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@mouna-ai.com',
       to: userEmail,
       subject: 'Your OTP for Mouna AI Registration',
       html: `
@@ -203,7 +235,7 @@ class EmailService {
   async sendSignupOTPEmail(userEmail, otp) {
     const userName = userEmail.split('@')[0]; // Use email prefix as name
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@mounaai.com',
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@mouna-ai.com',
       to: userEmail,
       subject: '🚀 Welcome to Mouna AI - Email Verification',
       html: `
@@ -275,7 +307,7 @@ class EmailService {
 
   async sendLoginOTPEmail(userEmail, userName, otp) {
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@mounaai.com',
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@mouna-ai.com',
       to: userEmail,
       subject: '🔐 Login Verification Code - Mouna AI',
       html: `
@@ -353,6 +385,24 @@ class EmailService {
       return result;
     } catch (error) {
       console.error('❌ Failed to send login OTP email:', error);
+      throw error;
+    }
+  }
+  // Generic email sender for reusable emails (used by various features)
+  async sendEmail({ to, subject, text, html, from }) {
+    const mailOptions = {
+      from: from || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@mouna-ai.com',
+      to,
+      subject,
+      text,
+      html
+    };
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Email sent to:', to, 'subject:', subject);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to send email:', error);
       throw error;
     }
   }
