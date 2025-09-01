@@ -1715,18 +1715,60 @@ async function startServer() {
         
         console.log('📝 Final system prompt preview:', systemPrompt.substring(0, 200) + '...');
         
+        // Apply user-level chat configuration (from /configure-prompt) without changing embed code
+        // These settings are saved in user.chatConfig and should steer AI behavior at runtime
+        const chatCfg = (user && user.chatConfig) ? user.chatConfig : {};
         try {
+          // Merge user-provided system prompt (if any) ahead of the contextual prompt so it takes effect
+          if (chatCfg.systemPrompt && typeof chatCfg.systemPrompt === 'string' && chatCfg.systemPrompt.trim().length > 0) {
+            systemPrompt = `${chatCfg.systemPrompt.trim()}\n\n${systemPrompt}`;
+          }
+
+          // Build behavior directives (tone, length, topics, fallback)
+          const behaviorDirectives = [];
+          const preset = (chatCfg.preset || '').toLowerCase();
+          if (preset === 'professional') behaviorDirectives.push('Adopt a professional, concise, business-appropriate tone.');
+          if (preset === 'friendly') behaviorDirectives.push('Adopt a warm, friendly, and conversational tone.');
+          if (preset === 'expert') behaviorDirectives.push('Adopt a technical, precise tone with detailed but clear explanations.');
+
+          const style = (chatCfg.languageStyle || '').toLowerCase();
+          if (style === 'formal') behaviorDirectives.push('Use a formal tone.');
+          if (style === 'casual') behaviorDirectives.push('Use a casual tone while remaining helpful and respectful.');
+          if (style === 'technical') behaviorDirectives.push('Use technical language where appropriate and be precise.');
+
+          const respLen = (chatCfg.responseLength || 'medium').toLowerCase();
+          if (respLen === 'short') behaviorDirectives.push('Keep responses short: 1-2 sentences.');
+          if (respLen === 'medium') behaviorDirectives.push('Keep responses concise: about 2-4 sentences.');
+          if (respLen === 'long') behaviorDirectives.push('Provide detailed responses when appropriate.');
+
+          if (chatCfg.focusTopics && typeof chatCfg.focusTopics === 'string' && chatCfg.focusTopics.trim()) {
+            behaviorDirectives.push(`Prioritize these topics where relevant: ${chatCfg.focusTopics.trim()}. If user asks outside these topics, ask a brief clarifying question or provide a brief helpful pointer.`);
+          }
+
+          // Fallback behavior directive
+          const fallbackLine = (chatCfg.fallbackResponse && chatCfg.fallbackResponse.trim())
+            ? `If the necessary information is not present in the provided CONTEXT, respond exactly with: "${chatCfg.fallbackResponse.trim()}"`
+            : `If the answer is not present in the provided CONTEXT, politely say you don't have that information.`;
+
+          // Compose messages for the model
+          const messages = [
+            { role: 'system', content: systemPrompt },
+            behaviorDirectives.length ? { role: 'system', content: behaviorDirectives.join(' ') } : null,
+            { role: 'system', content: `Use only the following website CONTEXT when answering. ${fallbackLine}` },
+            ...(contextText ? [{ role: 'system', content: contextText }] : []),
+            { role: 'system', content: `All assistant replies must be in ${SUPPORTED_LANGUAGES[detectedLanguage]?.name || detectedLanguage} using its native script. Do not switch languages unless explicitly asked to translate.` },
+            { role: 'user', content: message }
+          ].filter(Boolean);
+
+          // Adjust max tokens slightly based on desired response length
+          const maxTokensMap = { short: 180, medium: 380, long: 800 };
+          const finalMaxTokens = maxTokensMap[respLen] || 500;
+
           // Get OpenAI response
           const completion = await openai.chat.completions.create({
             model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'system', content: `Use only the following website CONTEXT when answering. If the answer is not present, politely say you don't have that information.` },
-              ...(contextText ? [{ role: 'system', content: contextText }] : []),
-              { role: 'system', content: `All assistant replies must be in ${SUPPORTED_LANGUAGES[detectedLanguage]?.name || detectedLanguage} using its native script. Do not switch languages unless explicitly asked to translate.` },
-              { role: 'user', content: message }
-            ],
-            max_tokens: 500,
+            messages,
+            max_tokens: finalMaxTokens,
             temperature: 0.7,
           });
 
