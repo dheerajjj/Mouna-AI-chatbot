@@ -509,7 +509,7 @@
                         <i class="fas fa-chart-line"></i>
                     </div>
                     Analytics & Insights
-                    <span class="pro-badge">Pro</span>
+                    <span class="pro-badge" id="analytics-badge" data-badge-scope="feature">Pro</span>
                 </h3>
                 
                 <div class="stats-grid">
@@ -525,9 +525,9 @@
                 
                 <ul class="feature-list">
                     <li>Real-time usage statistics and trends</li>
-                    <li>Advanced analytics dashboard</li>
-                    <li>Export detailed reports (Pro)</li>
-                    <li>User behavior insights (Pro)</li>
+                    <li id="analytics-level-item">Advanced analytics dashboard</li>
+                    <li id="export-reports-item">Export detailed reports (Pro)</li>
+                    <li id="user-insights-item">User behavior insights (Pro)</li>
                 </ul>
                 
                 <div class="btn-grid">
@@ -966,9 +966,6 @@
             const labelMap = { free: 'Free', starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
             const planLabel = labelMap[currentPlan] || (currentPlan?.charAt(0).toUpperCase() + currentPlan?.slice(1)) || 'Free';
             
-            // Update badges to show the user's current plan (keeps UI in sync)
-            const proBadges = document.querySelectorAll('.pro-badge');
-
             // Standard colors per plan (kept in sync with pricing visuals)
             const planStyles = {
                 free:      { bg1: '#94a3b8', bg2: '#64748b', text: '#ffffff', border: '#cbd5e1' }, // slate
@@ -976,18 +973,43 @@
                 professional: { bg1: '#3b82f6', bg2: '#1d4ed8', text: '#ffffff', border: '#93c5fd' }, // blue
                 enterprise: { bg1: '#f59e0b', bg2: '#b45309', text: '#111827', border: '#fde68a' }  // amber
             };
-            const style = planStyles[currentPlan] || planStyles.free;
 
-            proBadges.forEach(badge => {
-                badge.textContent = planLabel.toUpperCase();
-                badge.style.background = `linear-gradient(135deg, ${style.bg1}, ${style.bg2})`;
-                badge.style.color = style.text;
-                badge.style.border = `1px solid ${style.border}`;
-                badge.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-                badge.title = `Current plan: ${planLabel}`;
-            });
+            // Update only the Analytics card badge to reflect correct feature level per plan
+            const analyticsBadge = document.getElementById('analytics-badge');
+            if (analyticsBadge) {
+                let badgePlan = 'free';
+                let badgeText = 'UPGRADE';
+                if (currentPlan === 'starter') { badgePlan = 'starter'; badgeText = 'STARTER'; }
+                else if (currentPlan === 'professional' || currentPlan === 'enterprise') { badgePlan = 'professional'; badgeText = 'PROFESSIONAL'; }
+
+                const s = planStyles[badgePlan];
+                analyticsBadge.textContent = badgeText;
+                analyticsBadge.style.background = `linear-gradient(135deg, ${s.bg1}, ${s.bg2})`;
+                analyticsBadge.style.color = s.text;
+                analyticsBadge.style.border = `1px solid ${s.border}`;
+                analyticsBadge.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                analyticsBadge.title = (currentPlan === 'free') ? 'Upgrade to Starter to access analytics' : `Included in your ${planLabel} plan`;
+            }
+
+            // Adjust Analytics feature list text based on plan
+            const levelItem = document.getElementById('analytics-level-item');
+            if (levelItem) {
+                levelItem.textContent = (currentPlan === 'starter') ? 'Basic analytics dashboard' : 'Advanced analytics dashboard';
+            }
+            const exportItem = document.getElementById('export-reports-item');
+            if (exportItem) {
+                exportItem.textContent = (currentPlan === 'professional' || currentPlan === 'enterprise')
+                    ? 'Export detailed reports'
+                    : 'Export detailed reports (Pro)';
+            }
+            const insightsItem = document.getElementById('user-insights-item');
+            if (insightsItem) {
+                insightsItem.textContent = (currentPlan === 'professional' || currentPlan === 'enterprise')
+                    ? 'User behavior insights'
+                    : 'User behavior insights (Pro)';
+            }
             
-            console.log('✅ Plan label applied to badges:', planLabel);
+            console.log('✅ Analytics badge and features aligned with plan:', planLabel);
         }
 
         // Manual refresh button handler

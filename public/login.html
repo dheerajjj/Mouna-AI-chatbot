@@ -271,18 +271,21 @@
                 if (response.ok) {
                     if (data.requiresOTP) {
                         // Store login context and redirect to verify-otp page
+                        // Persist normalized email returned by server to avoid any provider-specific transformations (e.g., Gmail dot removal)
                         localStorage.setItem('pendingLogin', JSON.stringify({
                             email: email,
+                            normalizedEmail: data.email || email,
                             timestamp: Date.now()
                         }));
                         
                         successMessage.textContent = data.message || 'OTP sent to your email. Redirecting to verification page...';
                         successMessage.style.display = 'block';
                         
-                        // Redirect to verify-otp page with login flow (preserve intended redirect)
+                        // Redirect to verify-otp page with login flow (preserve intended redirect) and pass normalized email as hint
                         setTimeout(() => {
                             const redirectParam = redirectTarget ? `&redirect=${encodeURIComponent(redirectTarget)}` : '';
-                            window.location.href = `/verify-otp?email=${encodeURIComponent(email)}&flow=login${redirectParam}`;
+                            const ne = encodeURIComponent(data.email || email);
+                            window.location.href = `/verify-otp?email=${encodeURIComponent(email)}&ne=${ne}&flow=login${redirectParam}`;
                         }, 1500);
                     } else if (data.success) {
                         // Direct login success (old flow compatibility)

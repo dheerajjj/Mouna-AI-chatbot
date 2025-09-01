@@ -173,7 +173,7 @@
         let resendEndpoint = '/api/resend-signup-otp';
         let redirectDestination = '/welcome-dashboard';
         
-        // Check URL parameters for flow type
+        // Check URL parameters for flow type FIRST and prioritize login if specified
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('flow') === 'login' || urlParams.get('type') === 'login') {
             flowType = 'login';
@@ -182,9 +182,9 @@
             redirectDestination = '/dashboard';
         }
         
-        // Override if coming from signup (check for pending registration)
+        // Only fall back to signup override if login was NOT explicitly requested
         const pendingRegistration = localStorage.getItem('pendingRegistration');
-        if (pendingRegistration) {
+        if (pendingRegistration && flowType !== 'login') {
             console.log('🔍 Found pending registration, forcing signup flow');
             flowType = 'signup';
             apiEndpoint = '/api/verify-email-and-create-account';
@@ -203,12 +203,25 @@
             // Get email from pending login data
             try {
                 const loginData = JSON.parse(pendingLogin);
-                if (loginData.email) {
+                if (loginData.normalizedEmail) {
+                    currentEmail = loginData.normalizedEmail;
+                } else if (loginData.email) {
                     currentEmail = loginData.email;
                 }
             } catch (e) {
                 console.warn('Failed to parse pending login data:', e);
             }
+        }
+        
+        // If normalized email was passed via URL (?ne=...), prefer it
+        const neParam = urlParams.get('ne');
+        if (neParam) {
+            currentEmail = neParam;
+        }
+        
+        // Always normalize client-side for consistency
+        if (currentEmail) {
+            currentEmail = String(currentEmail).trim().toLowerCase();
         }
         
         // Override redirect destination if provided via query param

@@ -2,15 +2,28 @@ const crypto = require('crypto');
 
 class OTPService {
   constructor() {
-    // In-memory OTP storage (in production, use Redis or database)
+    // In-memory OTP storage (fallback)
     this.otpStore = new Map();
+    // Lazy-load DB model only when needed to avoid init order issues
+    this.dbEnabled = false;
     this.initialize();
   }
 
   initialize() {
     console.log('✅ OTP Service initialized for email-only verification');
+
+    // Best-effort check if Mongo is available after boot
+    try {
+      this.DatabaseService = require('./DatabaseService');
+      // Defer enabling until DatabaseService connects
+      this.dbEnabled = !!this.DatabaseService && (this.DatabaseService.isMongoConnected === true);
+      // Periodically re-check (in case DB connects after this service is constructed)
+      setInterval(() => {
+        try { this.dbEnabled = (this.DatabaseService && this.DatabaseService.isMongoConnected === true); } catch (_) {}
+      }, 5000);
+    } catch (_) { this.dbEnabled = false; }
     
-    // Clean up expired OTPs every 5 minutes
+    // Clean up expired OTPs (memory fallback) every 5 minutes
     setInterval(() => {
       this.cleanupExpiredOTPs();
     }, 5 * 60 * 1000);
@@ -26,103 +39,116 @@ class OTPService {
     return crypto.createHash('sha256').update(`${email}:${otp}:${process.env.OTP_SECRET || 'default-secret'}`).digest('hex');
   }
 
-  async generateAndStoreOTP(identifier, type = 'phone') {
+  async generateAndStoreOTP(identifier, type = 'login') {
+    const email = String(identifier).toLowerCase().trim();
     const otp = this.generateOTP();
-    const expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes
-    
-    // Store OTP with expiration
-    this.otpStore.set(identifier, {
-      otp,
-      type,
-      expiresAt,
-      attempts: 0,
-      maxAttempts: 3
-    });
+    const expiresAt = new Date(Date.now() + (10 * 60 * 1000)); // 10 minutes
 
-    console.log(`🔐 OTP generated for ${identifier}: ${otp} (expires in 10 minutes)`);
+    if (this.dbEnabled) {
+      try {
+        const OTPCode = require('../models/OTPCode');
+        await OTPCode.findOneAndUpdate(
+          { email },
+          { code: otp, purpose: type || 'login', attempts: 0, maxAttempts: 3, expiresAt, lastSent: new Date() },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        console.log(`🔐 [DB] OTP generated for ${email}: ${otp} (expires in 10 minutes)`);
+        return otp;
+      } catch (e) {
+        console.warn('⚠️ OTP DB store failed, falling back to memory:', e.message);
+      }
+    }
+
+    // Fallback to memory store
+    this.otpStore.set(email, { otp, type, expiresAt: expiresAt.getTime(), attempts: 0, maxAttempts: 3, lastSent: Date.now() });
+    console.log(`🔐 [MEM] OTP generated for ${email}: ${otp} (expires in 10 minutes)`);
     return otp;
   }
 
   async verifyOTP(identifier, providedOTP) {
-    const otpData = this.otpStore.get(identifier);
-    
+    const email = String(identifier).toLowerCase().trim();
+
+    if (this.dbEnabled) {
+      try {
+        const OTPCode = require('../models/OTPCode');
+        const doc = await OTPCode.findOne({ email });
+        if (!doc) {
+          return { success: false, error: 'OTP not found or expired', code: 'OTP_NOT_FOUND' };
+        }
+        if (new Date() > doc.expiresAt) {
+          await OTPCode.deleteOne({ _id: doc._id });
+          return { success: false, error: 'OTP has expired', code: 'OTP_EXPIRED' };
+        }
+        if (doc.attempts >= doc.maxAttempts) {
+          await OTPCode.deleteOne({ _id: doc._id });
+          return { success: false, error: 'Maximum verification attempts exceeded', code: 'MAX_ATTEMPTS_EXCEEDED' };
+        }
+        if (String(doc.code) === String(providedOTP)) {
+          await OTPCode.deleteOne({ _id: doc._id });
+          return { success: true, message: 'OTP verified successfully' };
+        }
+        // increment attempts on failure
+        await OTPCode.updateOne({ _id: doc._id }, { $inc: { attempts: 1 } });
+        return { success: false, error: 'Invalid OTP', code: 'INVALID_OTP', attemptsRemaining: (doc.maxAttempts - (doc.attempts + 1)) };
+      } catch (e) {
+        console.warn('⚠️ OTP DB verify failed, falling back to memory:', e.message);
+      }
+    }
+
+    // Memory fallback
+    const otpData = this.otpStore.get(email);
     if (!otpData) {
-      return {
-        success: false,
-        error: 'OTP not found or expired',
-        code: 'OTP_NOT_FOUND'
-      };
+      return { success: false, error: 'OTP not found or expired', code: 'OTP_NOT_FOUND' };
     }
-
-    // Check if OTP is expired
     if (Date.now() > otpData.expiresAt) {
-      this.otpStore.delete(identifier);
-      return {
-        success: false,
-        error: 'OTP has expired',
-        code: 'OTP_EXPIRED'
-      };
+      this.otpStore.delete(email);
+      return { success: false, error: 'OTP has expired', code: 'OTP_EXPIRED' };
     }
-
-    // Check attempts
     if (otpData.attempts >= otpData.maxAttempts) {
-      this.otpStore.delete(identifier);
-      return {
-        success: false,
-        error: 'Maximum verification attempts exceeded',
-        code: 'MAX_ATTEMPTS_EXCEEDED'
-      };
+      this.otpStore.delete(email);
+      return { success: false, error: 'Maximum verification attempts exceeded', code: 'MAX_ATTEMPTS_EXCEEDED' };
     }
-
-    // Verify OTP
-    if (otpData.otp === providedOTP) {
-      this.otpStore.delete(identifier); // Remove OTP after successful verification
-      return {
-        success: true,
-        message: 'OTP verified successfully'
-      };
-    } else {
-      // Increment attempts
-      otpData.attempts++;
-      this.otpStore.set(identifier, otpData);
-      
-      return {
-        success: false,
-        error: 'Invalid OTP',
-        code: 'INVALID_OTP',
-        attemptsRemaining: otpData.maxAttempts - otpData.attempts
-      };
+    if (String(otpData.otp) === String(providedOTP)) {
+      this.otpStore.delete(email);
+      return { success: true, message: 'OTP verified successfully' };
     }
+    otpData.attempts++;
+    this.otpStore.set(email, otpData);
+    return { success: false, error: 'Invalid OTP', code: 'INVALID_OTP', attemptsRemaining: otpData.maxAttempts - otpData.attempts };
   }
 
-  async resendOTP(identifier, type = 'phone') {
-    // Check if we can resend (not too frequent)
-    const otpData = this.otpStore.get(identifier);
-    
-    if (otpData && otpData.lastSent && (Date.now() - otpData.lastSent) < 60000) {
-      return {
-        success: false,
-        error: 'Please wait before requesting another OTP',
-        code: 'TOO_FREQUENT'
-      };
+  async resendOTP(identifier, type = 'login') {
+    const email = String(identifier).toLowerCase().trim();
+
+    if (this.dbEnabled) {
+      try {
+        const OTPCode = require('../models/OTPCode');
+        const doc = await OTPCode.findOne({ email });
+        if (doc && doc.lastSent && (Date.now() - new Date(doc.lastSent).getTime()) < 60000) {
+          return { success: false, error: 'Please wait before requesting another OTP', code: 'TOO_FREQUENT' };
+        }
+        const otp = await this.generateAndStoreOTP(email, type);
+        await OTPCode.updateOne({ email }, { $set: { lastSent: new Date() } }).catch(()=>{});
+        return { success: true, otp, message: 'OTP resent successfully' };
+      } catch (e) {
+        console.warn('⚠️ OTP DB resend failed, falling back to memory:', e.message);
+      }
     }
 
-    // Generate new OTP
-    const otp = await this.generateAndStoreOTP(identifier, type);
-    
-    // Update last sent time
-    const updatedData = this.otpStore.get(identifier);
+    // Memory fallback
+    const otpData = this.otpStore.get(email);
+    if (otpData && otpData.lastSent && (Date.now() - otpData.lastSent) < 60000) {
+      return { success: false, error: 'Please wait before requesting another OTP', code: 'TOO_FREQUENT' };
+    }
+    const otp = await this.generateAndStoreOTP(email, type);
+    const updatedData = this.otpStore.get(email) || {};
     updatedData.lastSent = Date.now();
-    this.otpStore.set(identifier, updatedData);
-
-    return {
-      success: true,
-      otp,
-      message: 'OTP resent successfully'
-    };
+    this.otpStore.set(email, updatedData);
+    return { success: true, otp, message: 'OTP resent successfully' };
   }
 
   cleanupExpiredOTPs() {
+    // Memory fallback cleanup only. DB-cleanup is automatic via TTL index.
     const now = Date.now();
     let cleanedCount = 0;
 
