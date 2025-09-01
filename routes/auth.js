@@ -298,9 +298,12 @@ router.post('/login', [
       
       // Send OTP via email (use name if user exists, otherwise use email)
       const displayName = existingUser ? existingUser.name : email.split('@')[0];
-      EmailService.sendLoginOTPEmail(email, displayName, otp).catch(error => {
-        console.error('Failed to send login OTP email:', error);
-      });
+      try {
+        await EmailService.sendLoginOTPEmail(email, displayName, otp);
+      } catch (sendErr) {
+        console.error('❌ Failed to send login OTP email:', sendErr);
+        return res.status(502).json({ success: false, error: 'Failed to send login verification email' });
+      }
       
       console.log(`🔐 Login OTP sent to: ${email}`);
       
@@ -950,9 +953,12 @@ router.post('/resend-signup-otp', [
       const otp = await OTPService.generateAndStoreOTP(email, 'email');
       
       // Send OTP via email
-      EmailService.sendSignupOTPEmail(email, otp).catch(error => {
-        console.error('Failed to send OTP email:', error);
-      });
+      try {
+        await EmailService.sendSignupOTPEmail(email, otp);
+      } catch (sendErr) {
+        console.error('❌ Failed to send signup OTP email:', sendErr);
+        return res.status(502).json({ success: false, error: 'Failed to send verification code' });
+      }
       
       console.log(`🔐 OTP resent for signup verification: ${email}`);
       
@@ -1095,9 +1101,12 @@ router.post('/resend-login-otp', [
       const otp = await OTPService.generateAndStoreOTP(email, 'login');
       
       // Send OTP via email
-      EmailService.sendLoginOTPEmail(email, displayName, otp).catch(error => {
-        console.error('Failed to send login OTP email:', error);
-      });
+      try {
+        await EmailService.sendLoginOTPEmail(email, displayName, otp);
+      } catch (sendErr) {
+        console.error('❌ Failed to resend login OTP email:', sendErr);
+        return res.status(502).json({ success: false, error: 'Failed to send login verification code' });
+      }
       
       console.log(`🔐 Login OTP resent to: ${email}`);
       

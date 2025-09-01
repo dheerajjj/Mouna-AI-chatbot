@@ -59,9 +59,21 @@ class EmailService {
           if (options.html) console.log('📧 HTML length:', options.html.length);
           console.log('📧 ========================');
           return Promise.resolve({ messageId: 'mock-id' });
-        }
+        },
+        verify: async () => true
       };
     }
+
+    // Proactively verify transporter when available
+    try {
+      if (this.transporter && typeof this.transporter.verify === 'function') {
+        this.transporter.verify().then(() => {
+          console.log('✅ Email transporter verified connection and credentials');
+        }).catch(err => {
+          console.error('❌ Email transporter verification failed:', err.message);
+        });
+      }
+    } catch (_) {}
   }
 
   async sendWelcomeEmail(userEmail, userName) {
@@ -386,6 +398,21 @@ class EmailService {
     } catch (error) {
       console.error('❌ Failed to send login OTP email:', error);
       throw error;
+    }
+  }
+
+  async verifyTransport() {
+    if (!this.transporter || typeof this.transporter.verify !== 'function') {
+      console.warn('⚠️ Email transporter verify not available (using console fallback).');
+      return false;
+    }
+    try {
+      await this.transporter.verify();
+      console.log('✅ Email transporter verified connection and credentials');
+      return true;
+    } catch (err) {
+      console.error('❌ Email transporter verification failed:', err.message);
+      return false;
     }
   }
   // Generic email sender for reusable emails (used by various features)
