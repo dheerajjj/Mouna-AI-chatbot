@@ -279,16 +279,9 @@ router.post('/login', [
     } else if (existingUser && !password) {
       // Existing user but no password provided - still allow OTP login
       console.log(`🔐 Existing user requesting OTP login: ${email}`);
-    } else if (!existingUser && password) {
-      // New email with password - this isn't registration, redirect to signup
-      return res.status(404).json({ 
-        error: 'Account not found', 
-        message: 'No account exists with this email. Please sign up first.',
-        redirectTo: '/signup',
-        email: email
-      });
     } else {
-      // New email, no password - universal OTP login for any genuine email
+      // Treat ANY genuine email as eligible for OTP login (even if a password was provided).
+      // This avoids blocking first-time users who typed a password by habit.
       console.log(`🌍 Universal OTP login for genuine email: ${email}`);
     }
 
@@ -313,6 +306,7 @@ router.post('/login', [
         requiresOTP: true,
         message: 'Login verification required. Please check your email for verification code.',
         email: email,
+        normalizedEmail: (email || '').toLowerCase().trim(),
         isExistingUser: !!existingUser,
         step: 'login_verification',
         instructions: 'Please verify your email with the OTP sent to your inbox.',
@@ -1040,31 +1034,41 @@ router.post('/verify-login-otp', [
         }
       });
     } else {
-      // New user with verified email - temporary access or prompt for registration
-      console.log(`🌍 New user verified email access: ${email}`);
+      // New email verified — auto-provision a minimal account for a consistent experience
+      console.log(`🆕 Creating minimal account after OTP verification for: ${email}`);
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const nameFromEmail = email.split('@')[0].replace(/[._]/g, ' ').trim() || 'New User';
       
-      res.json({
-        success: true,
-        message: 'Email verified successfully! You can now access our services.',
-        email: email,
-        userType: 'guest',
+      const user = await DatabaseService.createUser({
+        name: nameFromEmail,
+        email,
+        password: randomPassword,
+        company: '',
+        website: '',
+        phone: '',
         emailVerified: true,
-        redirectTo: '/guest-dashboard', // Or prompt for full registration
-        options: {
-          continueAsGuest: true,
-          createAccount: {
-            message: 'Create a full account to access all features',
-            redirectTo: '/complete-registration',
-            benefits: ['Save chat history', 'Custom configurations', 'Advanced features']
-          }
-        },
-        // Temporary guest token (limited access)
-        guestToken: generateSecureToken({ 
-          email: email, 
-          type: 'guest',
-          verified: true,
-          exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-        })
+        verificationStatus: { email: true, emailVerifiedAt: new Date() }
+      });
+      try {
+        EmailService.sendWelcomeEmail(user.email, user.name).catch(()=>{});
+      } catch(_) {}
+      const token = generateSecureToken({ userId: user._id, email: user.email });
+      return res.json({
+        success: true,
+        message: 'Account created via OTP verification. Welcome!',
+        token,
+        redirectTo: '/welcome-dashboard',
+        userType: 'new',
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          company: user.company,
+          website: user.website,
+          subscription: user.subscription,
+          usage: user.usage,
+          apiKey: user.apiKey
+        }
       });
     }
 
