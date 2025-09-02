@@ -364,6 +364,9 @@
                     localStorage.setItem('authToken', data.token);
                     if (data.user) {
                         localStorage.setItem('user', JSON.stringify(data.user));
+                        try { localStorage.setItem('lastLoginEmail', (data.user.email || currentEmail || '').toLowerCase()); } catch(_){}
+                    } else {
+                        try { localStorage.setItem('lastLoginEmail', (currentEmail || '').toLowerCase()); } catch(_){}
                     }
                     
                     // Verify storage worked

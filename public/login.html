@@ -291,6 +291,7 @@
                         // Direct login success (old flow compatibility)
                         localStorage.setItem('authToken', data.token);
                         localStorage.setItem('user', JSON.stringify(data.user));
+                        try { localStorage.setItem('lastLoginEmail', (data.user?.email || email || '').toLowerCase()); } catch(_){}
                         successMessage.textContent = data.message;
                         successMessage.style.display = 'block';
                         setTimeout(() => {

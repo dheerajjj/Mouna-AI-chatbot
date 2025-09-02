@@ -431,6 +431,7 @@
             </div>
             <div class="user-menu">
                 <span class="user-name" id="user-name">Loading...</span>
+                <span class="user-email" id="user-email" style="color:#64748b;font-size:.85rem;margin-left:.5rem"></span>
                 <button onclick="logout()" class="logout-btn">Logout</button>
             </div>
         </div>
@@ -509,7 +510,7 @@
                         <i class="fas fa-chart-line"></i>
                     </div>
                     Analytics & Insights
-                    <span class="pro-badge" id="analytics-badge" data-badge-scope="feature">Pro</span>
+                    <span class="pro-badge" id="analytics-badge" data-badge-scope="feature">UPGRADE</span>
                 </h3>
                 
                 <div class="stats-grid">
@@ -582,7 +583,7 @@
                 
                 <div class="status-indicator active">
                     <i class="fas fa-check-circle"></i>
-                    <span id="plan-status-text">Free Plan Active</span>
+                    <span id="plan-status-text">Loading plan…</span>
                 </div>
                 
                 <ul class="feature-list">
@@ -840,6 +841,10 @@
                     if (userNameElement) {
                         userNameElement.textContent = data.user.name || 'User';
                     }
+                    const userEmailElement = document.getElementById('user-email');
+                    if (userEmailElement) {
+                        userEmailElement.textContent = `(${data.user.email || ''})`;
+                    }
                     
                     // Derive current plan strictly from subscription first
                     let currentPlan = (data.user.subscription && data.user.subscription.plan) ||
@@ -855,6 +860,26 @@
                     const planPrices = { free: 0, starter: 499, professional: 1499, enterprise: 4999 };
                     const planBillingCycle = 'monthly';
 
+                    // Email mismatch guard — ensures you’re seeing the intended account after OTP login
+                    try {
+                        const lastLoginEmail = (localStorage.getItem('lastLoginEmail') || '').toLowerCase();
+                        const actualEmail = (data.user.email || '').toLowerCase();
+                        if (lastLoginEmail && actualEmail && lastLoginEmail !== actualEmail) {
+                            console.warn('⚠️ Email mismatch between session and expected:', { lastLoginEmail, actualEmail });
+                            // Add a visible banner to prompt re-login
+                            addBanner(`Logged in as ${actualEmail}, but last login was for ${lastLoginEmail}. If this is unintended, please logout and sign in again with the correct email.`);
+                        }
+                    } catch (_) {}
+
+                    function addBanner(text) {
+                        try {
+                            const banner = document.createElement('div');
+                            banner.style.cssText = 'position:relative;margin:10px 0;padding:10px;border-radius:8px;background:#FEF3C7;color:#92400E;border:1px solid #F59E0B;font-weight:600;';
+                            banner.innerText = text;
+                            document.querySelector('.container').insertBefore(banner, document.querySelector('.container').firstChild);
+                        } catch (_) {}
+                    }
+
                     // 1) Try capability-derived inference
                     let capDerived = null;
                     try {
@@ -868,8 +893,20 @@
                     const nameCandidate = (data.user.subscription?.planName || data.user.plan?.current?.name || '').toString().trim().toLowerCase();
                     const fromName = planIdsByName[nameCandidate] || null;
 
-                    // 3) Reconcile candidates conservatively (prefer the lowest tier when mismatched to avoid over-reporting capabilities)
-                    const candidates = [currentPlan, capDerived, fromName].filter(Boolean);
+                    // Extra: derive from known price/currency when available
+                    let fromPrice = null;
+                    try {
+                        const amt = Number(data.user.subscription?.amount ?? data.user.plan?.current?.price ?? NaN);
+                        if (!Number.isNaN(amt)) {
+                            if (amt === 0) fromPrice = 'free';
+                            else if (amt === 499) fromPrice = 'starter';
+                            else if (amt === 1499) fromPrice = 'professional';
+                            else if (amt === 4999) fromPrice = 'enterprise';
+                        }
+                    } catch(_) {}
+
+                    // 3) Reconcile candidates conservatively (prefer the lowest tier among all signals)
+                    const candidates = [currentPlan, capDerived, fromName, fromPrice].filter(Boolean);
                     if (candidates.length) {
                         const pickLowest = candidates.reduce((acc, p) => {
                             const ai = planHierarchy.indexOf(acc);
@@ -877,7 +914,7 @@
                             return (pi >= 0 && (ai < 0 || pi < ai)) ? p : acc;
                         }, candidates[0]);
                         if (pickLowest && pickLowest !== currentPlan) {
-                            console.warn('⚠️ Plan mismatch detected. Reconciling to lowest tier among candidates:', { from: currentPlan, capDerived, fromName, to: pickLowest });
+                            console.warn('⚠️ Plan mismatch detected. Reconciling to lowest tier among candidates:', { from: currentPlan, capDerived, fromName, fromPrice, to: pickLowest });
                             currentPlan = pickLowest;
                         }
                     }
