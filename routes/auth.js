@@ -388,9 +388,33 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
     // Get comprehensive plan information and usage summary
     let planDetails, usageSummary, currentPlan;
-    
+
+    // Normalize/repair subscription plan server-side to avoid UI drift
+    const canonicalPlans = ['free','starter','professional','enterprise'];
+    const planIdsByName = { 'free plan': 'free', 'starter plan': 'starter', 'professional plan': 'professional', 'enterprise plan': 'enterprise' };
+    const amountToPlanINR = { 0: 'free', 499: 'starter', 1499: 'professional', 4999: 'enterprise' };
+
+    const rawPlan = (user.subscription && typeof user.subscription.plan === 'string') ? user.subscription.plan.toLowerCase().trim() : 'free';
+    const namePlan = planIdsByName[String(user.subscription?.planName || '').toLowerCase().trim()] || null;
+    const amtPlan = (user.subscription?.currency || 'INR') === 'INR' && amountToPlanINR.hasOwnProperty(user.subscription?.amount)
+      ? amountToPlanINR[user.subscription.amount]
+      : null;
+
+    // Choose a normalized plan with deterministic priority: amount > name > id
+    let normalizedPlan = amtPlan || namePlan || (canonicalPlans.includes(rawPlan) ? rawPlan : 'free');
+
+    // Persist repair if plan differs
+    if (normalizedPlan !== rawPlan) {
+      try {
+        await DatabaseService.updateUser(user._id, { 'subscription.plan': normalizedPlan });
+        console.log('🔧 Repaired subscription.plan mismatch:', { email: user.email, from: rawPlan, to: normalizedPlan });
+      } catch (e) {
+        console.warn('⚠️ Failed to persist plan repair:', e.message);
+      }
+    }
+
     // Initialize defaults first
-    currentPlan = user.subscription?.plan || 'free';
+    currentPlan = normalizedPlan || 'free';
     planDetails = {
       name: 'Free Plan',
       price: 0,
@@ -402,7 +426,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
       ui: {}
     };
     usageSummary = { plan: currentPlan, usage: {}, warnings: [] };
-    
+
     try {
       const { PlanManager } = require('../config/planFeatures');
       console.log('📊 Getting plan details for plan:', currentPlan);
