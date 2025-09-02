@@ -846,29 +846,46 @@
                                         (data.user.plan && data.user.plan.current && data.user.plan.current.id) ||
                                         'free';
 
-                    // Fallback correction using capabilities to guard against stale/incorrect plan values
-                    try {
-                        const caps = data.user.capabilities || {};
-                        const derivedFromCaps = caps.canAccessAdvancedAnalytics
-                            ? 'professional'
-                            : (caps.canAccessAnalytics ? 'starter' : 'free');
-                        if (derivedFromCaps && derivedFromCaps !== currentPlan) {
-                            console.warn('⚠️ Plan mismatch detected. Using capability-derived plan:', { from: currentPlan, to: derivedFromCaps });
-                            currentPlan = derivedFromCaps;
-                        }
-                    } catch (_) {}
-                    
                     // Canonical names and limits per plan (frontend mirror)
                     const planNames = { free: 'Free Plan', starter: 'Starter Plan', professional: 'Professional Plan', enterprise: 'Enterprise Plan' };
+                    const planIdsByName = { 'free plan': 'free', 'starter plan': 'starter', 'professional plan': 'professional', 'enterprise plan': 'enterprise' };
+                    const planHierarchy = ['free', 'starter', 'professional', 'enterprise'];
                     const planLimitsByPlan = { free: 100, starter: 1000, professional: 3000, enterprise: 15000 };
                     const planCurrencies = { free: 'INR', starter: 'INR', professional: 'INR', enterprise: 'INR' };
                     const planPrices = { free: 0, starter: 499, professional: 1499, enterprise: 4999 };
                     const planBillingCycle = 'monthly';
 
+                    // 1) Try capability-derived inference
+                    let capDerived = null;
+                    try {
+                        const caps = data.user.capabilities || {};
+                        capDerived = caps.canAccessAdvancedAnalytics
+                            ? 'professional'
+                            : (caps.canAccessAnalytics ? 'starter' : 'free');
+                    } catch (_) {}
+
+                    // 2) Try mapping from planName provided by backend (subscription or plan.current)
+                    const nameCandidate = (data.user.subscription?.planName || data.user.plan?.current?.name || '').toString().trim().toLowerCase();
+                    const fromName = planIdsByName[nameCandidate] || null;
+
+                    // 3) Reconcile candidates conservatively (prefer the lowest tier when mismatched to avoid over-reporting capabilities)
+                    const candidates = [currentPlan, capDerived, fromName].filter(Boolean);
+                    if (candidates.length) {
+                        const pickLowest = candidates.reduce((acc, p) => {
+                            const ai = planHierarchy.indexOf(acc);
+                            const pi = planHierarchy.indexOf(p);
+                            return (pi >= 0 && (ai < 0 || pi < ai)) ? p : acc;
+                        }, candidates[0]);
+                        if (pickLowest && pickLowest !== currentPlan) {
+                            console.warn('⚠️ Plan mismatch detected. Reconciling to lowest tier among candidates:', { from: currentPlan, capDerived, fromName, to: pickLowest });
+                            currentPlan = pickLowest;
+                        }
+                    }
+
                     const planName = planNames[currentPlan] || 'Free Plan';
                     const limit = planLimitsByPlan[currentPlan] ?? 100;
                     
-                    console.log('📋 Detected plan (client-enforced):', { currentPlan, planName, limit });
+                    console.log('📋 Detected plan (client-enforced):', { currentPlan, planName, limit, fromName, capDerived });
                     
                     // Update plan status
                     const planStatusElement = document.getElementById('plan-status-text');
