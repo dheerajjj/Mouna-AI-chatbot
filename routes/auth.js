@@ -583,6 +583,54 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// Debug: Get normalized plan and subscription info by email (protected)
+router.get('/debug-user-plan', async (req, res) => {
+  try {
+    const key = req.query.key || req.headers['x-internal-key'] || '';
+    if (!process.env.INTERNAL_SERVICE_KEY || key !== process.env.INTERNAL_SERVICE_KEY) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const email = (req.query.email || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+
+    const user = await DatabaseService.findUserByEmail(email);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Reuse normalization from /profile
+    const canonicalPlans = ['free','starter','professional','enterprise'];
+    const planIdsByName = { 'free plan': 'free', 'starter plan': 'starter', 'professional plan': 'professional', 'enterprise plan': 'enterprise' };
+    const amountToPlanINR = { 0: 'free', 499: 'starter', 1499: 'professional', 4999: 'enterprise' };
+
+    const rawPlan = (user.subscription && typeof user.subscription.plan === 'string') ? user.subscription.plan.toLowerCase().trim() : 'free';
+    const namePlan = planIdsByName[String(user.subscription?.planName || '').toLowerCase().trim()] || null;
+    const amtPlan = (user.subscription?.currency || 'INR') === 'INR' && Object.prototype.hasOwnProperty.call(amountToPlanINR, user.subscription?.amount)
+      ? amountToPlanINR[user.subscription.amount]
+      : null;
+    const normalizedPlan = amtPlan || namePlan || (canonicalPlans.includes(rawPlan) ? rawPlan : 'free');
+
+    const { PlanManager } = require('../config/planFeatures');
+    let planDetails = PlanManager.getPlanDetails(normalizedPlan);
+
+    return res.json({
+      email: user.email,
+      rawPlan,
+      planName: user.subscription?.planName || null,
+      amount: user.subscription?.amount || null,
+      currency: user.subscription?.currency || null,
+      normalizedPlan,
+      usage: user.usage || {},
+      capabilities: {
+        basicAnalytics: PlanManager.hasFeature(normalizedPlan, 'basicAnalytics'),
+        advancedAnalytics: PlanManager.hasFeature(normalizedPlan, 'advancedAnalytics')
+      },
+      serverCommit: process.env.RAILWAY_GIT_COMMIT_SHA || null
+    });
+  } catch (e) {
+    console.error('debug-user-plan error:', e);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Update widget configuration
 router.put('/widget-config', authenticateToken, [
   body('primaryColor').optional().isHexColor(),
