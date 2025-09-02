@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const validator = require('validator');
 
 class OTPService {
   constructor() {
@@ -34,13 +35,26 @@ class OTPService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
+  // Return candidate forms for an email to avoid provider-specific mismatches (e.g., Gmail dots/aliases)
+  getEmailCandidates(identifier) {
+    const raw = String(identifier || '').trim();
+    const lower = raw.toLowerCase();
+    let normalized = lower;
+    try {
+      const v = validator.normalizeEmail(raw);
+      if (v) normalized = String(v).toLowerCase();
+    } catch (_) { /* best effort */ }
+    const set = new Set([lower, normalized]);
+    return Array.from(set);
+  }
+
   generateOTPHash(email, otp) {
     // Create a hash for OTP verification
     return crypto.createHash('sha256').update(`${email}:${otp}:${process.env.OTP_SECRET || 'default-secret'}`).digest('hex');
   }
 
   async generateAndStoreOTP(identifier, type = 'login') {
-    const email = String(identifier).toLowerCase().trim();
+    const [email] = this.getEmailCandidates(identifier);
     const otp = this.generateOTP();
     const expiresAt = new Date(Date.now() + (10 * 60 * 1000)); // 10 minutes
 
@@ -66,59 +80,62 @@ class OTPService {
   }
 
   async verifyOTP(identifier, providedOTP) {
-    const email = String(identifier).toLowerCase().trim();
+    const candidates = this.getEmailCandidates(identifier);
 
     if (this.dbEnabled) {
       try {
         const OTPCode = require('../models/OTPCode');
-        const doc = await OTPCode.findOne({ email });
-        if (!doc) {
-          return { success: false, error: 'OTP not found or expired', code: 'OTP_NOT_FOUND' };
+        for (const email of candidates) {
+          const doc = await OTPCode.findOne({ email });
+          if (!doc) continue;
+          if (new Date() > doc.expiresAt) {
+            await OTPCode.deleteOne({ _id: doc._id });
+            return { success: false, error: 'OTP has expired', code: 'OTP_EXPIRED' };
+          }
+          if (doc.attempts >= doc.maxAttempts) {
+            await OTPCode.deleteOne({ _id: doc._id });
+            return { success: false, error: 'Maximum verification attempts exceeded', code: 'MAX_ATTEMPTS_EXCEEDED' };
+          }
+          if (String(doc.code) === String(providedOTP)) {
+            await OTPCode.deleteOne({ _id: doc._id });
+            return { success: true, message: 'OTP verified successfully' };
+          }
+          // increment attempts on failure (for the matched record)
+          await OTPCode.updateOne({ _id: doc._id }, { $inc: { attempts: 1 } });
+          return { success: false, error: 'Invalid OTP', code: 'INVALID_OTP', attemptsRemaining: (doc.maxAttempts - (doc.attempts + 1)) };
         }
-        if (new Date() > doc.expiresAt) {
-          await OTPCode.deleteOne({ _id: doc._id });
-          return { success: false, error: 'OTP has expired', code: 'OTP_EXPIRED' };
-        }
-        if (doc.attempts >= doc.maxAttempts) {
-          await OTPCode.deleteOne({ _id: doc._id });
-          return { success: false, error: 'Maximum verification attempts exceeded', code: 'MAX_ATTEMPTS_EXCEEDED' };
-        }
-        if (String(doc.code) === String(providedOTP)) {
-          await OTPCode.deleteOne({ _id: doc._id });
-          return { success: true, message: 'OTP verified successfully' };
-        }
-        // increment attempts on failure
-        await OTPCode.updateOne({ _id: doc._id }, { $inc: { attempts: 1 } });
-        return { success: false, error: 'Invalid OTP', code: 'INVALID_OTP', attemptsRemaining: (doc.maxAttempts - (doc.attempts + 1)) };
+        // If we reach here, no DB record matched any candidate; fall through to memory fallback
       } catch (e) {
         console.warn('⚠️ OTP DB verify failed, falling back to memory:', e.message);
       }
     }
 
-    // Memory fallback
-    const otpData = this.otpStore.get(email);
-    if (!otpData) {
-      return { success: false, error: 'OTP not found or expired', code: 'OTP_NOT_FOUND' };
+    // Memory fallback - try all candidates
+    for (const email of candidates) {
+      const otpData = this.otpStore.get(email);
+      if (!otpData) continue;
+      if (Date.now() > otpData.expiresAt) {
+        this.otpStore.delete(email);
+        return { success: false, error: 'OTP has expired', code: 'OTP_EXPIRED' };
+      }
+      if (otpData.attempts >= otpData.maxAttempts) {
+        this.otpStore.delete(email);
+        return { success: false, error: 'Maximum verification attempts exceeded', code: 'MAX_ATTEMPTS_EXCEEDED' };
+      }
+      if (String(otpData.otp) === String(providedOTP)) {
+        this.otpStore.delete(email);
+        return { success: true, message: 'OTP verified successfully' };
+      }
+      otpData.attempts++;
+      this.otpStore.set(email, otpData);
+      return { success: false, error: 'Invalid OTP', code: 'INVALID_OTP', attemptsRemaining: otpData.maxAttempts - otpData.attempts };
     }
-    if (Date.now() > otpData.expiresAt) {
-      this.otpStore.delete(email);
-      return { success: false, error: 'OTP has expired', code: 'OTP_EXPIRED' };
-    }
-    if (otpData.attempts >= otpData.maxAttempts) {
-      this.otpStore.delete(email);
-      return { success: false, error: 'Maximum verification attempts exceeded', code: 'MAX_ATTEMPTS_EXCEEDED' };
-    }
-    if (String(otpData.otp) === String(providedOTP)) {
-      this.otpStore.delete(email);
-      return { success: true, message: 'OTP verified successfully' };
-    }
-    otpData.attempts++;
-    this.otpStore.set(email, otpData);
-    return { success: false, error: 'Invalid OTP', code: 'INVALID_OTP', attemptsRemaining: otpData.maxAttempts - otpData.attempts };
+
+    return { success: false, error: 'OTP not found or expired', code: 'OTP_NOT_FOUND' };
   }
 
   async resendOTP(identifier, type = 'login') {
-    const email = String(identifier).toLowerCase().trim();
+    const [email] = this.getEmailCandidates(identifier);
 
     if (this.dbEnabled) {
       try {
