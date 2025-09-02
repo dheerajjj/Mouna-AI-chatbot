@@ -387,7 +387,7 @@
                     }
                     
                     // Redirect based on flow and response, with token in URL as backup
-                    const finalRedirect = redirectDestination || data.redirectTo || '/dashboard';
+                    const finalRedirect = data.redirectTo || redirectDestination || '/dashboard';
                     // Ensure token is properly stored before redirect
                     localStorage.setItem('authToken', data.token);
                     if (data.user) {

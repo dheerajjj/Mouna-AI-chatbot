@@ -841,10 +841,22 @@
                         userNameElement.textContent = data.user.name || 'User';
                     }
                     
-                    // Derive current plan strictly from subscription first to avoid mismatches
-                    const currentPlan = (data.user.subscription && data.user.subscription.plan) ||
+                    // Derive current plan strictly from subscription first
+                    let currentPlan = (data.user.subscription && data.user.subscription.plan) ||
                                         (data.user.plan && data.user.plan.current && data.user.plan.current.id) ||
                                         'free';
+
+                    // Fallback correction using capabilities to guard against stale/incorrect plan values
+                    try {
+                        const caps = data.user.capabilities || {};
+                        const derivedFromCaps = caps.canAccessAdvancedAnalytics
+                            ? 'professional'
+                            : (caps.canAccessAnalytics ? 'starter' : 'free');
+                        if (derivedFromCaps && derivedFromCaps !== currentPlan) {
+                            console.warn('⚠️ Plan mismatch detected. Using capability-derived plan:', { from: currentPlan, to: derivedFromCaps });
+                            currentPlan = derivedFromCaps;
+                        }
+                    } catch (_) {}
                     
                     // Canonical names and limits per plan (frontend mirror)
                     const planNames = { free: 'Free Plan', starter: 'Starter Plan', professional: 'Professional Plan', enterprise: 'Enterprise Plan' };

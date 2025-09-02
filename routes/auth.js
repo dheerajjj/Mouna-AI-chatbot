@@ -414,6 +414,15 @@ router.get('/profile', authenticateToken, async (req, res) => {
           console.log('📊 Plan details retrieved:', planDetails?.name);
         }
       }
+      // Additional diagnostics for plan resolution
+      try {
+        console.log('🔎 Plan resolution diagnostics:', {
+          userEmail: user.email,
+          subscriptionPlan: user.subscription?.plan,
+          resolvedPlan: currentPlan,
+          resolvedPlanName: planDetails?.name
+        });
+      } catch (_) {}
     } catch (planError) {
       console.error('❌ Error getting plan information:', planError);
       console.error('❌ PlanManager error stack:', planError.stack);
