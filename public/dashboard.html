@@ -431,7 +431,6 @@
             </div>
             <div class="user-menu">
                 <span class="user-name" id="user-name">Loading...</span>
-                <span class="user-email" id="user-email" style="color:#64748b;font-size:.85rem;margin-left:.5rem"></span>
                 <button onclick="logout()" class="logout-btn">Logout</button>
             </div>
         </div>
@@ -841,10 +840,6 @@
                     if (userNameElement) {
                         userNameElement.textContent = data.user.name || 'User';
                     }
-                    const userEmailElement = document.getElementById('user-email');
-                    if (userEmailElement) {
-                        userEmailElement.textContent = `(${data.user.email || ''})`;
-                    }
                     
                     // Derive current plan strictly from subscription first
                     let currentPlan = (data.user.subscription && data.user.subscription.plan) ||
@@ -866,18 +861,12 @@
                         const actualEmail = (data.user.email || '').toLowerCase();
                         if (lastLoginEmail && actualEmail && lastLoginEmail !== actualEmail) {
                             console.warn('⚠️ Email mismatch between session and expected:', { lastLoginEmail, actualEmail });
-                            // Add a visible banner to prompt re-login
-                            addBanner(`Logged in as ${actualEmail}, but last login was for ${lastLoginEmail}. If this is unintended, please logout and sign in again with the correct email.`);
+                            // Privacy: do not render any email to UI. Keep only a console hint.
                         }
                     } catch (_) {}
 
                     function addBanner(text) {
-                        try {
-                            const banner = document.createElement('div');
-                            banner.style.cssText = 'position:relative;margin:10px 0;padding:10px;border-radius:8px;background:#FEF3C7;color:#92400E;border:1px solid #F59E0B;font-weight:600;';
-                            banner.innerText = text;
-                            document.querySelector('.container').insertBefore(banner, document.querySelector('.container').firstChild);
-                        } catch (_) {}
+                        // Deprecated: We avoid showing emails in UI for privacy.
                     }
 
                     // 1) Try capability-derived inference
@@ -990,7 +979,7 @@
                     applyPlanBasedFeatures({
                         ...data.user,
                         subscription: { ...(data.user.subscription || {}), plan: currentPlan }
-                    });
+                    }, currentPlan);
                     
                     console.log('✅ Dashboard loaded successfully with user data');
                 }
@@ -1022,11 +1011,11 @@
         }
 
         // Apply plan-based feature restrictions and enhancements
-        function applyPlanBasedFeatures(user) {
-            console.log('🔧 Applying plan-based features for user:', user.plan?.current?.id || user.subscription?.plan);
+        function applyPlanBasedFeatures(user, effectivePlan) {
+            const resolved = effectivePlan || window.currentUserPlan || user.subscription?.plan || user.plan?.current?.id || 'free';
+            console.log('🔧 Applying plan-based features for user. Effective plan:', resolved);
             
-            // Get plan from multiple possible sources
-            const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
+            const currentPlan = (typeof resolved === 'string') ? resolved.toLowerCase() : 'free';
             
             // Normalize label to reflect user's actual plan
             const labelMap = { free: 'Free', starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
@@ -1089,7 +1078,7 @@
                 if (data && data.user) {
                     // Re-apply UI with the latest profile
                     window.currentUserPlan = data.user.plan?.current?.id || data.user.subscription?.plan || 'free';
-                    applyPlanBasedFeatures(data.user);
+                    applyPlanBasedFeatures(data.user, window.currentUserPlan);
                     // Update status text
                     const planName = data.user.plan?.current?.name || data.user.subscription?.planName || 'Free Plan';
                     const planStatusElement = document.getElementById('plan-status-text');
