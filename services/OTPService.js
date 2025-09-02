@@ -54,7 +54,9 @@ class OTPService {
   }
 
   async generateAndStoreOTP(identifier, type = 'login') {
-    const [email] = this.getEmailCandidates(identifier);
+    const candidates = this.getEmailCandidates(identifier);
+    // Prefer the most normalized/canonical candidate (last in our set ordering)
+    const email = candidates[candidates.length - 1];
     const otp = this.generateOTP();
     const expiresAt = new Date(Date.now() + (10 * 60 * 1000)); // 10 minutes
 
@@ -135,7 +137,8 @@ class OTPService {
   }
 
   async resendOTP(identifier, type = 'login') {
-    const [email] = this.getEmailCandidates(identifier);
+    const candidates = this.getEmailCandidates(identifier);
+    const email = candidates[candidates.length - 1];
 
     if (this.dbEnabled) {
       try {
