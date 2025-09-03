@@ -101,10 +101,14 @@ async function getReportData(userId, dateRange, reportType) {
         const totalUserMessages = user.usage?.totalMessages || 0;
         const monthlyUserMessages = user.usage?.messagesThisMonth || 0;
         
-        // Also get session count for consistency
-        const totalUserSessions = await db.collection('chat_sessions').find({
-            userId: userObjectId
-        }).toArray();
+        // Also get session count for consistency (support both collection names)
+        let sessionCount = 0;
+        try {
+            const c1 = await db.collection('chat_sessions').countDocuments({ userId: userObjectId }).catch(() => 0);
+            const c2 = await db.collection('chatsessions').countDocuments({ userId: userObjectId }).catch(() => 0);
+            sessionCount = c1 + c2 ? Math.max(c1, c2) : 0;
+        } catch (_) {}
+        const totalUserSessions = new Array(sessionCount).fill(0); // only need length here
         
         console.log('📊 [REPORT] Usage from user object (matching dashboard):', {
             totalMessagesFromUserObject: totalUserMessages,
@@ -205,8 +209,17 @@ async function getReportData(userId, dateRange, reportType) {
                 endDate: now.toISOString()
             });
             
+            // Determine correct collection name for sessions (compat for 'chat_sessions' and 'chatsessions')
+            let sessionsCollectionName = 'chat_sessions';
+            try {
+                const c1 = await db.collection('chat_sessions').countDocuments({ userId: userObjectId }).catch(() => 0);
+                const c2 = await db.collection('chatsessions').countDocuments({ userId: userObjectId }).catch(() => 0);
+                sessionsCollectionName = c1 >= c2 ? 'chat_sessions' : 'chatsessions';
+            } catch (_) { /* keep default */ }
+            const sessionsCol = db.collection(sessionsCollectionName);
+
             // First, get ALL conversations for this user to debug
-            const allConversations = await db.collection('chat_sessions').find({
+            const allConversations = await sessionsCol.find({
                 userId: userObjectId
             }).sort({ createdAt: -1 }).limit(100).toArray();
             
@@ -225,25 +238,26 @@ async function getReportData(userId, dateRange, reportType) {
             
             let conversations = [];
             
-            // Try multiple query approaches
-            const convQuery1 = await db.collection('chat_sessions').find({
+            // Try multiple query approaches against the chosen collection
+            const convQuery1 = await sessionsCol.find({
                 userId: userObjectId,
                 createdAt: { $gte: startDate, $lte: now }
-            }).sort({ createdAt: -1 }).limit(100).toArray();
+            }).sort({ createdAt: -1 }).limit(200).toArray();
             
-            const convQuery2 = await db.collection('chat_sessions').find({
+            const convQuery2 = await sessionsCol.find({
                 userId: userObjectId,
                 $or: [
                     { createdAt: { $gte: startDate, $lte: now } },
                     { startTime: { $gte: startDate, $lte: now } },
                     { updatedAt: { $gte: startDate, $lte: now } }
                 ]
-            }).sort({ createdAt: -1 }).limit(100).toArray();
+            }).sort({ createdAt: -1 }).limit(200).toArray();
             
             console.log('💬 [REPORT] Conversation queries results:', {
                 standardQuery: convQuery1.length,
                 alternativeQuery: convQuery2.length,
-                allConversationsForUser: allConversations.length
+                allConversationsForUser: allConversations.length,
+                usingCollection: sessionsCollectionName
             });
             
             // Use the query that returns more results, or fall back to all conversations
@@ -252,13 +266,13 @@ async function getReportData(userId, dateRange, reportType) {
             } else if (convQuery2.length > 0) {
                 conversations = convQuery2;
             } else {
-                // Use all conversations for now since we have message data
-                console.log('💬 [REPORT] Using all conversations since date filtering failed');
+                // Use all conversations
+                console.log('💬 [REPORT] Using all conversations since date filtering returned none');
                 conversations = allConversations;
             }
 
             // Map conversations with better data handling
-            reportData.conversations = conversations.map(session => {
+            const mapped = conversations.map(session => {
                 // Use sessionId field or _id as fallback
                 const sessionIdentifier = session.sessionId || session._id;
                 
@@ -266,28 +280,69 @@ async function getReportData(userId, dateRange, reportType) {
                 const sessionStart = session.startTime || session.createdAt;
                 const sessionEnd = session.endTime || session.updatedAt || sessionStart;
                 
+                const baseMessages = (session.messages || []).map(msg => {
+                    // Handle multiple possible field names for message content
+                    const fullText = msg.content || msg.message || msg.text || '';
+                    const sender = msg.role || msg.type || msg.sender || 'user';
+                    const ts = msg.timestamp || msg.createdAt || sessionStart;
+                    return {
+                        timestamp: ts,
+                        sender: sender,
+                        // Keep full text for downloads and analytics
+                        message: fullText,
+                        // Also provide a preview for any UI that wants truncation
+                        preview: fullText.length > 200 ? fullText.substring(0, 200) + '...' : fullText,
+                        type: msg.type || msg.role || 'text'
+                    };
+                });
+
                 return {
                     sessionId: sessionIdentifier,
                     startTime: sessionStart,
                     endTime: sessionEnd,
-                    messageCount: session.messages?.length || 0,
-                    messages: (session.messages || []).map(msg => {
-                        // Handle multiple possible field names for message content
-                        const fullText = msg.content || msg.message || msg.text || '';
-                        const sender = msg.role || msg.type || msg.sender || 'user';
-                        const ts = msg.timestamp || msg.createdAt || sessionStart;
-                        return {
-                            timestamp: ts,
-                            sender: sender,
-                            // Keep full text for downloads and analytics
-                            message: fullText,
-                            // Also provide a preview for any UI that wants truncation
-                            preview: fullText.length > 200 ? fullText.substring(0, 200) + '...' : fullText,
-                            type: msg.type || msg.role || 'text'
-                        };
-                    })
+                    messageCount: baseMessages.length,
+                    messages: baseMessages
                 };
-            }).filter(conv => conv.messageCount > 0); // Only include conversations with messages
+            });
+
+            // Fallback: if no embedded messages, reconstruct from message logs (older data or different storage)
+            try {
+                const anyMissing = mapped.some(conv => !conv.messageCount || conv.messageCount === 0);
+                if (anyMissing) {
+                    // Determine message log collection name
+                    let logsCollectionName = 'messagelogs';
+                    try {
+                        const l1 = await db.collection('messagelogs').countDocuments({ userId: userObjectId }).catch(() => 0);
+                        const l2 = await db.collection('message_logs').countDocuments({ userId: userObjectId }).catch(() => 0);
+                        logsCollectionName = l1 >= l2 ? 'messagelogs' : 'message_logs';
+                    } catch(_){}
+                    const logsCol = db.collection(logsCollectionName);
+
+                    for (const conv of mapped) {
+                        if (conv.messageCount && conv.messageCount > 0) continue;
+                        const sid = (conv.sessionId && conv.sessionId.toString) ? conv.sessionId.toString() : String(conv.sessionId);
+                        const logs = await logsCol.find({ userId: userObjectId, sessionId: sid }).sort({ createdAt: 1, timestamp: 1 }).limit(500).toArray();
+                        if (Array.isArray(logs) && logs.length) {
+                            const rebuilt = [];
+                            for (const lg of logs) {
+                                if (lg.userMessage) {
+                                    rebuilt.push({ timestamp: lg.timestamp || lg.createdAt || conv.startTime, sender: 'user', message: lg.userMessage, preview: (lg.userMessage || '').slice(0, 200), type: 'user' });
+                                }
+                                if (lg.aiResponse) {
+                                    rebuilt.push({ timestamp: lg.timestamp || lg.createdAt || conv.startTime, sender: 'assistant', message: lg.aiResponse, preview: (lg.aiResponse || '').slice(0, 200), type: 'assistant' });
+                                }
+                            }
+                            conv.messages = rebuilt;
+                            conv.messageCount = rebuilt.length;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ [REPORT] Message logs fallback failed:', e.message);
+            }
+
+            // Filter to conversations that finally have messages
+            reportData.conversations = mapped.filter(conv => conv.messageCount > 0);
             
             console.log('💬 [REPORT] Final conversations:', {
                 count: reportData.conversations.length,
