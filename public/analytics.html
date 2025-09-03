@@ -366,6 +366,7 @@
                 
                 if (data.user) {
                     document.getElementById('user-name').textContent = data.user.name;
+                    window.currentUserPlan = data.user.subscription?.plan || data.user.plan?.current?.id || 'free';
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
@@ -391,10 +392,12 @@
                 const user = data.user || {};
                 const planId = (user.subscription && user.subscription.plan) || 'free';
                 const canAccess = !!(user.capabilities && user.capabilities.canAccessAnalytics);
+                const hasAdvanced = !!(user.capabilities && user.capabilities.canAccessAdvancedAnalytics);
 
+                const container = document.querySelector('.chart-container');
+                const subtitle = document.querySelector('.page-subtitle');
                 if (!canAccess) {
                     // Show upgrade prompt for analytics access
-                    const container = document.querySelector('.chart-container');
                     if (container) {
                         container.innerHTML = `
                             <div style="text-align:center; padding: 2rem;">
@@ -403,6 +406,18 @@
                                 <p style="color:#64748b; margin-bottom:1rem;">Your current plan (<strong>${planId}</strong>) does not include analytics access.</p>
                                 <a href="/pricing?suggested=starter&feature=analytics" class="btn"><i class="fas fa-arrow-up"></i> Upgrade to Starter</a>
                             </div>`;
+                    }
+                    if (subtitle) {
+                        subtitle.textContent = 'Upgrade to access analytics dashboards and usage trends.';
+                    }
+                } else {
+                    // Has analytics access. Tailor copy by basic vs advanced
+                    if (subtitle) {
+                        subtitle.textContent = hasAdvanced ? 'Advanced analytics and insights are enabled for your plan.' : 'Basic analytics are enabled for your plan.';
+                    }
+                    if (container && !hasAdvanced) {
+                        // Emphasize basic availability and suggest upgrade for advanced
+                        container.querySelector('h3')?.insertAdjacentHTML('afterend', '<p style="color:#64748b;">Basic analytics are active. Upgrade to Professional for advanced dashboards.</p>');
                     }
                 }
                 
