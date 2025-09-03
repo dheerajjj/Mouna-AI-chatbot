@@ -409,29 +409,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
       ? candidates.reduce((acc, p) => (planHierarchy.indexOf(p) < planHierarchy.indexOf(acc) ? p : acc))
       : 'free';
 
-    // Extra reconciliation for Gmail alias duplicates: pick the lowest plan among all alias accounts
-    try {
-      const em = String(user.email || '').toLowerCase();
-      const parts = em.split('@');
-      if (parts.length === 2 && (parts[1] === 'gmail.com' || parts[1] === 'googlemail.com')) {
-        // Use robust alias lookup that matches dotted/plus variants
-        const aliasUsers = await DatabaseService.findUsersByGmailAlias(em);
-        if (Array.isArray(aliasUsers) && aliasUsers.length) {
-          for (const au of aliasUsers) {
-            const rp = (au.subscription && typeof au.subscription.plan === 'string') ? au.subscription.plan.toLowerCase().trim() : 'free';
-            const np = planIdsByName[String(au.subscription?.planName || '').toLowerCase().trim()] || null;
-            const ap = (au.subscription?.currency || 'INR') === 'INR' && Object.prototype.hasOwnProperty.call(amountToPlanINR, au.subscription?.amount)
-              ? amountToPlanINR[au.subscription.amount]
-              : null;
-            const cand = [canonicalPlans.includes(rp) ? rp : null, np, ap].filter(Boolean);
-            const aliasNorm = cand.length ? cand.reduce((acc, p) => (planHierarchy.indexOf(p) < planHierarchy.indexOf(acc) ? p : acc)) : 'free';
-            if (planHierarchy.indexOf(aliasNorm) < planHierarchy.indexOf(normalizedPlan)) {
-              normalizedPlan = aliasNorm;
-            }
-          }
-        }
-      }
-    } catch (aliasErr) { console.warn('Alias reconciliation warning:', aliasErr.message); }
+    // Policy update: prefer the logged-in account's plan and do not lower across Gmail aliases.
 
     // Persist repair if any subscription fields drift from normalized plan
     try {
@@ -1145,7 +1123,7 @@ router.post('/verify-login-otp', [
         // Choose primary: the one with the preferred (typed) email if exists, else the provided foundUser
         let primary = aliasUsers.find(u => String(u.email || '').toLowerCase() === lower) || foundUser;
 
-        // Decide best plan across aliases: choose the lowest non-free if any, else free
+        // Policy update: prefer the exact typed email's plan
         const hierarchy = ['free','starter','professional','enterprise'];
         function normalizePlan(u) {
           const planIdsByName = { 'free plan': 'free', 'starter plan': 'starter', 'professional plan': 'professional', 'enterprise plan': 'enterprise' };
@@ -1157,19 +1135,21 @@ router.post('/verify-login-otp', [
             : null;
           const cands = [raw, byName, byAmt].filter(Boolean);
           if (!cands.length) return 'free';
-          return cands.reduce((acc, p) => (hierarchy.indexOf(p) < hierarchy.indexOf(acc) ? p : acc));
+          // Keep raw's precedence if valid; otherwise pick first available
+          return hierarchy.includes(raw) ? raw : cands[0];
         }
-        const aliasPlans = aliasUsers.map(normalizePlan);
-        const nonFree = aliasPlans.filter(p => p !== 'free');
-        const bestPlan = (nonFree.length ? nonFree : aliasPlans).reduce((acc, p) => (hierarchy.indexOf(p) < hierarchy.indexOf(acc) ? p : acc), nonFree.length ? nonFree[0] : aliasPlans[0] || 'free');
 
-        // Update primary with preferred email and best plan
+        // If typed email exists, use its plan; else use the found user's plan
+        const typedUser = aliasUsers.find(u => String(u.email || '').toLowerCase() === lower);
+        const planToApply = normalizePlan(typedUser || foundUser);
+
+        // Update primary with typed email and keep its authoritative plan
         try {
           const { PlanManager } = require('../config/planFeatures');
-          const canonical = PlanManager.getPlanDetails(bestPlan);
+          const canonical = PlanManager.getPlanDetails(planToApply);
           await DatabaseService.updateUser(primary._id, {
             email: lower,
-            'subscription.plan': bestPlan,
+            'subscription.plan': planToApply,
             'subscription.planName': canonical.name,
             'subscription.amount': canonical.price,
             'subscription.currency': canonical.currency,
