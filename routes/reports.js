@@ -53,9 +53,11 @@ async function getReportData(userId, dateRange, reportType) {
         }
 
         const userObjectId = ObjectId.isValid(userId) ? new ObjectId(userId) : userId;
+        const userIdString = typeof userId === 'string' ? userId : (userObjectId?.toString?.() || String(userObjectId));
         
         console.log('🐛 [DEBUG] Looking up user with ObjectId:', userObjectId);
         console.log('🐛 [DEBUG] ObjectId.isValid(userId):', ObjectId.isValid(userId));
+        console.log('🐛 [DEBUG] userId string form:', userIdString);
 
         // Get user data
         const user = await db.collection('users').findOne({ _id: userObjectId });
@@ -146,8 +148,16 @@ async function getReportData(userId, dateRange, reportType) {
             });
             
             // Get sessions for session count and daily breakdown (but use user.usage for message counts)
-            const allSessions = await db.collection('chat_sessions').find({
-                userId: userObjectId
+            // Determine sessions collection name similar to conversations path to be consistent
+            let usageSessionsCollectionName = 'chat_sessions';
+            try {
+                const uc1 = await db.collection('chat_sessions').countDocuments({ $or: [{ userId: userObjectId }, { userId: userIdString }] }).catch(() => 0);
+                const uc2 = await db.collection('chatsessions').countDocuments({ $or: [{ userId: userObjectId }, { userId: userIdString }] }).catch(() => 0);
+                usageSessionsCollectionName = uc1 >= uc2 ? 'chat_sessions' : 'chatsessions';
+            } catch (_) {}
+            const usageSessionsCol = db.collection(usageSessionsCollectionName);
+            const allSessions = await usageSessionsCol.find({
+                $or: [ { userId: userObjectId }, { userId: userIdString } ]
             }).toArray();
             
             // Filter sessions for date range (for daily breakdown)
@@ -212,15 +222,15 @@ async function getReportData(userId, dateRange, reportType) {
             // Determine correct collection name for sessions (compat for 'chat_sessions' and 'chatsessions')
             let sessionsCollectionName = 'chat_sessions';
             try {
-                const c1 = await db.collection('chat_sessions').countDocuments({ userId: userObjectId }).catch(() => 0);
-                const c2 = await db.collection('chatsessions').countDocuments({ userId: userObjectId }).catch(() => 0);
+                const c1 = await db.collection('chat_sessions').countDocuments({ $or: [{ userId: userObjectId }, { userId: userIdString }] }).catch(() => 0);
+                const c2 = await db.collection('chatsessions').countDocuments({ $or: [{ userId: userObjectId }, { userId: userIdString }] }).catch(() => 0);
                 sessionsCollectionName = c1 >= c2 ? 'chat_sessions' : 'chatsessions';
             } catch (_) { /* keep default */ }
             const sessionsCol = db.collection(sessionsCollectionName);
 
             // First, get ALL conversations for this user to debug
             const allConversations = await sessionsCol.find({
-                userId: userObjectId
+                $or: [ { userId: userObjectId }, { userId: userIdString } ]
             }).sort({ createdAt: -1 }).limit(100).toArray();
             
             console.log('💬 [REPORT] All conversations debug:', {
@@ -240,16 +250,20 @@ async function getReportData(userId, dateRange, reportType) {
             
             // Try multiple query approaches against the chosen collection
             const convQuery1 = await sessionsCol.find({
-                userId: userObjectId,
-                createdAt: { $gte: startDate, $lte: now }
+                $and: [
+                    { $or: [ { userId: userObjectId }, { userId: userIdString } ] },
+                    { createdAt: { $gte: startDate, $lte: now } }
+                ]
             }).sort({ createdAt: -1 }).limit(200).toArray();
             
             const convQuery2 = await sessionsCol.find({
-                userId: userObjectId,
-                $or: [
-                    { createdAt: { $gte: startDate, $lte: now } },
-                    { startTime: { $gte: startDate, $lte: now } },
-                    { updatedAt: { $gte: startDate, $lte: now } }
+                $and: [
+                    { $or: [ { userId: userObjectId }, { userId: userIdString } ] },
+                    { $or: [
+                        { createdAt: { $gte: startDate, $lte: now } },
+                        { startTime: { $gte: startDate, $lte: now } },
+                        { updatedAt: { $gte: startDate, $lte: now } }
+                    ] }
                 ]
             }).sort({ createdAt: -1 }).limit(200).toArray();
             
@@ -343,6 +357,61 @@ async function getReportData(userId, dateRange, reportType) {
 
             // Filter to conversations that finally have messages
             reportData.conversations = mapped.filter(conv => conv.messageCount > 0);
+
+            // Final fallback: build conversations directly from message logs if still empty
+            if (!reportData.conversations.length) {
+                try {
+                    console.log('🛟 [REPORT] No sessions with messages found; using logs-only fallback');
+                    // Determine logs collection name
+                    let logsCollectionName = 'messagelogs';
+                    try {
+                        const l1 = await db.collection('messagelogs').countDocuments({ userId: userObjectId }).catch(() => 0);
+                        const l2 = await db.collection('message_logs').countDocuments({ userId: userObjectId }).catch(() => 0);
+                        logsCollectionName = l1 >= l2 ? 'messagelogs' : 'message_logs';
+                    } catch (_) {}
+                    const logsCol = db.collection(logsCollectionName);
+
+                    // Fetch logs within date range for this user
+                    const logs = await logsCol.find({
+                        userId: userObjectId,
+                        $or: [
+                            { timestamp: { $gte: startDate, $lte: now } },
+                            { createdAt: { $gte: startDate, $lte: now } }
+                        ]
+                    }).sort({ sessionId: 1, timestamp: 1, createdAt: 1 }).limit(2000).toArray();
+
+                    // Group by sessionId
+                    const bySession = new Map();
+                    for (const lg of logs) {
+                        const sid = lg.sessionId || 'unknown';
+                        if (!bySession.has(sid)) bySession.set(sid, []);
+                        bySession.get(sid).push(lg);
+                    }
+
+                    const built = [];
+                    for (const [sid, arr] of bySession.entries()) {
+                        const msgs = [];
+                        let start = null, end = null;
+                        for (const lg of arr) {
+                            const ts = lg.timestamp || lg.createdAt || new Date();
+                            if (!start || ts < start) start = ts;
+                            if (!end || ts > end) end = ts;
+                            if (lg.userMessage) {
+                                msgs.push({ timestamp: ts, sender: 'user', message: lg.userMessage, preview: (lg.userMessage || '').slice(0, 200), type: 'user' });
+                            }
+                            if (lg.aiResponse) {
+                                msgs.push({ timestamp: ts, sender: 'assistant', message: lg.aiResponse, preview: (lg.aiResponse || '').slice(0, 200), type: 'assistant' });
+                            }
+                        }
+                        built.push({ sessionId: sid, startTime: start || new Date(), endTime: end || start || new Date(), messageCount: msgs.length, messages: msgs });
+                    }
+
+                    reportData.conversations = built.filter(b => b.messageCount > 0);
+                    console.log('🛟 [REPORT] Logs-only fallback built conversations:', reportData.conversations.length);
+                } catch (e) {
+                    console.warn('⚠️ [REPORT] Logs-only fallback failed:', e.message);
+                }
+            }
             
             console.log('💬 [REPORT] Final conversations:', {
                 count: reportData.conversations.length,
