@@ -537,34 +537,76 @@ router.get('/invoice/:paymentId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Verify the payment belongs to this user
+    // Verify the payment belongs to this user (allow 'latest')
     if (user.subscription?.razorpayPaymentId !== paymentId && paymentId !== 'latest') {
       return res.status(403).json({ error: 'Access denied to this invoice' });
     }
 
-    // Get payment details
-    const payment = user.subscription?.lastPayment || {};
+    // Resolve plan and pricing from canonical config when missing
+    const { PlanManager } = require('../config/planFeatures');
+    const nameToId = {
+      'free plan': 'free',
+      'starter plan': 'starter',
+      'professional plan': 'professional',
+      'enterprise plan': 'enterprise'
+    };
+
+    const sub = user.subscription || {};
+    const lastPayment = sub.lastPayment || {};
+
+    let planId = sub.plan || nameToId[(sub.planName || '').toLowerCase()] || 'free';
+
+    // Derive from last payment amount if planId unknown
+    if (!PlanManager.getAllPlans()[planId]) {
+      try {
+        const plans = PlanManager.getAllPlans();
+        const byPrice = Object.entries(plans).find(([pid, p]) => Number(p.price) === Number(lastPayment.amount || sub.amount));
+        if (byPrice) planId = byPrice[0];
+      } catch (_) {}
+    }
+
+    const plan = PlanManager.getPlanDetails(planId);
+
+    // Effective invoice values (prefer last payment, fallback to plan)
+    const amount = Number(lastPayment.amount || sub.amount || plan.price || 0);
+    const currency = (lastPayment.currency || sub.currency || plan.currency || 'INR').toUpperCase();
+    const billingCycle = (lastPayment.billingCycle || sub.billingCycle || plan.billingCycle || 'monthly');
+    const planName = (lastPayment.planName || sub.planName || plan.name || 'Subscription');
+
+    // Currency helpers
+    const currencySymbol = (code) => {
+      switch (String(code).toUpperCase()) {
+        case 'INR': return '&#8377;'; // ₹
+        case 'USD': return '&#36;';  // $
+        case 'EUR': return '&#8364;'; // €
+        default: return '';
+      }
+    };
+    const formatAmount = (num, code) => new Intl.NumberFormat(code === 'INR' ? 'en-IN' : 'en-US', { maximumFractionDigits: 0 }).format(Number(num || 0));
+
+    // Build invoice payload
     const invoiceData = {
-      invoiceNumber: `INV-${paymentId.slice(-8)}`,
-      date: payment.date || user.subscription?.currentPeriodStart || new Date(),
-      dueDate: user.subscription?.currentPeriodEnd || new Date(),
-      customer: {
-        name: user.name,
-        email: user.email,
-        id: user._id
-      },
-      items: [{
-        description: `${payment.planName || user.subscription?.planName || 'Subscription'} - Monthly`,
+      invoiceNumber: lastPayment.paymentId ? `INV-${String(lastPayment.paymentId).slice(-8)}` : `INV-${user._id.toString().slice(-6)}-${Date.now().toString().slice(-6)}`,
+      date: lastPayment.date || sub.currentPeriodStart || new Date(),
+      dueDate: sub.currentPeriodEnd || new Date(),
+      customer: { name: user.name, email: user.email, id: user._id },
+      item: {
+        description: `${planName} - ${billingCycle.charAt(0).toUpperCase() + billingCycle.slice(1)}`,
         quantity: 1,
-        rate: payment.amount || user.subscription?.amount || 0,
-        amount: payment.amount || user.subscription?.amount || 0
-      }],
-      subtotal: payment.amount || user.subscription?.amount || 0,
-      total: payment.amount || user.subscription?.amount || 0,
-      currency: payment.currency || user.subscription?.currency || 'INR',
+        rate: amount,
+        amount: amount
+      },
+      subtotal: amount,
+      total: amount,
+      currency,
+      currencySymbol: currencySymbol(currency),
+      totalFormatted: formatAmount(amount, currency),
+      rateFormatted: formatAmount(amount, currency),
+      planName,
+      billingCycle,
       paymentMethod: 'Razorpay',
-      paymentId: paymentId,
-      orderId: user.subscription?.razorpayOrderId
+      paymentId: lastPayment.paymentId || (paymentId === 'latest' ? 'latest' : paymentId),
+      orderId: sub.razorpayOrderId || 'N/A'
     };
 
     // Format invoice as HTML for now (could be PDF in production)
@@ -572,6 +614,7 @@ router.get('/invoice/:paymentId', authenticateToken, async (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
+        <meta charset="utf-8">
         <title>Invoice ${invoiceData.invoiceNumber}</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 40px; }
@@ -585,6 +628,7 @@ router.get('/invoice/:paymentId', authenticateToken, async (req, res) => {
             th { background-color: #f8f9fa; font-weight: bold; }
             .total-row { font-weight: bold; background-color: #f8f9fa; }
             .footer { border-top: 2px solid #eee; padding-top: 20px; margin-top: 30px; color: #666; font-size: 12px; }
+            .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
         </style>
     </head>
     <body>
@@ -609,6 +653,7 @@ router.get('/invoice/:paymentId', authenticateToken, async (req, res) => {
                 <strong>Invoice #:</strong> ${invoiceData.invoiceNumber}<br>
                 <strong>Date:</strong> ${new Date(invoiceData.date).toLocaleDateString('en-IN')}<br>
                 <strong>Due Date:</strong> ${new Date(invoiceData.dueDate).toLocaleDateString('en-IN')}<br>
+                <strong>Plan:</strong> ${invoiceData.planName}<br>
                 <strong>Payment ID:</strong> ${invoiceData.paymentId}
             </div>
         </div>
@@ -623,17 +668,15 @@ router.get('/invoice/:paymentId', authenticateToken, async (req, res) => {
                 </tr>
             </thead>
             <tbody>
-                ${invoiceData.items.map(item => `
                 <tr>
-                    <td>${item.description}</td>
-                    <td>${item.quantity}</td>
-                    <td>₹${item.rate}</td>
-                    <td>₹${item.amount}</td>
+                    <td>${invoiceData.item.description}</td>
+                    <td class="mono">${invoiceData.item.quantity}</td>
+                    <td class="mono">${invoiceData.currencySymbol}${invoiceData.rateFormatted}</td>
+                    <td class="mono">${invoiceData.currencySymbol}${invoiceData.totalFormatted}</td>
                 </tr>
-                `).join('')}
                 <tr class="total-row">
                     <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
-                    <td><strong>₹${invoiceData.total}</strong></td>
+                    <td class="mono"><strong>${invoiceData.currencySymbol}${invoiceData.totalFormatted}</strong></td>
                 </tr>
             </tbody>
         </table>
@@ -650,7 +693,7 @@ router.get('/invoice/:paymentId', authenticateToken, async (req, res) => {
     </html>
     `;
 
-    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Content-Disposition', `inline; filename="invoice-${invoiceData.invoiceNumber}.html"`);
     res.send(invoiceHtml);
     
