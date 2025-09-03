@@ -635,22 +635,16 @@
                                 const posEl = document.querySelector(`.select-option[data-position="${w.position}"]`);
                                 if (posEl) posEl.classList.add('active');
                             }
-                            // Icon selection
-                            if (w.icon) {
-                                document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
-                                let desired = w.icon;
-                                // If user has a custom logo but icon is not set to custom, prefer custom
-                                if (window.currentCustomLogoUrl && (!w.icon || w.icon === 'mouna')) {
-                                    desired = 'custom';
-                                }
-                                const iconEl = document.querySelector(`.select-option[data-icon="${desired}"]`);
-                                if (iconEl) iconEl.classList.add('active');
-                            } else if (window.currentCustomLogoUrl) {
-                                // Default to custom if custom logo exists
-                                document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
-                                const iconEl = document.querySelector(`.select-option[data-icon="custom"]`);
-                                if (iconEl) iconEl.classList.add('active');
+                            // Icon selection — prefer custom if a custom logo exists
+                            document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
+                            let desired = 'chat';
+                            if (window.currentCustomLogoUrl) {
+                                desired = 'custom';
+                            } else if (w.icon) {
+                                desired = w.icon;
                             }
+                            const iconEl = document.querySelector(`.select-option[data-icon="${desired}"]`);
+                            if (iconEl) iconEl.classList.add('active');
                             // Size and animation
                             if (w.size) {
                                 const s = document.getElementById('widget-size');
@@ -924,6 +918,10 @@
                 
                 const primaryColor = primaryColorEl ? primaryColorEl.value : '#667eea';
                 const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
+                const sizeSel = document.getElementById('widget-size');
+                const sizeValue = sizeSel ? sizeSel.value : 'medium';
+                const iconChoice = document.querySelector('.select-option[data-icon].active')?.dataset.icon || 'chat';
+                const logoUrl = iconChoice === 'custom' ? (window.currentCustomLogoUrl || '') : '';
                 
                 const modeEl = document.getElementById('auto-open-mode');
                 const delayEl = document.getElementById('auto-open-delay');
@@ -931,6 +929,11 @@
 
                 // Prefer remote configuration: only include api key and optional tenant id placeholder
                 let attrs = `data-api-key=\"your-api-key\" data-tenant-id=\"{{your_tenant_id}}\"`;
+                // Visuals
+                if (primaryColor) attrs += ` data-primary-color=\"${primaryColor}\"`;
+                if (position) attrs += ` data-position=\"${position}\"`;
+                if (sizeValue) attrs += ` data-size=\"${sizeValue}\"`;
+                if (logoUrl) attrs += ` data-logo=\"${logoUrl}\"`;
                 // Behaviors are safe to include
                 if (modeEl && modeEl.value && modeEl.value !== 'never') {
                     attrs += ` data-auto-open=\"${modeEl.value}\"`;
