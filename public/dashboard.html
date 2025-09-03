@@ -672,7 +672,7 @@
             </div>
 
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <a href="/pricing" class="btn">Change Plan</a>
+                <button onclick="changePlanPrompt()" class="btn">Change Plan</button>
                 <button onclick="downloadInvoice()" class="btn btn-secondary">Download Invoice</button>
                 <button onclick="updatePaymentMethod()" class="btn btn-secondary">Update Payment</button>
             </div>
@@ -821,6 +821,36 @@
             console.log('💳 Update Payment Method clicked');
             // Redirect to pricing/billing page for now
             window.location.href = '/pricing?tab=billing';
+        }
+
+        async function changePlanPrompt() {
+            try {
+                const desired = prompt('Enter plan to apply (free, starter, professional, enterprise):', 'starter');
+                if (!desired) return;
+                const plan = desired.trim().toLowerCase();
+                if (!['free','starter','professional','enterprise'].includes(plan)) {
+                    alert('Invalid plan. Allowed: free, starter, professional, enterprise');
+                    return;
+                }
+                const token = localStorage.getItem('authToken');
+                if (!token) { alert('Please sign in again.'); return; }
+                const resp = await fetch('/api/payments/subscription/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ plan })
+                });
+                const data = await resp.json().catch(()=>({}));
+                if (!resp.ok) {
+                    console.error('Change plan failed:', data);
+                    alert(`Failed to change plan: ${data?.error || resp.status}`);
+                    return;
+                }
+                alert(data?.message || 'Plan updated. Refreshing...');
+                await refreshSubscription();
+            } catch (e) {
+                console.error('changePlanPrompt error:', e);
+                alert('Could not change plan. Please try again.');
+            }
         }
         
         function showIntegrationCode() {
