@@ -707,7 +707,17 @@
         
         function exportReports() {
             console.log('📋 Export Reports clicked');
-            window.location.href = '/pricing?upgrade=professional&feature=Export%20Reports';
+            const plan = (window.currentUserPlan || 'free').toLowerCase();
+            if (plan === 'free') {
+                // Free users: prompt upgrade to Starter for basic reports
+                const url = '/pricing?suggested=starter&feature=reports&upgrade=starter';
+                console.log('🔒 Reports gated for Free. Redirecting to:', url);
+                window.location.href = url;
+                return;
+            }
+            // Starter, Professional, Enterprise: go to Reports page
+            console.log('✅ Reports available for plan:', plan);
+            window.location.href = '/reports';
         }
         
         function testWidget() {
