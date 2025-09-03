@@ -6,6 +6,13 @@ class EmailService {
     this.initialize();
   }
 
+  getSenderAddress() {
+    const name = process.env.EMAIL_FROM_NAME || 'Mouna AI';
+    const userAddr = process.env.SMTP_USER || process.env.EMAIL_USER;
+    const fallback = process.env.EMAIL_FROM || 'support@mouna-ai.com';
+    return userAddr ? `${name} <${userAddr}>` : `${name} <${fallback}>`;
+  }
+
   initialize() {
     // Prefer explicit SMTP settings if provided (Railway/Titan friendly)
     const provider = (process.env.EMAIL_PROVIDER || process.env.EMAIL_SERVICE || '').toLowerCase();
@@ -24,9 +31,14 @@ class EmailService {
             host,
             port,
             secure,
+            pool: true,
+            maxConnections: parseInt(process.env.SMTP_MAX_CONNECTIONS || '3', 10),
+            maxMessages: parseInt(process.env.SMTP_MAX_MESSAGES || '100', 10),
+            requireTLS: (process.env.SMTP_REQUIRE_TLS || 'true').toLowerCase() === 'true',
+            tls: { ciphers: process.env.SMTP_CIPHERS || 'TLSv1.2' },
             auth: { user, pass }
           });
-          console.log(`✅ Email transporter configured (SMTP: ${host}:${port}, secure=${secure})`);
+          console.log(`✅ Email transporter configured (SMTP: ${host}:${port}, secure=${secure}, pool=true)`);
         }
       }
 
@@ -34,12 +46,15 @@ class EmailService {
       if (!this.transporter && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         this.transporter = nodemailer.createTransport({
           service: 'gmail',
+          pool: true,
+          maxConnections: 2,
+          maxMessages: 100,
           auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
           }
         });
-        console.log('✅ Email transporter configured (Gmail service)');
+        console.log('✅ Email transporter configured (Gmail service, pooled)');
       }
     } catch (initErr) {
       console.warn('⚠️ Failed to initialize SMTP transporter:', initErr.message);
@@ -176,9 +191,18 @@ class EmailService {
 
   async sendOTPEmail(userEmail, userName, otp) {
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@mouna-ai.com',
+      from: this.getSenderAddress(),
+      replyTo: process.env.REPLY_TO || 'support@mouna-ai.com',
       to: userEmail,
       subject: 'Your OTP for Mouna AI Registration',
+      priority: 'high',
+      headers: {
+        'X-Priority': '1 (Highest)',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High',
+        'Priority': 'urgent',
+        'Precedence': 'urgent'
+      },
       html: `
         <!DOCTYPE html>
         <html>
@@ -247,9 +271,18 @@ class EmailService {
   async sendSignupOTPEmail(userEmail, otp) {
     const userName = userEmail.split('@')[0]; // Use email prefix as name
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@mouna-ai.com',
+      from: this.getSenderAddress(),
+      replyTo: process.env.REPLY_TO || 'support@mouna-ai.com',
       to: userEmail,
       subject: '🚀 Welcome to Mouna AI - Email Verification',
+      priority: 'high',
+      headers: {
+        'X-Priority': '1 (Highest)',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High',
+        'Priority': 'urgent',
+        'Precedence': 'urgent'
+      },
       html: `
         <!DOCTYPE html>
         <html>
@@ -319,9 +352,18 @@ class EmailService {
 
   async sendLoginOTPEmail(userEmail, userName, otp) {
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@mouna-ai.com',
+      from: this.getSenderAddress(),
+      replyTo: process.env.REPLY_TO || 'support@mouna-ai.com',
       to: userEmail,
       subject: '🔐 Login Verification Code - Mouna AI',
+      priority: 'high',
+      headers: {
+        'X-Priority': '1 (Highest)',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High',
+        'Priority': 'urgent',
+        'Precedence': 'urgent'
+      },
       html: `
         <!DOCTYPE html>
         <html>
@@ -444,10 +486,24 @@ class EmailService {
           personalizations: [
             {
               to: [{ email: mailOptions.to }],
-              subject: mailOptions.subject
+              subject: mailOptions.subject,
+              headers: {
+                'X-Priority': '1 (Highest)',
+                'X-MSMail-Priority': 'High',
+                'Importance': 'High'
+              }
             }
           ],
-          from: { email: mailOptions.from },
+          from: { email: (mailOptions.from?.address || mailOptions.from || (process.env.EMAIL_USER || 'support@mouna-ai.com')) },
+          reply_to: mailOptions.replyTo ? { email: mailOptions.replyTo } : undefined,
+          categories: ['otp','transactional'],
+          mail_settings: {
+            sandbox_mode: { enable: false }
+          },
+          tracking_settings: {
+            click_tracking: { enable: false, enable_text: false },
+            open_tracking: { enable: false }
+          },
           content: []
         };
         // SendGrid requires text/plain first, then text/html
