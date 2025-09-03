@@ -446,9 +446,13 @@
                                 <i class="fas fa-robot"></i>
                                 <div>Robot</div>
                             </div>
-<div class="select-option" data-icon="mouna">
-<img src="/images/logo.png" alt="Mouna" style="width:24px;height:24px;object-fit:contain;">
+                            <div class="select-option" data-icon="mouna">
+                                <img src="/images/logo.png" alt="Mouna" style="width:24px;height:24px;object-fit:contain;">
                                 <div>Mouna</div>
+                            </div>
+                            <div class="select-option" data-icon="custom" id="icon-custom-option" style="display:none;">
+                                <img id="icon-custom-image" src="" alt="Custom Logo" style="width:24px;height:24px;object-fit:contain;">
+                                <div>Custom</div>
                             </div>
                         </div>
                     </div>
@@ -600,6 +604,15 @@
                                 previewEl.src = existingLogo;
                                 previewEl.style.display = 'inline-block';
                             }
+                            // Expose custom logo globally for preview
+                            window.currentCustomLogoUrl = existingLogo || null;
+                            // If a custom logo exists, reveal and populate the 'Custom' icon option
+                            const customOpt = document.getElementById('icon-custom-option');
+                            const customImg = document.getElementById('icon-custom-image');
+                            if (customOpt && customImg && window.currentCustomLogoUrl) {
+                                customOpt.style.display = 'block';
+                                customImg.src = window.currentCustomLogoUrl;
+                            }
                             // Primary color
                             if (w.primaryColor) {
                                 const colorEl = document.getElementById('primary-color');
@@ -625,7 +638,17 @@
                             // Icon selection
                             if (w.icon) {
                                 document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
-                                const iconEl = document.querySelector(`.select-option[data-icon="${w.icon}"]`);
+                                let desired = w.icon;
+                                // If user has a custom logo but icon is not set to custom, prefer custom
+                                if (window.currentCustomLogoUrl && (!w.icon || w.icon === 'mouna')) {
+                                    desired = 'custom';
+                                }
+                                const iconEl = document.querySelector(`.select-option[data-icon="${desired}"]`);
+                                if (iconEl) iconEl.classList.add('active');
+                            } else if (window.currentCustomLogoUrl) {
+                                // Default to custom if custom logo exists
+                                document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
+                                const iconEl = document.querySelector(`.select-option[data-icon="custom"]`);
                                 if (iconEl) iconEl.classList.add('active');
                             }
                             // Size and animation
@@ -704,6 +727,17 @@
                     if (resp.ok && data.url) {
                         logoPreview.src = data.url;
                         logoPreview.style.display = 'inline-block';
+                        // Update custom icon option and make it active
+                        window.currentCustomLogoUrl = data.url;
+                        const customOpt = document.getElementById('icon-custom-option');
+                        const customImg = document.getElementById('icon-custom-image');
+                        if (customOpt && customImg) {
+                            customOpt.style.display = 'block';
+                            customImg.src = data.url;
+                            document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
+                            customOpt.classList.add('active');
+                        }
+                        updatePreview();
                         alert('Logo uploaded! It will reflect in your widget shortly.');
                     } else {
                         alert(data.error || 'Upload failed');
@@ -719,6 +753,14 @@
                     if (resp.ok) {
                         if (logoPreview) { logoPreview.src=''; logoPreview.style.display='none'; }
                         if (fileInput) fileInput.value = '';
+                        // Hide custom icon option and revert selection to default Chat icon
+                        window.currentCustomLogoUrl = null;
+                        const customOpt = document.getElementById('icon-custom-option');
+                        if (customOpt) customOpt.style.display = 'none';
+                        const chatOpt = document.querySelector('.select-option[data-icon="chat"]');
+                        document.querySelectorAll('.select-option[data-icon]').forEach(opt => opt.classList.remove('active'));
+                        if (chatOpt) chatOpt.classList.add('active');
+                        updatePreview();
                         alert('Logo removed.');
                     } else {
                         alert(data.error || 'Failed to remove logo');
@@ -825,11 +867,13 @@
                     widgetPreview.style.setProperty('--widget-color', primaryColor);
                     
                     // Update icon
-                    if (icon === 'mouna') {
-widgetPreview.innerHTML = `<img src=\"/images/logo.png\" alt=\"Mouna\" style=\"width:28px;height:28px;object-fit:contain;\">`;
+                    if (icon === 'custom' && window.currentCustomLogoUrl) {
+                        widgetPreview.innerHTML = `<img src=\"${window.currentCustomLogoUrl}\" alt=\"Logo\" style=\"width:28px;height:28px;object-fit:contain;\">`;
+                    } else if (icon === 'mouna') {
+                        widgetPreview.innerHTML = `<img src=\"/images/logo.png\" alt=\"Mouna\" style=\"width:28px;height:28px;object-fit:contain;\">`;
                     } else {
                         const iconClass = icon === 'robot' ? 'fas fa-robot' : 'fas fa-comments';
-                        widgetPreview.innerHTML = `<i class="${iconClass}"></i>`;
+                        widgetPreview.innerHTML = `<i class=\"${iconClass}\"></i>`;
                     }
 
                     // Update position

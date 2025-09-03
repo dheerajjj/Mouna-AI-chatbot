@@ -267,12 +267,16 @@
             box-shadow: 0 4px 15px rgba(13, 123, 138, 0.3);
         }
         
-        .btn-grid {
+.btn-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 1rem;
             margin-top: 1rem;
         }
+        /* Ensure grid children don't overflow their tracks */
+        .btn-grid > * { min-width: 0; }
+        /* Allow button content to wrap instead of overflowing */
+        .btn { min-width: 0; white-space: normal; flex-wrap: wrap; }
         
         .pro-badge {
             background: linear-gradient(135deg, #f59e0b, #d97706);
