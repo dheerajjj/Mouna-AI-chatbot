@@ -1767,6 +1767,7 @@
             // Pull saved customizations with sensible defaults
             const primaryColor = userWidgetConfig.primaryColor || '#667eea';
             const position = userWidgetConfig.position || 'bottom-right';
+            const size = userWidgetConfig.size ? htmlEscape(userWidgetConfig.size) : '';
             const title = userWidgetConfig.title ? htmlEscape(userWidgetConfig.title) : '';
             const welcomeMessage = userWidgetConfig.welcomeMessage ? htmlEscape(userWidgetConfig.welcomeMessage) : '';
             const subtitle = userWidgetConfig.subtitle ? htmlEscape(userWidgetConfig.subtitle) : '';
@@ -1781,6 +1782,7 @@
                 `        <span class=\"attr\">data-primary-color</span>=<span class=\"string\">\"${htmlEscape(primaryColor)}\"</span>`,
                 `        <span class=\"attr\">data-position</span>=<span class=\"string\">\"${htmlEscape(position)}\"</span>`
             ];
+            if (size) attrLines.push(`        <span class=\"attr\">data-size</span>=<span class=\"string\">\"${size}\"</span>`);
 
             if (title) attrLines.push(`        <span class=\"attr\">data-title</span>=<span class=\"string\">\"${title}\"</span>`);
             if (subtitle) attrLines.push(`        <span class=\"attr\">data-subtitle</span>=<span class=\"string\">\"${subtitle}\"</span>`);

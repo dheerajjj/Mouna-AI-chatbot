@@ -150,6 +150,43 @@ const userSchema = new mongoose.Schema({
       type: String,
       enum: ['en', 'hi', 'te', 'ta', 'mr', 'kn'],
       default: 'en'
+    },
+    // New customization fields
+    size: {
+      type: String,
+      enum: ['small', 'medium', 'large'],
+      default: 'medium'
+    },
+    animation: {
+      type: String,
+      enum: ['pulse', 'bounce', 'none'],
+      default: 'pulse'
+    },
+    icon: {
+      type: String,
+      enum: ['chat', 'robot', 'mouna', 'custom'],
+      default: 'chat'
+    },
+    customLogoUrl: {
+      type: String,
+      default: null
+    },
+    autoOpenMode: {
+      type: String,
+      enum: ['never', 'immediate', 'time', 'exit', 'returning'],
+      default: 'never'
+    },
+    autoOpenDelay: {
+      type: Number,
+      default: 10
+    },
+    autoOpenFrequency: {
+      type: String,
+      enum: ['always', 'session', 'daily'],
+      default: 'always'
+    },
+    fontFamily: {
+      type: String
     }
   },
   
