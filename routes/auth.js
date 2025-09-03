@@ -400,8 +400,13 @@ router.get('/profile', authenticateToken, async (req, res) => {
       ? amountToPlanINR[user.subscription.amount]
       : null;
 
-    // Choose a normalized plan with deterministic priority: amount > name > id
-    let normalizedPlan = amtPlan || namePlan || (canonicalPlans.includes(rawPlan) ? rawPlan : 'free');
+    // Choose the safest normalized plan by taking the lowest tier among all signals
+    const planHierarchy = ['free','starter','professional','enterprise'];
+    const rawCandidate = canonicalPlans.includes(rawPlan) ? rawPlan : null;
+    const candidates = [rawCandidate, namePlan, amtPlan].filter(Boolean);
+    let normalizedPlan = candidates.length
+      ? candidates.reduce((acc, p) => (planHierarchy.indexOf(p) < planHierarchy.indexOf(acc) ? p : acc))
+      : 'free';
 
     // Persist repair if plan differs
     if (normalizedPlan !== rawPlan) {
@@ -606,7 +611,12 @@ router.get('/debug-user-plan', async (req, res) => {
     const amtPlan = (user.subscription?.currency || 'INR') === 'INR' && Object.prototype.hasOwnProperty.call(amountToPlanINR, user.subscription?.amount)
       ? amountToPlanINR[user.subscription.amount]
       : null;
-    const normalizedPlan = amtPlan || namePlan || (canonicalPlans.includes(rawPlan) ? rawPlan : 'free');
+    const planHierarchy = ['free','starter','professional','enterprise'];
+    const rawCandidate = canonicalPlans.includes(rawPlan) ? rawPlan : null;
+    const candidates = [rawCandidate, namePlan, amtPlan].filter(Boolean);
+    const normalizedPlan = candidates.length
+      ? candidates.reduce((acc, p) => (planHierarchy.indexOf(p) < planHierarchy.indexOf(acc) ? p : acc))
+      : 'free';
 
     const { PlanManager } = require('../config/planFeatures');
     let planDetails = PlanManager.getPlanDetails(normalizedPlan);

@@ -503,7 +503,7 @@
             </div>
 
             <!-- Analytics & Insights -->
-            <div class="card">
+            <div class="card" id="analytics-card" style="visibility:hidden">
                 <h3>
                     <div class="card-icon">
                         <i class="fas fa-chart-line"></i>
@@ -980,6 +980,9 @@
                         ...data.user,
                         subscription: { ...(data.user.subscription || {}), plan: currentPlan }
                     }, currentPlan);
+                    
+                    // Reveal analytics card now that data is bound to avoid flicker
+                    try { const ac = document.getElementById('analytics-card'); if (ac) ac.style.visibility = 'visible'; } catch (_) {}
                     
                     console.log('✅ Dashboard loaded successfully with user data');
                 }
