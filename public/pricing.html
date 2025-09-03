@@ -667,12 +667,14 @@
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
-                        }
+                        },
+                        cache: 'no-store'
                     });
                     
                     if (response.ok) {
                         const { user } = await response.json();
-                        currentUserPlan = user.subscription?.plan || 'free';
+                        // Prefer server-resolved plan.current.id, then subscription.plan
+                        currentUserPlan = (user.plan && user.plan.current && user.plan.current.id) || user.subscription?.plan || 'free';
                     }
                 }
             } catch (error) {
