@@ -408,14 +408,24 @@ router.get('/profile', authenticateToken, async (req, res) => {
       ? candidates.reduce((acc, p) => (planHierarchy.indexOf(p) < planHierarchy.indexOf(acc) ? p : acc))
       : 'free';
 
-    // Persist repair if plan differs
-    if (normalizedPlan !== rawPlan) {
-      try {
-        await DatabaseService.updateUser(user._id, { 'subscription.plan': normalizedPlan });
-        console.log('🔧 Repaired subscription.plan mismatch:', { email: user.email, from: rawPlan, to: normalizedPlan });
-      } catch (e) {
-        console.warn('⚠️ Failed to persist plan repair:', e.message);
+    // Persist repair if any subscription fields drift from normalized plan
+    try {
+      const { PlanManager } = require('../config/planFeatures');
+      const canonical = PlanManager.getPlanDetails(normalizedPlan) || {};
+      const patch = {};
+      let needsPatch = false;
+      if (user.subscription?.plan !== normalizedPlan) { patch['subscription.plan'] = normalizedPlan; needsPatch = true; }
+      if (user.subscription?.planName !== canonical.name) { patch['subscription.planName'] = canonical.name; needsPatch = true; }
+      if (typeof canonical.price === 'number' && user.subscription?.amount !== canonical.price) { patch['subscription.amount'] = canonical.price; needsPatch = true; }
+      if (canonical.currency && user.subscription?.currency !== canonical.currency) { patch['subscription.currency'] = canonical.currency; needsPatch = true; }
+      if (canonical.billingCycle && user.subscription?.billingCycle !== canonical.billingCycle) { patch['subscription.billingCycle'] = canonical.billingCycle; needsPatch = true; }
+      if (needsPatch) {
+        patch['subscription.updatedAt'] = new Date();
+        await DatabaseService.updateUser(user._id, patch);
+        console.log('🔧 Repaired subscription fields:', { email: user.email, patch });
       }
+    } catch (e) {
+      console.warn('⚠️ Failed to persist plan repair:', e.message);
     }
 
     // Initialize defaults first
