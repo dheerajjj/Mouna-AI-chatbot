@@ -333,6 +333,7 @@ router.post('/login', [
 
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
+  try { res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate'); } catch(_) {}
   try {
     console.log('🔍 Profile endpoint called');
     console.log('📋 JWT payload:', req.user);
