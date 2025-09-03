@@ -405,6 +405,7 @@ function updateWidgetLanguage(lang) {
                     if (typeof config.maxMessages === 'number') currentConfig.maxMessages = config.maxMessages;
                     if (config.position) currentConfig.position = config.position;
                     if (config.customLogoUrl) currentConfig.customLogo = config.customLogoUrl;
+                    if (config.size) currentConfig.size = config.size;
                     const mode = config.autoOpenMode || config.autoOpen;
                     const delay = typeof config.autoOpenDelay === 'number' ? config.autoOpenDelay : undefined;
                     const freq = config.autoOpenFrequency || 'always';
@@ -619,8 +620,34 @@ function createWidgetStyles() {
         }
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) closeWidget(); });
     }
+    function getTriggerDiameter() {
+        try {
+            const map = { small: 50, medium: 60, large: 70 };
+            const size = (currentConfig.size || 'medium').toLowerCase();
+            return map[size] || 60;
+        } catch (_) { return 60; }
+    }
+    function applyTriggerSize() {
+        try {
+            const trigger = widget && widget.querySelector ? widget.querySelector('#aiChatToggle') : null;
+            if (!trigger) return;
+            const d = getTriggerDiameter();
+            trigger.style.width = `${d}px`;
+            trigger.style.height = `${d}px`;
+        } catch (_) {}
+    }
     function renderTriggerIcon() {
-        try { const trigger = widget && widget.querySelector ? widget.querySelector('#aiChatToggle') : null; if (!trigger) return; const notif = trigger.querySelector('#chatbot-notification'); if (currentConfig.customLogo) { const notifHtml = notif ? notif.outerHTML : '<span class="chatbot-widget-notification" id="chatbot-notification" style="display: none;"></span>'; trigger.innerHTML = `<img src="${currentConfig.customLogo}" alt="Chat" style=\"width:28px;height:28px;object-fit:contain;\">` + notifHtml; } } catch (e) {}
+        try {
+            const trigger = widget && widget.querySelector ? widget.querySelector('#aiChatToggle') : null;
+            if (!trigger) return;
+            const notif = trigger.querySelector('#chatbot-notification');
+            const d = getTriggerDiameter();
+            const iconPx = Math.max(18, Math.round(d * 0.45));
+            if (currentConfig.customLogo) {
+                const notifHtml = notif ? notif.outerHTML : '<span class="chatbot-widget-notification" id="chatbot-notification" style="display: none;"></span>';
+                trigger.innerHTML = `<img src="${currentConfig.customLogo}" alt="Chat" style=\"width:${iconPx}px;height:${iconPx}px;object-fit:contain;\">` + notifHtml;
+            }
+        } catch (e) {}
     }
     function setupAutoOpenRules() {
         try {
@@ -649,7 +676,7 @@ if (scriptTag) {
             const apiKey = scriptTag.getAttribute('data-api-key'); if (apiKey) currentConfig.apiKey = apiKey;
             const apiUrl = scriptTag.getAttribute('data-api-url'); if (apiUrl) currentConfig.apiEndpoint = apiUrl;
             const tenantId = scriptTag.getAttribute('data-tenant-id'); if (tenantId) currentConfig.tenantId = tenantId;
-            const attributes = ['primary-color','position','title','welcome-message','subtitle','auto-open','auto-open-delay'];
+            const attributes = ['primary-color','position','title','welcome-message','subtitle','auto-open','auto-open-delay','size'];
             attributes.forEach(attr => { const value = scriptTag.getAttribute(`data-${attr}`); if (value) { const configKey = attr.replace(/-([a-z])/g, (g) => g[1].toUpperCase()); currentConfig[configKey] = value; } });
             // Support legacy alias data-color (do NOT lock color when using alias)
             const colorAlias = scriptTag.getAttribute('data-color');
@@ -694,10 +721,15 @@ if (scriptTag) {
         widget.innerHTML = createWidgetHTML();
         const styleElement = createElement('div'); styleElement.innerHTML = createWidgetStyles(); document.head.appendChild(styleElement.firstElementChild);
         document.body.appendChild(widget);
+        // Apply initial size based on script attribute (if provided)
+        applyTriggerSize();
         updateWidgetLanguage(currentLanguage);
         renderTriggerIcon();
         bindEvents();
         await loadConfiguration();
+        // Apply server-provided size (if available) and re-render icon
+        applyTriggerSize();
+        renderTriggerIcon();
         if (currentConfig.tenantId) { await loadTenantConfiguration(currentConfig.tenantId); }
         setupAutoOpenRules();
     }
