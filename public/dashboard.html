@@ -883,9 +883,9 @@
                         userNameElement.textContent = data.user.name || 'User';
                     }
                     
-                    // Derive current plan strictly from subscription first
-                    let currentPlan = (data.user.subscription && data.user.subscription.plan) ||
-                                        (data.user.plan && data.user.plan.current && data.user.plan.current.id) ||
+                    // Prefer server-resolved plan (plan.current.id), then fall back to subscription
+                    let currentPlan = (data.user.plan && data.user.plan.current && data.user.plan.current.id) ||
+                                        (data.user.subscription && data.user.subscription.plan) ||
                                         'free';
 
                     // Canonical names and limits per plan (frontend mirror)
@@ -951,7 +951,7 @@
                     }
 
                     const planName = planNames[currentPlan] || 'Free Plan';
-                    const limit = planLimitsByPlan[currentPlan] ?? 100;
+                    const limit = (data.user.plan?.current?.limits?.messagesPerMonth ?? planLimitsByPlan[currentPlan] ?? 100);
                     
                     console.log('📋 Detected plan (client-enforced):', { currentPlan, planName, limit, fromName, capDerived });
                     
@@ -1131,7 +1131,7 @@
                     // Update usage counters
                     const monthlyUsageElement = document.getElementById('monthly-usage');
                     const monthlyMessages = data.user.usage?.messagesThisMonth || 0;
-                    const limit = data.user.plan?.current?.limits?.messagesPerMonth;
+                    const limit = data.user.plan?.current?.limits?.messagesPerMonth ?? undefined;
                     if (monthlyUsageElement) {
                         monthlyUsageElement.textContent = (limit === 'unlimited' || limit === -1)
                             ? `${monthlyMessages} / Unlimited`
