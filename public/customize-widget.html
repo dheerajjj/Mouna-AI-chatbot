@@ -801,6 +801,12 @@
                     welcomeMessage.addEventListener('input', updatePreview);
                 }
 
+                // Size selector listener
+                const widgetSizeSel = document.getElementById('widget-size');
+                if (widgetSizeSel) {
+                    widgetSizeSel.addEventListener('change', updatePreview);
+                }
+
                 // Position selector
                 document.querySelectorAll('.select-option[data-position]').forEach(option => {
                     option.addEventListener('click', function() {
@@ -860,20 +866,30 @@
                 const message = messageEl ? messageEl.value : 'Welcome! I\'m here to help you with any questions you might have.';
                 const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
                 const icon = document.querySelector('.select-option[data-icon].active')?.dataset.icon || 'chat';
+                const sizeSel = document.getElementById('widget-size');
+                const sizeValue = sizeSel ? sizeSel.value : 'medium';
+                const sizeMap = { small: 50, medium: 60, large: 70 };
+                const diameter = sizeMap[sizeValue] || 60;
+                // Icon size roughly proportional to diameter
+                const iconPx = Math.max(18, Math.round(diameter * 0.45));
 
                 // Update widget preview
                 const widgetPreview = document.getElementById('widget-preview');
                 if (widgetPreview) {
                     widgetPreview.style.setProperty('--widget-color', primaryColor);
+                    // Apply size
+                    widgetPreview.style.width = `${diameter}px`;
+                    widgetPreview.style.height = `${diameter}px`;
+                    widgetPreview.style.borderRadius = '50%';
                     
                     // Update icon
                     if (icon === 'custom' && window.currentCustomLogoUrl) {
-                        widgetPreview.innerHTML = `<img src=\"${window.currentCustomLogoUrl}\" alt=\"Logo\" style=\"width:28px;height:28px;object-fit:contain;\">`;
+                        widgetPreview.innerHTML = `<img src=\"${window.currentCustomLogoUrl}\" alt=\"Logo\" style=\"width:${iconPx}px;height:${iconPx}px;object-fit:contain;\">`;
                     } else if (icon === 'mouna') {
-                        widgetPreview.innerHTML = `<img src=\"/images/logo.png\" alt=\"Mouna\" style=\"width:28px;height:28px;object-fit:contain;\">`;
+                        widgetPreview.innerHTML = `<img src=\"/images/logo.png\" alt=\"Mouna\" style=\"width:${iconPx}px;height:${iconPx}px;object-fit:contain;\">`;
                     } else {
                         const iconClass = icon === 'robot' ? 'fas fa-robot' : 'fas fa-comments';
-                        widgetPreview.innerHTML = `<i class=\"${iconClass}\"></i>`;
+                        widgetPreview.innerHTML = `<i class=\"${iconClass}\" style=\"font-size:${iconPx}px;\"></i>`;
                     }
 
                     // Update position
