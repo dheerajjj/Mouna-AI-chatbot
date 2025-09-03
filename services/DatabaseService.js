@@ -99,10 +99,38 @@ class DatabaseService {
   }
 
   async findUserByEmail(email) {
+    // Generate candidate variants to handle Gmail dots/aliases and general normalization
+    const candidatesSet = new Set();
+    try {
+      const raw = String(email || '').trim();
+      const lower = raw.toLowerCase();
+      candidatesSet.add(lower);
+      try {
+        const validator = require('validator');
+        const norm = validator.normalizeEmail(raw);
+        if (norm) candidatesSet.add(String(norm).toLowerCase());
+      } catch (_) {}
+      // Gmail-specific variants
+      try {
+        const [local, domain] = lower.split('@');
+        if (domain === 'gmail.com' || domain === 'googlemail.com') {
+          const noPlus = local.split('+')[0];
+          const noDots = noPlus.replace(/\./g, '');
+          candidatesSet.add(`${noPlus}@${domain}`);     // strip +tag
+          candidatesSet.add(`${noDots}@${domain}`);     // strip dots + tag
+          candidatesSet.add(`${local.replace(/\./g,'')}@${domain}`); // strip dots only
+        }
+      } catch (_) {}
+    } catch (_) {}
+    const candidates = Array.from(candidatesSet).filter(Boolean);
+
     if (this.isMongoConnected) {
-      return await this.models.User.findOne({ email });
+      if (candidates.length === 0) return null;
+      return await this.models.User.findOne({ email: { $in: candidates } });
     } else {
-      return await this.mockDB.User.findOne({ email });
+      if (!this.mockDB || !this.mockDB.User || !this.mockDB.users) return null;
+      return await this.mockDB.User.findOne({ email: { $in: candidates } })
+        || this.mockDB.users.find(u => candidates.includes(String(u.email || '').toLowerCase()));
     }
   }
 
