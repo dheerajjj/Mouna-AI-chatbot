@@ -635,9 +635,9 @@ router.get('/invoice/:paymentId', authenticateToken, async (req, res) => {
         <div class="header">
             <h1>INVOICE</h1>
             <div class="company">
-                <strong>Mouna AI</strong><br>
-                AI-Powered Chatbot Solutions<br>
-                contact@mouna-ai.com
+                <strong>Mouna</strong><br>
+                Smart AI Chat<br>
+                info@mouna-ai.com
             </div>
         </div>
         
