@@ -414,15 +414,8 @@ router.get('/profile', authenticateToken, async (req, res) => {
       const em = String(user.email || '').toLowerCase();
       const parts = em.split('@');
       if (parts.length === 2 && (parts[1] === 'gmail.com' || parts[1] === 'googlemail.com')) {
-        const local = parts[0];
-        const baseNoTag = local.split('+')[0];
-        const dotless = baseNoTag.replace(/\./g, '');
-        const variants = new Set([
-          `${local}@${parts[1]}`,
-          `${baseNoTag}@${parts[1]}`,
-          `${dotless}@${parts[1]}`
-        ]);
-        const aliasUsers = await DatabaseService.findUsersByEmails(Array.from(variants));
+        // Use robust alias lookup that matches dotted/plus variants
+        const aliasUsers = await DatabaseService.findUsersByGmailAlias(em);
         if (Array.isArray(aliasUsers) && aliasUsers.length) {
           for (const au of aliasUsers) {
             const rp = (au.subscription && typeof au.subscription.plan === 'string') ? au.subscription.plan.toLowerCase().trim() : 'free';
@@ -1145,14 +1138,8 @@ router.post('/verify-login-otp', [
         if (!domain || (domain !== 'gmail.com' && domain !== 'googlemail.com')) {
           return foundUser; // Non-gmail: nothing to unify
         }
-        const base = local.split('+')[0];
-        const dotless = base.replace(/\./g, '');
-        const variants = Array.from(new Set([
-          `${local}@${domain}`,
-          `${base}@${domain}`,
-          `${dotless}@${domain}`
-        ]));
-        const aliasUsers = await DatabaseService.findUsersByEmails(variants);
+        // Use robust alias lookup to collect all Gmail variants
+        const aliasUsers = await DatabaseService.findUsersByGmailAlias(lower);
         if (!Array.isArray(aliasUsers) || aliasUsers.length === 0) return foundUser;
 
         // Choose primary: the one with the preferred (typed) email if exists, else the provided foundUser

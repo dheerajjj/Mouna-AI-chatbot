@@ -159,6 +159,36 @@ class DatabaseService {
     }
   }
 
+  // Find all Gmail alias accounts for a given Gmail address (handles dots and +tags)
+  async findUsersByGmailAlias(email) {
+    const lower = String(email || '').toLowerCase().trim();
+    const parts = lower.split('@');
+    if (parts.length !== 2) return [];
+    const [local, domain] = parts;
+    if (domain !== 'gmail.com' && domain !== 'googlemail.com') return [];
+
+    // Normalize to base (strip +tag) then remove dots
+    const base = local.split('+')[0].replace(/\./g, '');
+    if (!base) return [];
+
+    if (this.isMongoConnected) {
+      // Build a regex that allows optional dots between every character and optional +tag
+      const escapedChars = base.split('').map(c => c.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+      const dottedPattern = escapedChars.join('\\.?');
+      const regexStr = `^${dottedPattern}(\\+[^@]*)?@(?:gmail\\.com|googlemail\\.com)$`;
+      return await this.models.User.find({ email: { $regex: regexStr, $options: 'i' } });
+    } else {
+      // Mock DB: compare by dotless base
+      return (this.mockDB.users || []).filter(u => {
+        const ue = String(u.email || '').toLowerCase().trim();
+        const [ul, ud] = ue.split('@');
+        if (!ud || (ud !== 'gmail.com' && ud !== 'googlemail.com')) return false;
+        const ubase = ul.split('+')[0].replace(/\./g, '');
+        return ubase === base;
+      });
+    }
+  }
+
   async findUserById(userId) {
     if (this.isMongoConnected) {
       // Handle MongoDB ObjectId conversion
