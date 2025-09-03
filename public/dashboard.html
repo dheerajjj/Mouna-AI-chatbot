@@ -599,7 +599,7 @@
                     <button class="btn btn-secondary" onclick="openBillingModal()">
                         <i class="fas fa-receipt"></i> Billing
                     </button>
-                    <button class="btn btn-secondary" onclick="refreshSubscription()" title="Force refresh subscription from server">
+                    <button id="refresh-sub-btn" class="btn btn-secondary" onclick="refreshSubscription(this)" title="Force refresh subscription from server">
                         <i class="fas fa-sync"></i> Refresh Subscription
                     </button>
                 </div>
@@ -1143,15 +1143,19 @@
         }
 
         // Manual refresh button handler
-        async function refreshSubscription() {
+        async function refreshSubscription(btn) {
+            let prevText = '';
             try {
+                if (btn) { prevText = btn.innerText; btn.disabled = true; btn.innerText = 'Refreshing…'; }
                 const token = localStorage.getItem('authToken');
                 const headers = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = `Bearer ${token}`;
+                else { alert('Please sign in again.'); if (btn){ btn.disabled=false; btn.innerText=prevText; } return; }
 
                 const data = await fetchProfile(headers, 3, 800);
                 if (data && data.user) {
                     // Re-apply UI with the latest profile
+                    const oldPlan = window.currentUserPlan || 'free';
                     window.currentUserPlan = data.user.plan?.current?.id || data.user.subscription?.plan || 'free';
                     applyPlanBasedFeatures(data.user, window.currentUserPlan);
                     // Update status text
@@ -1167,10 +1171,23 @@
                             ? `${monthlyMessages} / Unlimited`
                             : `${monthlyMessages} / ${limit}`;
                     }
+                    // Also update Billing modal labels
+                    try {
+                        const modalPlan = document.getElementById('modal-current-plan');
+                        if (modalPlan) modalPlan.textContent = planName;
+                    } catch(_){}
+                    if (oldPlan !== window.currentUserPlan) {
+                        console.log('Plan changed after refresh:', { from: oldPlan, to: window.currentUserPlan });
+                        alert(`Subscription refreshed. Current plan: ${planName}`);
+                    }
+                } else {
+                    alert('Unable to fetch latest profile. Please try again later.');
                 }
             } catch (e) {
                 console.error('Refresh subscription failed:', e);
                 alert('Could not refresh subscription. Please try again.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerText = prevText || 'Refresh Subscription'; }
             }
         }
         
