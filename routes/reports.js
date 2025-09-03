@@ -502,13 +502,61 @@ function generatePDFReport(reportData) {
                         yPosition = 50;
                     }
                     
+                    const start = conv.startTime instanceof Date ? conv.startTime : new Date(conv.startTime);
                     doc.fontSize(10)
                        .text(`${index + 1}. Session ${conv.sessionId.toString().substring(0, 8)}...`, 70, yPosition)
-                       .text(`   Start: ${conv.startTime.toLocaleString()}`, 90, yPosition + 12)
+                       .text(`   Start: ${start.toLocaleString()}`, 90, yPosition + 12)
                        .text(`   Messages: ${conv.messageCount}`, 90, yPosition + 24);
                     
                     yPosition += 45;
                 });
+
+                // Add detailed transcripts section for conversation logs
+                if (reportData.reportType === 'conversations' || reportData.reportType === 'detailed') {
+                    if (yPosition > 650) {
+                        doc.addPage();
+                        yPosition = 50;
+                    }
+                    doc.fontSize(14).text('Conversation Transcripts', 50, yPosition);
+                    yPosition += 25;
+
+                    const maxWidth = doc.page.width - 100; // 50 margins on each side
+
+                    reportData.conversations.forEach((conv, idx) => {
+                        if (yPosition > 700) { doc.addPage(); yPosition = 50; }
+
+                        const start = conv.startTime instanceof Date ? conv.startTime : new Date(conv.startTime);
+                        const end = conv.endTime instanceof Date ? conv.endTime : new Date(conv.endTime);
+
+                        // Session header
+                        doc.fontSize(12).text(`Session ${conv.sessionId.toString()}`, 50, yPosition);
+                        yPosition += 16;
+                        doc.fontSize(9)
+                           .text(`Start: ${start.toLocaleString()}  |  End: ${end.toLocaleString()}  |  Messages: ${conv.messageCount}`, 60, yPosition);
+                        yPosition += 16;
+
+                        // Messages
+                        (conv.messages || []).forEach((msg, mi) => {
+                            if (yPosition > 740) { doc.addPage(); yPosition = 50; }
+                            const ts = msg.timestamp ? (msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)) : null;
+                            const tsStr = ts ? ts.toLocaleString() : '';
+                            const prefix = `[${tsStr}] ${msg.sender === 'assistant' ? 'Bot' : 'User'}:`;
+
+                            // Prefix line
+                            doc.fontSize(9).fillColor('#111111').text(prefix, 60, yPosition, { continued: false });
+                            yPosition += 12;
+
+                            // Message body (wrap long text)
+                            const text = (msg.message || '').toString();
+                            doc.fontSize(9).fillColor('#333333').text(text, 70, yPosition, { width: maxWidth - 20 });
+                            // Advance y based on text height roughly; pdfkit sets internal cursor, but we track conservatively
+                            yPosition = doc.y + 8;
+                        });
+
+                        // Spacer between sessions
+                        yPosition += 10;
+                    });
+                }
             } else {
                 // Add message when no conversations found
                 doc.fontSize(12).text('No conversation data found for the selected date range.', 50, yPosition);
