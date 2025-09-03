@@ -126,9 +126,15 @@ class DatabaseService {
 
     if (this.isMongoConnected) {
       if (candidates.length === 0) return null;
+      // Prefer exact match of what the user typed
+      const exact = await this.models.User.findOne({ email: String(email || '').toLowerCase().trim() });
+      if (exact) return exact;
       return await this.models.User.findOne({ email: { $in: candidates } });
     } else {
       if (!this.mockDB || !this.mockDB.User || !this.mockDB.users) return null;
+      const exact = await this.mockDB.User.findOne({ email: String(email || '').toLowerCase().trim() })
+        || this.mockDB.users.find(u => String(u.email || '').toLowerCase().trim() === String(email || '').toLowerCase().trim());
+      if (exact) return exact;
       return await this.mockDB.User.findOne({ email: { $in: candidates } })
         || this.mockDB.users.find(u => candidates.includes(String(u.email || '').toLowerCase()));
     }
