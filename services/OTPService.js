@@ -144,7 +144,8 @@ class OTPService {
       try {
         const OTPCode = require('../models/OTPCode');
         const doc = await OTPCode.findOne({ email });
-        if (doc && doc.lastSent && (Date.now() - new Date(doc.lastSent).getTime()) < 60000) {
+        // Allow resend after 20 seconds to improve UX if previous email is delayed in inbox
+        if (doc && doc.lastSent && (Date.now() - new Date(doc.lastSent).getTime()) < 20000) {
           return { success: false, error: 'Please wait before requesting another OTP', code: 'TOO_FREQUENT' };
         }
         const otp = await this.generateAndStoreOTP(email, type);
@@ -157,7 +158,8 @@ class OTPService {
 
     // Memory fallback
     const otpData = this.otpStore.get(email);
-    if (otpData && otpData.lastSent && (Date.now() - otpData.lastSent) < 60000) {
+    // Allow resend after 20 seconds
+    if (otpData && otpData.lastSent && (Date.now() - otpData.lastSent) < 20000) {
       return { success: false, error: 'Please wait before requesting another OTP', code: 'TOO_FREQUENT' };
     }
     const otp = await this.generateAndStoreOTP(email, type);
