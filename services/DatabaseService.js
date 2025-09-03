@@ -148,6 +148,17 @@ class DatabaseService {
     }
   }
 
+  // Find multiple users by a list of candidate emails (lowercased)
+  async findUsersByEmails(emails) {
+    const list = (emails || []).map(e => String(e || '').toLowerCase().trim()).filter(Boolean);
+    if (list.length === 0) return [];
+    if (this.isMongoConnected) {
+      return await this.models.User.find({ email: { $in: list } });
+    } else {
+      return (this.mockDB.users || []).filter(u => list.includes(String(u.email || '').toLowerCase().trim()));
+    }
+  }
+
   async findUserById(userId) {
     if (this.isMongoConnected) {
       // Handle MongoDB ObjectId conversion

@@ -409,6 +409,37 @@ router.get('/profile', authenticateToken, async (req, res) => {
       ? candidates.reduce((acc, p) => (planHierarchy.indexOf(p) < planHierarchy.indexOf(acc) ? p : acc))
       : 'free';
 
+    // Extra reconciliation for Gmail alias duplicates: pick the lowest plan among all alias accounts
+    try {
+      const em = String(user.email || '').toLowerCase();
+      const parts = em.split('@');
+      if (parts.length === 2 && (parts[1] === 'gmail.com' || parts[1] === 'googlemail.com')) {
+        const local = parts[0];
+        const baseNoTag = local.split('+')[0];
+        const dotless = baseNoTag.replace(/\./g, '');
+        const variants = new Set([
+          `${local}@${parts[1]}`,
+          `${baseNoTag}@${parts[1]}`,
+          `${dotless}@${parts[1]}`
+        ]);
+        const aliasUsers = await DatabaseService.findUsersByEmails(Array.from(variants));
+        if (Array.isArray(aliasUsers) && aliasUsers.length) {
+          for (const au of aliasUsers) {
+            const rp = (au.subscription && typeof au.subscription.plan === 'string') ? au.subscription.plan.toLowerCase().trim() : 'free';
+            const np = planIdsByName[String(au.subscription?.planName || '').toLowerCase().trim()] || null;
+            const ap = (au.subscription?.currency || 'INR') === 'INR' && Object.prototype.hasOwnProperty.call(amountToPlanINR, au.subscription?.amount)
+              ? amountToPlanINR[au.subscription.amount]
+              : null;
+            const cand = [canonicalPlans.includes(rp) ? rp : null, np, ap].filter(Boolean);
+            const aliasNorm = cand.length ? cand.reduce((acc, p) => (planHierarchy.indexOf(p) < planHierarchy.indexOf(acc) ? p : acc)) : 'free';
+            if (planHierarchy.indexOf(aliasNorm) < planHierarchy.indexOf(normalizedPlan)) {
+              normalizedPlan = aliasNorm;
+            }
+          }
+        }
+      }
+    } catch (aliasErr) { console.warn('Alias reconciliation warning:', aliasErr.message); }
+
     // Persist repair if any subscription fields drift from normalized plan
     try {
       const { PlanManager } = require('../config/planFeatures');
