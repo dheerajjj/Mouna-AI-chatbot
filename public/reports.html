@@ -445,7 +445,7 @@
                 <div class="report-description">
                     Advanced performance metrics including response times, user satisfaction rates, and engagement analytics.
                 </div>
-                <button class="btn" onclick="showUpgradePrompt('Performance Analytics', 'professional')">
+                <button id="btn-performance" class="btn" onclick="showUpgradePrompt('Performance Analytics', 'professional')">
                     <i class="fas fa-crown"></i> Upgrade to Access
                 </button>
             </div>
@@ -459,7 +459,7 @@
                 <div class="report-description">
                     Insights into user behavior patterns, popular queries, and interaction flows to optimize your chatbot.
                 </div>
-                <button class="btn" onclick="showUpgradePrompt('User Behavior Analysis', 'professional')">
+                <button id="btn-user-behavior" class="btn" onclick="showUpgradePrompt('User Behavior Analysis', 'professional')">
                     <i class="fas fa-crown"></i> Upgrade to Access
                 </button>
             </div>
@@ -504,6 +504,8 @@
                 if (data.user) {
                     document.getElementById('user-name').textContent = data.user.name;
                     window.currentUser = data.user;
+                    // Ensure gating updates run after user is loaded
+                    try { checkPlanAccess(); } catch (_) {}
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
@@ -515,15 +517,44 @@
             const user = window.currentUser;
             if (!user) return;
 
-            const currentPlan = user.plan?.current?.id || user.subscription?.plan || 'free';
+            const currentPlan = (user.plan?.current?.id || user.subscription?.plan || 'free').toLowerCase();
             const proBadges = document.querySelectorAll('.pro-badge');
             
+            // Mark Pro badges as available for Professional/Enterprise
             proBadges.forEach(badge => {
                 if (currentPlan !== 'free' && currentPlan !== 'starter') {
                     badge.textContent = 'Available';
                     badge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
                 }
             });
+
+            // Wire advanced report buttons based on plan
+            try {
+                const perfBtn = document.getElementById('btn-performance');
+                const behvBtn = document.getElementById('btn-user-behavior');
+                if (currentPlan === 'professional' || currentPlan === 'enterprise') {
+                    if (perfBtn) {
+                        perfBtn.innerHTML = '<i class="fas fa-chart-area"></i> Generate Performance Report';
+                        perfBtn.onclick = () => {
+                            const typeSel = document.getElementById('report-type');
+                            if (typeSel) typeSel.value = 'performance';
+                            generateReport();
+                        };
+                    }
+                    if (behvBtn) {
+                        behvBtn.innerHTML = '<i class="fas fa-user"></i> Generate User Behavior Report';
+                        behvBtn.onclick = () => {
+                            const typeSel = document.getElementById('report-type');
+                            if (typeSel) typeSel.value = 'detailed';
+                            generateReport();
+                        };
+                    }
+                } else {
+                    // Starter/Free: keep upgrade prompts
+                    if (perfBtn) perfBtn.onclick = () => showUpgradePrompt('Performance Analytics', 'professional');
+                    if (behvBtn) behvBtn.onclick = () => showUpgradePrompt('User Behavior Analysis', 'professional');
+                }
+            } catch (_) {}
         }
 
         async function generateReport() {
