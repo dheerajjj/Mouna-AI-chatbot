@@ -773,14 +773,54 @@
             window.location.href = '/get-started';
         }
         
-        function downloadInvoice() {
-            console.log('📄 Download Invoice clicked');
-            alert('📄 Download Invoice\n\nInvoice downloads are available for paid subscribers.\nContact support for assistance.');
+        async function downloadInvoice() {
+            try {
+                console.log('📄 Download Invoice clicked');
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    alert('Please sign in again to download your invoice.');
+                    return;
+                }
+
+                // Optional: light gating for free plan
+                const plan = (window.currentUserPlan || 'free').toLowerCase();
+                if (plan === 'free') {
+                    const go = confirm('Invoices are available for paid plans. View plans now?');
+                    if (go) window.location.href = '/pricing';
+                    return;
+                }
+
+                // Fetch latest invoice HTML from server (auth required)
+                const resp = await fetch('/api/payments/invoice/latest', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'text/html'
+                    },
+                    cache: 'no-store'
+                });
+
+                if (!resp.ok) {
+                    const msg = await resp.text().catch(() => 'Failed to generate invoice');
+                    throw new Error(msg || `Request failed with ${resp.status}`);
+                }
+
+                const html = await resp.text();
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                // Open invoice in a new tab/window
+                window.open(url, '_blank');
+                // Revoke after a minute to free memory
+                setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            } catch (error) {
+                console.error('Invoice download error:', error);
+                alert('Could not download invoice. Please try again in a moment.');
+            }
         }
         
         function updatePaymentMethod() {
             console.log('💳 Update Payment Method clicked');
-            alert('💳 Update Payment Method\n\nContact support at support@mouna-ai.com for payment updates.');
+            // Redirect to pricing/billing page for now
+            window.location.href = '/pricing?tab=billing';
         }
         
         function showIntegrationCode() {
@@ -829,6 +869,8 @@
                 if (token) headers['Authorization'] = `Bearer ${token}`;
 
                 const data = await fetchProfile(headers);
+                // Cache the latest profile globally for quick access (e.g., invoice, payments)
+                try { window.__profile = data; } catch (_) {}
                 
                 if (data.user) {
                     console.log('👤 User data received:', data.user);
