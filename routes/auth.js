@@ -1121,9 +1121,10 @@ router.post('/verify-login-otp', [
     }
 
     const { email, otp } = req.body;
+    const typedEmail = String(email || '').toLowerCase().trim();
 
     // Verify OTP first (for any email)
-    const verificationResult = await OTPService.verifyOTP(email, otp);
+    const verificationResult = await OTPService.verifyOTP(typedEmail, otp);
     
     if (!verificationResult.success) {
       return res.status(400).json({
@@ -1134,20 +1135,86 @@ router.post('/verify-login-otp', [
       });
     }
 
-    console.log(`✅ Login OTP verified successfully for: ${email}`);
+    console.log(`✅ Login OTP verified successfully for: ${typedEmail}`);
+
+    // Helper to unify gmail alias accounts and return the primary user to log in
+    async function unifyGmailAliasesOnLogin(preferredEmail, foundUser) {
+      try {
+        const lower = preferredEmail.toLowerCase();
+        const [local, domain] = lower.split('@');
+        if (!domain || (domain !== 'gmail.com' && domain !== 'googlemail.com')) {
+          return foundUser; // Non-gmail: nothing to unify
+        }
+        const base = local.split('+')[0];
+        const dotless = base.replace(/\./g, '');
+        const variants = Array.from(new Set([
+          `${local}@${domain}`,
+          `${base}@${domain}`,
+          `${dotless}@${domain}`
+        ]));
+        const aliasUsers = await DatabaseService.findUsersByEmails(variants);
+        if (!Array.isArray(aliasUsers) || aliasUsers.length === 0) return foundUser;
+
+        // Choose primary: the one with the preferred (typed) email if exists, else the provided foundUser
+        let primary = aliasUsers.find(u => String(u.email || '').toLowerCase() === lower) || foundUser;
+
+        // Decide best plan across aliases: choose the lowest non-free if any, else free
+        const hierarchy = ['free','starter','professional','enterprise'];
+        function normalizePlan(u) {
+          const planIdsByName = { 'free plan': 'free', 'starter plan': 'starter', 'professional plan': 'professional', 'enterprise plan': 'enterprise' };
+          const amountToPlanINR = { 0: 'free', 499: 'starter', 1499: 'professional', 4999: 'enterprise' };
+          const raw = (u.subscription && typeof u.subscription.plan === 'string') ? u.subscription.plan.toLowerCase().trim() : 'free';
+          const byName = planIdsByName[String(u.subscription?.planName || '').toLowerCase().trim()] || null;
+          const byAmt = (u.subscription?.currency || 'INR') === 'INR' && Object.prototype.hasOwnProperty.call(amountToPlanINR, u.subscription?.amount)
+            ? amountToPlanINR[u.subscription.amount]
+            : null;
+          const cands = [raw, byName, byAmt].filter(Boolean);
+          if (!cands.length) return 'free';
+          return cands.reduce((acc, p) => (hierarchy.indexOf(p) < hierarchy.indexOf(acc) ? p : acc));
+        }
+        const aliasPlans = aliasUsers.map(normalizePlan);
+        const nonFree = aliasPlans.filter(p => p !== 'free');
+        const bestPlan = (nonFree.length ? nonFree : aliasPlans).reduce((acc, p) => (hierarchy.indexOf(p) < hierarchy.indexOf(acc) ? p : acc), nonFree.length ? nonFree[0] : aliasPlans[0] || 'free');
+
+        // Update primary with preferred email and best plan
+        try {
+          const { PlanManager } = require('../config/planFeatures');
+          const canonical = PlanManager.getPlanDetails(bestPlan);
+          await DatabaseService.updateUser(primary._id, {
+            email: lower,
+            'subscription.plan': bestPlan,
+            'subscription.planName': canonical.name,
+            'subscription.amount': canonical.price,
+            'subscription.currency': canonical.currency,
+            'subscription.billingCycle': canonical.billingCycle,
+            'subscription.status': 'active',
+            'subscription.updatedAt': new Date()
+          });
+          // Reload primary
+          primary = await DatabaseService.findUserById(primary._id);
+        } catch (e) {
+          console.warn('Alias unify update warning:', e.message);
+        }
+
+        return primary;
+      } catch (e) {
+        console.warn('Alias unify error:', e.message);
+        return foundUser;
+      }
+    }
 
     // Check if user exists (registered user)
-    const existingUser = await DatabaseService.findUserByEmail(email);
+    const existingUser = await DatabaseService.findUserByEmail(typedEmail);
     
     if (existingUser) {
-      // Existing registered user - full login
-      console.log(`🔐 Existing user login completed: ${email}`);
-      
-      // Update last login
-      await DatabaseService.updateUser(existingUser._id, { lastLoginAt: new Date() });
+      // Unify gmail aliases (if any) and prefer the typed email as account email
+      const primaryUser = await unifyGmailAliasesOnLogin(typedEmail, existingUser);
 
-      // Generate secure JWT token
-      const token = generateSecureToken({ userId: existingUser._id, email: existingUser.email });
+      // Update last login
+      await DatabaseService.updateUser(primaryUser._id, { lastLoginAt: new Date() });
+
+      // Generate secure JWT token using the primary account
+      const token = generateSecureToken({ userId: primaryUser._id, email: primaryUser.email });
 
       res.json({
         success: true,
@@ -1156,25 +1223,25 @@ router.post('/verify-login-otp', [
         redirectTo: '/dashboard',
         userType: 'existing',
         user: {
-          id: existingUser._id,
-          name: existingUser.name,
-          email: existingUser.email,
-          company: existingUser.company,
-          website: existingUser.website,
-          subscription: existingUser.subscription,
-          usage: existingUser.usage,
-          apiKey: existingUser.apiKey
+          id: primaryUser._id,
+          name: primaryUser.name,
+          email: primaryUser.email,
+          company: primaryUser.company,
+          website: primaryUser.website,
+          subscription: primaryUser.subscription,
+          usage: primaryUser.usage,
+          apiKey: primaryUser.apiKey
         }
       });
     } else {
       // New email verified — auto-provision a minimal account for a consistent experience
-      console.log(`🆕 Creating minimal account after OTP verification for: ${email}`);
+      console.log(`🆕 Creating minimal account after OTP verification for: ${typedEmail}`);
       const randomPassword = crypto.randomBytes(16).toString('hex');
-      const nameFromEmail = email.split('@')[0].replace(/[._]/g, ' ').trim() || 'New User';
+      const nameFromEmail = typedEmail.split('@')[0].replace(/[._]/g, ' ').trim() || 'New User';
       
       const user = await DatabaseService.createUser({
         name: nameFromEmail,
-        email,
+        email: typedEmail,
         password: randomPassword,
         company: '',
         website: '',
