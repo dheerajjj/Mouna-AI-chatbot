@@ -674,7 +674,17 @@
                     if (response.ok) {
                         const { user } = await response.json();
                         // Prefer server-resolved plan.current.id, then subscription.plan
-                        currentUserPlan = (user.plan && user.plan.current && user.plan.current.id) || user.subscription?.plan || 'free';
+                        const planFromId = (user.plan && user.plan.current && user.plan.current.id) || null;
+                        const planFromSub = user.subscription?.plan || null;
+                        // Fallback mapping from plan names, if IDs are absent
+                        const idByName = {
+                            'free plan': 'free',
+                            'starter plan': 'starter',
+                            'professional plan': 'professional',
+                            'enterprise plan': 'enterprise'
+                        };
+                        const planFromName = idByName[(user.plan?.current?.name || user.subscription?.planName || '').toString().trim().toLowerCase()] || null;
+                        currentUserPlan = (planFromId || planFromSub || planFromName || 'free').toLowerCase();
                     }
                 }
             } catch (error) {
