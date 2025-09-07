@@ -203,8 +203,8 @@
         
         .form-input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #0d7b8a;
+            box-shadow: 0 0 0 3px rgba(13, 123, 138, 0.1);
         }
         
         .color-input {
@@ -231,12 +231,12 @@
         }
         
         .select-option.active {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
+            border-color: #0d7b8a;
+            background: rgba(13, 123, 138, 0.1);
         }
         
         .btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #0d7b8a, #4a0e6b);
             color: white;
             border: none;
             padding: 0.875rem 1.5rem;
@@ -254,7 +254,7 @@
         
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 25px rgba(13, 123, 138, 0.4);
         }
         
         .preview-container {
@@ -273,7 +273,7 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: var(--widget-color, #667eea);
+            background: var(--widget-color, #0d7b8a);
             color: white;
             display: flex;
             align-items: center;
@@ -393,8 +393,8 @@
                     <div class="form-group">
                         <label class="form-label">Primary Color</label>
                         <div style="display: flex; align-items: center; gap: 1rem;">
-                            <input type="color" id="primary-color" class="color-input" value="#667eea">
-                            <input type="text" id="primary-color-hex" class="form-input" value="#667eea" style="flex: 1;">
+                            <input type="color" id="primary-color" class="color-input" value="#0d7b8a">
+                            <input type="text" id="primary-color-hex" class="form-input" value="#0d7b8a" style="flex: 1;">
                         </div>
                     </div>
 
@@ -859,7 +859,7 @@
                 const titleEl = document.getElementById('widget-title');
                 const messageEl = document.getElementById('welcome-message');
                 
-                const primaryColor = primaryColorEl ? primaryColorEl.value : '#667eea';
+                const primaryColor = primaryColorEl ? primaryColorEl.value : '#0d7b8a';
                 const title = titleEl ? titleEl.value : 'Hi! How can I help you?';
                 const message = messageEl ? messageEl.value : 'Welcome! I\'m here to help you with any questions you might have.';
                 const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
@@ -920,7 +920,7 @@
                 const primaryColorEl = document.getElementById('primary-color');
                 const integrationCodeEl = document.getElementById('integration-code');
                 
-                const primaryColor = primaryColorEl ? primaryColorEl.value : '#667eea';
+                const primaryColor = primaryColorEl ? primaryColorEl.value : '#0d7b8a';
                 const position = document.querySelector('.select-option[data-position].active')?.dataset.position || 'bottom-right';
                 const sizeSel = document.getElementById('widget-size');
                 const sizeValue = sizeSel ? sizeSel.value : 'medium';

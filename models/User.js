@@ -119,7 +119,7 @@ const userSchema = new mongoose.Schema({
   widgetConfig: {
     primaryColor: {
       type: String,
-      default: '#667eea'
+      default: '#0d7b8a'
     },
     position: {
       type: String,

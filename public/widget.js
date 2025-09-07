@@ -137,7 +137,7 @@
         tenantId: null, // NEW: Tenant ID for configuration
         
         // Default widget settings
-        primaryColor: '#667eea',
+        primaryColor: '#0d7b8a',
         position: 'bottom-right',
         language: 'en', // Default language
         

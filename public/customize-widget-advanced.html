@@ -17,7 +17,7 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d7b8a 0%, #4a0e6b 100%);
             min-height: 100vh;
             color: #333;
         }
@@ -40,7 +40,7 @@
         .logo {
             font-size: 1.5rem;
             font-weight: 700;
-            color: #667eea;
+            color: #0d7b8a;
         }
         
         .nav-actions {
@@ -76,7 +76,7 @@
             transition: all 0.3s ease;
         }
         
-        .btn-primary { background: #667eea; color: white; }
+        .btn-primary { background: #0d7b8a; color: white; }
         .btn-secondary { background: #e2e8f0; color: #4a5568; }
         .btn:hover { transform: translateY(-2px); }
         
@@ -139,8 +139,8 @@
         }
         
         .tab-btn.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+            color: #0d7b8a;
+            border-bottom-color: #0d7b8a;
         }
         
         .tab-content {
@@ -179,8 +179,8 @@
         .form-group select:focus,
         .form-group textarea:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #0d7b8a;
+            box-shadow: 0 0 0 3px rgba(13, 123, 138, 0.1);
         }
         
         .color-grid {
@@ -206,7 +206,7 @@
         
         .color-swatch:hover,
         .color-swatch.selected {
-            border-color: #667eea;
+            border-color: #0d7b8a;
             transform: scale(1.1);
         }
         
@@ -221,8 +221,8 @@
         
         .theme-preset:hover,
         .theme-preset.selected {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.05);
+            border-color: #0d7b8a;
+            background: rgba(13, 123, 138, 0.05);
         }
         
         .theme-preview {
@@ -252,7 +252,7 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #667eea;
+            background: #0d7b8a;
             cursor: pointer;
         }
         
@@ -260,7 +260,7 @@
             min-width: 50px;
             text-align: center;
             font-weight: 600;
-            color: #667eea;
+            color: #0d7b8a;
         }
         
         .toggle-switch {
@@ -274,7 +274,7 @@
         }
         
         .toggle-switch.active {
-            background: #667eea;
+            background: #0d7b8a;
         }
         
         .toggle-switch::before {
@@ -296,7 +296,7 @@
         .animation-preview {
             width: 60px;
             height: 60px;
-            background: #667eea;
+            background: #0d7b8a;
             border-radius: 50%;
             margin: 1rem auto;
             display: flex;
@@ -324,7 +324,7 @@
         
         .widget-header {
             padding: 1rem;
-            background: var(--widget-primary, #667eea);
+            background: var(--widget-primary, #0d7b8a);
             color: white;
             display: flex;
             justify-content: space-between;
@@ -354,7 +354,7 @@
         
         .widget-input button {
             padding: 0.75rem;
-            background: var(--widget-primary, #667eea);
+            background: var(--widget-primary, #0d7b8a);
             color: white;
             border: none;
             border-radius: 50%;
@@ -376,7 +376,7 @@
         }
         
         .message-user {
-            background: var(--widget-primary, #667eea);
+            background: var(--widget-primary, #0d7b8a);
             color: white;
             margin-left: auto;
         }
@@ -416,9 +416,9 @@
         }
         
         .personality-trait.selected {
-            background: #667eea;
+            background: #0d7b8a;
             color: white;
-            border-color: #5a67d8;
+            border-color: #0a5e67;
         }
         
         @media (max-width: 1200px) {
@@ -500,11 +500,11 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div>
                             <label>Primary Color</label>
-                            <input type="color" id="primaryColor" value="#667eea">
+                            <input type="color" id="primaryColor" value="#0d7b8a">
                         </div>
                         <div>
                             <label>Secondary Color</label>
-                            <input type="color" id="secondaryColor" value="#764ba2">
+                            <input type="color" id="secondaryColor" value="#4a0e6b">
                         </div>
                     </div>
                 </div>
@@ -833,7 +833,7 @@
 
     <!-- Preview widget positioned on viewport -->
     <div class="preview-widget" id="previewWidget">
-        <div class="widget-header" style="background: var(--widget-primary, #667eea);">
+        <div class="widget-header" style="background: var(--widget-primary, #0d7b8a);">
             <div>
                 <div style="font-weight: 600;" id="previewTitle">AI Assistant</div>
                 <div style="font-size: 0.8rem; opacity: 0.9;">Online • Typing...</div>
@@ -865,8 +865,8 @@
             constructor() {
                 this.config = {
                     // Appearance
-                    primaryColor: '#667eea',
-                    secondaryColor: '#764ba2',
+                    primaryColor: '#0d7b8a',
+                    secondaryColor: '#4a0e6b',
                     backgroundStyle: 'gradient',
                     fontFamily: 'Inter',
                     fontSize: 14,

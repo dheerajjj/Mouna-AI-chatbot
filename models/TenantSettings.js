@@ -220,7 +220,7 @@ const tenantSettingsSchema = new mongoose.Schema({
   widgetCustomization: {
     primaryColor: {
       type: String,
-      default: '#667eea'
+      default: '#0d7b8a'
     },
     welcomeMessage: {
       type: String,
@@ -491,7 +491,7 @@ tenantSettingsSchema.methods.getEnabledFeatures = function() {
 tenantSettingsSchema.methods.getWidgetConfig = function() {
   const config = {
     tenantId: this.tenantId,
-    primaryColor: this.widgetCustomization.primaryColor || this.customization?.primaryColor || '#667eea',
+    primaryColor: this.widgetCustomization.primaryColor || this.customization?.primaryColor || '#0d7b8a',
     secondaryColor: this.widgetCustomization.secondaryColor || this.customization?.secondaryColor || '#f3f4f6',
     title: this.widgetCustomization.title || this.customization?.title || 'AI Assistant',
     welcomeMessage: this.widgetCustomization.welcomeMessage || this.customization?.welcomeMessage || `Welcome to ${this.tenantInfo.name || this.companyInfo.name}! How can I help you today?`,
