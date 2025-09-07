@@ -2,7 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
+// Fallback: load parent project's .env if MONGODB_URI (or other critical vars) aren't set
+if (!process.env.MONGODB_URI || !process.env.INTERNAL_SERVICE_KEY || !process.env.ALLOWED_ORIGINS) {
+  try {
+    require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+  } catch (_) { /* ignore */ }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -123,6 +130,23 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('   - Business type detection');
   console.log('   - Knowledge base generation'); 
   console.log('   - Auto-training orchestration');
+
+  // Optionally start scheduler for periodic re-crawls
+  try {
+    const CrawlingScheduler = require('./services/CrawlingScheduler');
+    if (process.env.AUTO_CRAWL_ENABLED !== 'false') {
+      const scheduler = new CrawlingScheduler();
+      scheduler.start().then(() => {
+        console.log('📅 Auto-Training scheduler started');
+      }).catch(err => {
+        console.warn('⚠️ Failed to start scheduler:', err.message);
+      });
+    } else {
+      console.log('⏸️ Auto-Training scheduler disabled by AUTO_CRAWL_ENABLED=false');
+    }
+  } catch (e) {
+    console.warn('⚠️ Scheduler initialization issue:', e.message);
+  }
 });
 
 // Graceful shutdown

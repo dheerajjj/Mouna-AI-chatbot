@@ -11,6 +11,9 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { body, param, validationResult } = require('express-validator');
 const AutoTrainingService = require('../services/AutoTrainingService');
+const DatabaseService = require('../services/DatabaseService');
+const WebsiteCrawler = require('../services/crawling/WebsiteCrawler');
+const BusinessTypeDetector = require('../services/ai/BusinessTypeDetector');
 const router = express.Router();
 
 // Rate limiting for auto-training endpoints
@@ -276,6 +279,69 @@ router.post('/refresh/:tenantId',
 );
 
 /**
+ * POST /api/refresh
+ * Body-based refresh endpoint to align with proxy usage
+ */
+router.post('/refresh',
+    autoTrainingLimiter,
+    [
+        body('tenantId')
+            .isLength({ min: 3, max: 50 })
+            .withMessage('Valid tenant ID is required'),
+        body('options')
+            .optional()
+            .isObject()
+            .withMessage('Options must be an object')
+    ],
+    async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Validation failed',
+                    details: errors.array()
+                });
+            }
+
+            const { tenantId, options = {} } = req.body;
+            console.log(`🔄 Body-based refresh request for tenant: ${tenantId}`);
+
+            const tenantExists = await checkExistingTenant(tenantId);
+            if (!tenantExists) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Tenant not found',
+                    tenantId
+                });
+            }
+
+            const refreshPromise = autoTrainingService.refreshTenantData(tenantId, options);
+
+            res.status(202).json({
+                success: true,
+                message: 'Tenant data refresh started',
+                tenantId,
+                status: 'refreshing',
+                estimated_completion: new Date(Date.now() + 3 * 60 * 1000),
+                check_status_url: `/api/tenant/training-status/${tenantId}`
+            });
+
+            refreshPromise
+                .then(result => console.log(`✅ Refresh completed for tenant: ${tenantId}`, result))
+                .catch(error => console.error(`❌ Refresh failed for tenant: ${tenantId}`, error));
+        } catch (error) {
+            console.error('Body-based refresh endpoint error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to start tenant refresh',
+                details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    }
+);
+
+/**
  * GET /api/tenant/auto-training-demo
  * Demo endpoint to show auto-training capabilities
  */
@@ -394,6 +460,109 @@ router.post('/validate-website',
                 error: 'Website validation failed',
                 details: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
+        }
+    }
+);
+
+/**
+ * POST /api/crawl
+ * Crawl website and return extracted data (used by monolith proxy)
+ */
+router.post('/crawl',
+    autoTrainingLimiter,
+    [
+        body('websiteUrl')
+            .isURL({ protocols: ['http', 'https'] })
+            .withMessage('Valid website URL is required'),
+        body('options').optional().isObject()
+    ],
+    async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+            }
+            const { websiteUrl, options = {} } = req.body;
+            const crawler = new WebsiteCrawler();
+            const results = await crawler.crawlWebsite(websiteUrl, {
+                maxPages: Math.min(options.maxPages || 20, 60),
+                timeout: options.timeout || 30000,
+                includeImages: !!options.includeImages
+            });
+            res.json({ success: true, results, pagesProcessed: results.pages?.length || 0 });
+        } catch (error) {
+            console.error('Crawl endpoint error:', error);
+            res.status(500).json({ success: false, error: error.message || 'Crawl failed' });
+        }
+    }
+);
+
+/**
+ * POST /api/analyze-business
+ * Quick business type analysis for a website (used by monolith proxy)
+ */
+router.post('/analyze-business',
+    autoTrainingLimiter,
+    [
+        body('websiteUrl')
+            .isURL({ protocols: ['http', 'https'] })
+            .withMessage('Valid website URL is required'),
+        body('options').optional().isObject()
+    ],
+    async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+            }
+            const { websiteUrl, options = {} } = req.body;
+            const crawler = new WebsiteCrawler();
+            const crawlResults = await crawler.crawlWebsite(websiteUrl, {
+                maxPages: Math.min(options.maxPages || 10, 30),
+                timeout: options.timeout || 20000,
+                includeImages: false
+            });
+            const detector = new BusinessTypeDetector();
+            const analysis = await detector.analyzeWebsite(crawlResults);
+            res.json({ success: true, analysis, pagesProcessed: crawlResults.pages?.length || 0 });
+        } catch (error) {
+            console.error('Analyze endpoint error:', error);
+            res.status(500).json({ success: false, error: error.message || 'Analysis failed' });
+        }
+    }
+);
+
+/**
+ * GET /api/status/:sessionId
+ * Lightweight status by training session id (for proxy compatibility)
+ */
+router.get('/status/:sessionId',
+    [ param('sessionId').isLength({ min: 10 }).withMessage('Valid session id is required') ],
+    async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ success: false, error: 'Invalid session id', details: errors.array() });
+            }
+            const { sessionId } = req.params;
+            const db = new DatabaseService();
+            const col = await db.collection('training_sessions');
+            const session = await col.findOne({ sessionId });
+            if (!session) {
+                return res.status(404).json({ success: false, error: 'Session not found' });
+            }
+            res.json({ success: true, session: {
+                sessionId: session.sessionId,
+                tenantId: session.tenantId,
+                status: session.status,
+                progress: session.progress,
+                createdAt: session.createdAt,
+                updatedAt: session.updatedAt,
+                completedAt: session.completedAt || null
+            }});
+        } catch (error) {
+            console.error('Status endpoint error:', error);
+            res.status(500).json({ success: false, error: 'Failed to get session status' });
         }
     }
 );
