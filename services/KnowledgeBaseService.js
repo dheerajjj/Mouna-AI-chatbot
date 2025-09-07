@@ -459,8 +459,25 @@ class KnowledgeBaseService {
             return Array.from(new Set(arr.filter(Boolean)));
         }
 
-        const emails = uniq([ ...emailAnchors, ...foundEmails ]);
-        const phones = uniq([ ...phoneAnchors, ...rawPhones ]);
+        // Filter out placeholder/demo emails and obvious dummy phones
+        function filterEmails(arr) {
+            const blockDomains = new Set(['example.com','example.org','example.net','test.com','test.org','test.net']);
+            return arr.filter(e => {
+                const parts = String(e || '').trim().toLowerCase().split('@');
+                if (parts.length !== 2) return false;
+                const domain = parts[1];
+                if (blockDomains.has(domain)) return false;
+                return true;
+            });
+        }
+        function filterPhones(arr) {
+            const normalized = arr.map(p => String(p || '').replace(/\s+/g, ''));
+            const blockList = ['1234567890','+9194908491093','9194908491093','9490849109'];
+            return normalized.filter(p => !blockList.some(b => p.includes(b)));
+        }
+
+        const emails = filterEmails(uniq([ ...emailAnchors, ...foundEmails ]));
+        const phones = filterPhones(uniq([ ...phoneAnchors, ...rawPhones ]));
 
         if (emails.length > 0) contactInfo.emails = emails;
         if (phones.length > 0) contactInfo.phones = phones;
