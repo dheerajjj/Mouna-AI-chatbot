@@ -1,0 +1,40 @@
+name: Deploy auto-training-service to Railway (CLI)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'auto-training-service/**'
+      - '.github/workflows/deploy-auto-training-service.yml'
+
+jobs:
+  deploy:
+    name: Deploy auto-training-service
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Link Railway project
+        working-directory: auto-training-service
+        run: |
+          railway link e7511f66-193f-4ec2-97da-55fb3795e0c0
+          railway environment production
+          railway service auto-training-service
+
+      - name: Deploy via CLI
+        working-directory: auto-training-service
+        run: |
+          railway up --yes
