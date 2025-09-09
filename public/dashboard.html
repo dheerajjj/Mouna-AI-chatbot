@@ -1180,32 +1180,52 @@
                 });
                 if (!resp.ok) throw new Error('Failed');
                 const { progress, completionPercentage, nextStep } = await resp.json();
+
+                // Helper to normalize step completion regardless of backend shape
+                const stepDone = (obj, key) => {
+                    const v = obj && obj[key];
+                    if (typeof v === 'boolean') return v;
+                    if (v && typeof v === 'object') return !!v.completed;
+                    return false;
+                };
+
                 // Update bar
                 const inner = document.getElementById('setup-progress-inner');
                 const label = document.getElementById('setup-progress-label');
                 if (inner) inner.style.width = `${completionPercentage || 0}%`;
                 if (label) label.textContent = `${completionPercentage || 0}%`;
-                // Mark steps
+
+                // Mark steps (idempotent)
                 const steps = ['signup','plan','customize','embed','live'];
                 steps.forEach(s => {
                     const el = document.getElementById(`step-${s}`);
                     if (!el) return;
-                    if (progress?.[s]) { el.classList.add('complete'); el.querySelector('.icon').innerHTML = '<i class="fas fa-check"></i>'; }
+                    const done = stepDone(progress || {}, s);
+                    el.classList.toggle('complete', !!done);
+                    const iconEl = el.querySelector('.icon');
+                    if (iconEl) iconEl.innerHTML = done ? '<i class="fas fa-check"></i>' : (iconEl.innerHTML || '');
                 });
+
                 // Next step text
                 const next = document.getElementById('setup-next');
                 if (next) next.textContent = nextStep && nextStep !== 'completed' ? `Next: ${titleForStep(nextStep)}` : 'All steps completed – you are live!';
-                // CTA buttons
+
+                // CTA buttons (use normalized booleans)
                 const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? 'inline-flex' : 'none'; };
-                show('cta-plan', !progress?.plan);
-                show('cta-customize', progress?.plan && !progress?.customize);
-                show('cta-embed', progress?.customize && !progress?.embed);
-                show('cta-live', progress?.embed && !progress?.live);
+                const planDone   = stepDone(progress || {}, 'plan');
+                const custDone   = stepDone(progress || {}, 'customize');
+                const embedDone  = stepDone(progress || {}, 'embed');
+                const liveDone   = stepDone(progress || {}, 'live');
+                show('cta-plan', !planDone);
+                show('cta-customize', planDone && !custDone);
+                show('cta-embed', custDone && !embedDone);
+                show('cta-live', embedDone && !liveDone);
+
                 // Integration status indicator
                 const iStatus = document.getElementById('integration-status');
                 const iText = document.getElementById('integration-text');
                 if (iStatus && iText) {
-                    if (progress?.embed) { iStatus.classList.add('active'); iText.textContent = 'Integration Complete'; }
+                    if (embedDone) { iStatus.classList.add('active'); iStatus.classList.remove('warning'); iText.textContent = 'Integration Complete'; }
                     else { iStatus.classList.remove('active'); iStatus.classList.add('warning'); iText.textContent = 'Integration Pending'; }
                 }
             } catch (e) {
