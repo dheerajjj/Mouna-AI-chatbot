@@ -1469,7 +1469,7 @@ router.get('/setup-progress', authenticateToken, async (req, res) => {
     const progress = {
       signup: true, // Always true since they're logged in
       plan: user.subscription?.plan && user.subscription.plan !== 'free',
-      customize: !!user.widgetConfig?.customized || !!user.chatConfig,
+      customize: !!user.widgetConfig?.customized || !!user.chatConfig || !!user.widgetConfig?.lastUpdated,
       embed: !!user.setupProgress?.embed || false,
       live: !!user.setupProgress?.live || false
     };
