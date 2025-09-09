@@ -2232,6 +2232,10 @@ app.get('/email-validation-test', (req, res) => {
     // Reports routes
     const reportRoutes = require('./routes/reports');
     app.use('/api/reports', reportRoutes);
+
+    // Analytics routes (response time, etc.)
+    const analyticsRoutes = require('./routes/analytics');
+    app.use('/api/analytics', analyticsRoutes);
     
     // Serve pages
     app.get('/', (req, res) => {
