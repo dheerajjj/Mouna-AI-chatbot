@@ -346,6 +346,18 @@
             box-shadow: 0 8px 30px rgba(0,0,0,0.1);
             margin-bottom: 2rem;
         }
+        /* Setup progress */
+        .setup-card { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 8px 30px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .setup-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .setup-step { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; display: flex; align-items: center; gap: .75rem; }
+        .setup-step.complete { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+        .setup-step .icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; background: #e2e8f0; }
+        .setup-step.complete .icon { background: #86efac; }
+        .setup-progress-bar { height: 10px; background: #e5e7eb; border-radius: 9999px; overflow: hidden; position: relative; }
+        .setup-progress-inner { position: absolute; top:0; left:0; bottom:0; width: 0%; background: linear-gradient(135deg, #0d7b8a, #4a0e6b); transition: width .4s ease; }
+        .setup-next { margin-top: .75rem; color: #64748b; font-size: .9rem; }
+        .setup-actions { display:flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+        .setup-actions .btn { width: auto; }
         
         .quick-actions h3 {
             margin-bottom: 1.5rem;
@@ -452,6 +464,34 @@
         <div class="page-header">
             <h1 class="page-title">Dashboard</h1>
             <p class="page-subtitle">Complete control center for your AI chatbot - manage, monitor, and optimize everything</p>
+        </div>
+
+        <!-- Setup Progress -->
+        <div class="setup-card">
+            <h3 style="display:flex; align-items:center; gap:.75rem; color:#1e293b; font-size:1.25rem; font-weight:700;">
+                <div class="card-icon"><i class="fas fa-flag-checkered"></i></div>
+                Setup Progress
+            </h3>
+            <div style="margin: 1rem 0 .75rem 0; display:flex; align-items:center; gap:.75rem;">
+                <div class="setup-progress-bar" style="flex:1;">
+                    <div class="setup-progress-inner" id="setup-progress-inner"></div>
+                </div>
+                <div id="setup-progress-label" style="min-width:60px; text-align:right; font-weight:700; color:#1e293b;">0%</div>
+            </div>
+            <div class="setup-next" id="setup-next">Loading your next step…</div>
+            <div class="setup-steps" id="setup-steps">
+                <div class="setup-step" id="step-signup"><div class="icon">1</div><div>Sign Up</div></div>
+                <div class="setup-step" id="step-plan"><div class="icon">2</div><div>Choose Plan</div></div>
+                <div class="setup-step" id="step-customize"><div class="icon">3</div><div>Customize Widget</div></div>
+                <div class="setup-step" id="step-embed"><div class="icon">4</div><div>Embed on Website</div></div>
+                <div class="setup-step" id="step-live"><div class="icon">5</div><div>Go Live</div></div>
+            </div>
+            <div class="setup-actions" id="setup-actions">
+                <a href="/pricing" class="btn" id="cta-plan" style="display:none"><i class="fas fa-arrow-up"></i> Upgrade Plan</a>
+                <a href="/customize-widget" class="btn btn-secondary" id="cta-customize" style="display:none"><i class="fas fa-palette"></i> Customize</a>
+                <a href="/integration" class="btn btn-secondary" id="cta-embed" style="display:none"><i class="fas fa-code"></i> Get Embed Code</a>
+                <button class="btn" id="cta-live" style="display:none" onclick="alert('Great! Your setup looks complete. Need help promoting your chatbot?')"><i class="fas fa-rocket"></i> Promote</button>
+            </div>
         </div>
 
         <!-- Quick Actions -->
@@ -904,6 +944,7 @@
             } catch (e) { console.warn('Token parse failed:', e); }
 
             loadUserData();
+            loadSetupProgress();
         });
 
         async function loadUserData() {
@@ -1081,6 +1122,53 @@
                 }
                 console.log('⚠️ Using fallback user data due to error');
             }
+        }
+
+        async function loadSetupProgress() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+                const resp = await fetch('/api/setup-progress', {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    cache: 'no-store'
+                });
+                if (!resp.ok) throw new Error('Failed');
+                const { progress, completionPercentage, nextStep } = await resp.json();
+                // Update bar
+                const inner = document.getElementById('setup-progress-inner');
+                const label = document.getElementById('setup-progress-label');
+                if (inner) inner.style.width = `${completionPercentage || 0}%`;
+                if (label) label.textContent = `${completionPercentage || 0}%`;
+                // Mark steps
+                const steps = ['signup','plan','customize','embed','live'];
+                steps.forEach(s => {
+                    const el = document.getElementById(`step-${s}`);
+                    if (!el) return;
+                    if (progress?.[s]) { el.classList.add('complete'); el.querySelector('.icon').innerHTML = '<i class="fas fa-check"></i>'; }
+                });
+                // Next step text
+                const next = document.getElementById('setup-next');
+                if (next) next.textContent = nextStep && nextStep !== 'completed' ? `Next: ${titleForStep(nextStep)}` : 'All steps completed – you are live!';
+                // CTA buttons
+                const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? 'inline-flex' : 'none'; };
+                show('cta-plan', !progress?.plan);
+                show('cta-customize', progress?.plan && !progress?.customize);
+                show('cta-embed', progress?.customize && !progress?.embed);
+                show('cta-live', progress?.embed && !progress?.live);
+                // Integration status indicator
+                const iStatus = document.getElementById('integration-status');
+                const iText = document.getElementById('integration-text');
+                if (iStatus && iText) {
+                    if (progress?.embed) { iStatus.classList.add('active'); iText.textContent = 'Integration Complete'; }
+                    else { iStatus.classList.remove('active'); iStatus.classList.add('warning'); iText.textContent = 'Integration Pending'; }
+                }
+            } catch (e) {
+                console.warn('Setup progress not available yet.');
+            }
+        }
+        function titleForStep(step) {
+            const map = { signup: 'Sign Up', plan: 'Choose Plan', customize: 'Customize Widget', embed: 'Embed on Website', live: 'Go Live' };
+            return map[step] || step;
         }
 
         // Helper: profile fetch with retries and no-cache
