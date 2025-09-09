@@ -972,10 +972,11 @@
             try {
                 const returned = sessionStorage.getItem('returning_from_config');
                 if (returned) {
-                    // Mark via legacy-compatible endpoint to ensure widgetConfig.customized is set
+                    // IMPORTANT: legacy /api/setup-progress only supports steps: signup, plan, customize, embed, live
+                    // So we only mark 'customize' here (appearance is handled server-side on save)
                     try {
-                        await updateSetupProgress('appearance', true);
                         await updateSetupProgress('customize', true);
+                        try { await loadSetupProgress(); } catch(_) {}
                     } catch (_) {}
                     // Clear the flag to avoid repeated updates
                     sessionStorage.removeItem('returning_from_config');
