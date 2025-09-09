@@ -2315,15 +2315,30 @@ app.get('/email-validation-test', (req, res) => {
     });
     
     app.get('/customize-widget', (req, res) => {
+        try {
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+        } catch (_) {}
         res.sendFile(path.join(__dirname, 'public', 'customize-widget.html'));
     });
     
     // Advanced Widget Customization Page
     app.get('/customize-widget-advanced', (req, res) => {
+        try {
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+        } catch (_) {}
         res.sendFile(path.join(__dirname, 'public', 'customize-widget-advanced.html'));
     });
 
     app.get('/configure-prompt', (req, res) => {
+        try {
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+        } catch (_) {}
         res.sendFile(path.join(__dirname, 'public', 'configure-prompt.html'));
     });
 
