@@ -903,6 +903,7 @@ async function startServer() {
         const updateData = {
           'widgetConfig.systemPrompt': systemPrompt,
           'widgetConfig.welcomeMessage': welcomeMessage,
+          'widgetConfig.customized': true,
           'chatConfig': chatConfig
         };
         
@@ -976,7 +977,8 @@ async function startServer() {
         // Update user's advanced widget configuration
         const updateData = {
           'widgetConfig.advanced': advancedConfig,
-          'widgetConfig.lastUpdated': new Date()
+          'widgetConfig.lastUpdated': new Date(),
+          'widgetConfig.customized': true
         };
         
         await DatabaseService.updateUser(userId, updateData);
@@ -1030,7 +1032,8 @@ async function startServer() {
           'widgetConfig.autoOpenMode': autoOpenMode,
           'widgetConfig.autoOpenDelay': typeof autoOpenDelay === 'number' ? autoOpenDelay : undefined,
           'widgetConfig.autoOpenFrequency': autoOpenFrequency,
-          'widgetConfig.lastUpdated': new Date()
+          'widgetConfig.lastUpdated': new Date(),
+          'widgetConfig.customized': true
         };
         await DatabaseService.updateUser(userId, update);
 
