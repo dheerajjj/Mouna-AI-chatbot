@@ -1141,6 +1141,13 @@
                         height: 55px;
                     }
                 }
+                /* Satisfaction rating */
+                .chatbot-rating{display:flex;align-items:center;gap:8px;margin-top:8px;padding:0 8px}
+                .chatbot-rating-label{font-size:12px;color:#6b7280}
+                .chatbot-rating-buttons{display:flex;gap:6px}
+                .rating-btn{border:1px solid #e5e7eb;background:#fff;color:#111827;border-radius:14px;padding:4px 8px;cursor:pointer;font-size:12px}
+                .rating-btn:hover{background:#f9fafb}
+                .chatbot-rating-thanks{font-size:12px;color:#16a34a}
             </style>
         `;
     }
@@ -1255,6 +1262,8 @@
             // Add bot response
             addMessage(response.response, false);
             
+            // Prompt satisfaction rating after a bot response
+            try { maybeRenderRatingUI(); } catch(_) {}
         } catch (error) {
             hideTyping();
             console.error('Widget API Error:', error);
@@ -1531,10 +1540,48 @@
         const header = widget.querySelector('.chatbot-widget-header'); if (header && header.parentElement) header.parentElement.appendChild(menu);
     }
 
+    function maybeRenderRatingUI() {
+        try {
+            if (window.__mouna_sessionRated) return;
+            const messagesContainer = document.getElementById('chatbot-messages');
+            if (!messagesContainer) return;
+            const existing = messagesContainer.querySelector('#chatbot-rating'); if (existing) existing.remove();
+            const bots = messagesContainer.querySelectorAll('.chatbot-message-bot .chatbot-message-content');
+            if (!bots || !bots.length) return;
+            const lastBot = bots[bots.length - 1];
+            const block = document.createElement('div');
+            block.className = 'chatbot-rating';
+            block.id = 'chatbot-rating';
+            block.innerHTML = '<span class="chatbot-rating-label">Was this helpful?</span>\n<div class="chatbot-rating-buttons"><button type="button" class="rating-btn up" data-score="5" title="Yes">👍</button><button type="button" class="rating-btn down" data-score="1" title="No">👎</button></div>';
+            lastBot.appendChild(block);
+            block.addEventListener('click', async (e) => {
+                const btn = e.target.closest('button.rating-btn'); if (!btn) return;
+                const score = parseInt(btn.getAttribute('data-score'), 10);
+                await submitSessionRatingFixed(score);
+            });
+        } catch (_) {}
+    }
+    async function submitSessionRatingFixed(score, feedback = '') {
+        try {
+            if (!window.__mouna_sessionId || !currentConfig.apiEndpoint) return;
+            const resp = await fetch(`${currentConfig.apiEndpoint}/api/sessions/rate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': currentConfig.apiKey || '' },
+                body: JSON.stringify({ sessionId: window.__mouna_sessionId, score, feedback })
+            });
+            if (resp.ok) {
+                window.__mouna_sessionRated = true;
+                const block = document.getElementById('chatbot-rating');
+                if (block) block.innerHTML = '<span class="chatbot-rating-thanks">Thanks for your feedback!</span>';
+            }
+        } catch (_) {}
+    }
+
     // Initialize widget
     async function initializeWidget() {
         // Generate session ID
         sessionId = generateSessionId();
+        window.__mouna_sessionId = sessionId;
         
         // Get configuration from script tag
         const scriptTag = document.querySelector('script[src*="widget"]') || document.querySelector('script[data-api-key]');

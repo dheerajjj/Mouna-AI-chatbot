@@ -333,6 +333,35 @@ class DatabaseService {
     }
   }
 
+  // Add or update session rating
+  async rateChatSession(sessionId, score, feedback = '') {
+    try {
+      const safeScore = Math.max(1, Math.min(5, parseInt(score, 10) || 0));
+      if (this.isMongoConnected) {
+        const session = await this.models.ChatSession.findOne({ sessionId });
+        if (!session) return null;
+        session.rating = {
+          score: safeScore,
+          feedback: typeof feedback === 'string' ? feedback : '',
+          ratedAt: new Date()
+        };
+        return await session.save();
+      } else {
+        const session = this.mockDB.chatSessions.find(s => s.sessionId === sessionId);
+        if (!session) return null;
+        session.rating = {
+          score: safeScore,
+          feedback: typeof feedback === 'string' ? feedback : '',
+          ratedAt: new Date()
+        };
+        return session;
+      }
+    } catch (e) {
+      console.error('rateChatSession error:', e);
+      throw e;
+    }
+  }
+
   // Message log operations (for analytics)
   async logMessage(logData) {
     if (this.isMongoConnected) {

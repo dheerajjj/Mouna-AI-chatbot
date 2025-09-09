@@ -1905,6 +1905,28 @@ async function startServer() {
       }
     });
 
+    // Session rating endpoint (user satisfaction)
+    app.post('/api/sessions/rate', validateApiKey, async (req, res) => {
+      try {
+        const { sessionId, score, feedback } = req.body || {};
+        if (!sessionId) {
+          return res.status(400).json({ error: 'sessionId is required' });
+        }
+        const s = parseInt(score, 10);
+        if (!Number.isFinite(s) || s < 1 || s > 5) {
+          return res.status(400).json({ error: 'score must be an integer between 1 and 5' });
+        }
+        const updated = await DatabaseService.rateChatSession(sessionId, s, typeof feedback === 'string' ? feedback : '');
+        if (!updated) {
+          return res.status(404).json({ error: 'Session not found' });
+        }
+        return res.json({ success: true, message: 'Rating saved', sessionId, score: s });
+      } catch (e) {
+        console.error('Rate session error:', e);
+        return res.status(500).json({ error: 'Failed to save rating' });
+      }
+    });
+
     // Pricing plans endpoint
     app.get('/api/payments/plans', async (req, res) => {
       try {
