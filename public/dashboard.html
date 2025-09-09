@@ -972,11 +972,11 @@
             try {
                 const returned = sessionStorage.getItem('returning_from_config');
                 if (returned) {
-                    // Best-effort bulk update: mark appearance and customize as complete
-                    try { await bulkUpdateSetupProgress([
-                        { step: 'appearance', completed: true },
-                        { step: 'customize', completed: true }
-                    ], returned); } catch (_) {}
+                    // Mark via legacy-compatible endpoint to ensure widgetConfig.customized is set
+                    try {
+                        await updateSetupProgress('appearance', true);
+                        await updateSetupProgress('customize', true);
+                    } catch (_) {}
                     // Clear the flag to avoid repeated updates
                     sessionStorage.removeItem('returning_from_config');
                 }

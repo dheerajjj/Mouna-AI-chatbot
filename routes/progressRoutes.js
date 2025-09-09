@@ -197,18 +197,33 @@ router.post('/setup-progress/bulk-update', async (req, res) => {
     
     // Apply updates sequentially
     let finalProgress;
+    let customizeCompleted = false;
     for (const update of updates) {
       const additionalData = { ...update.additionalData };
       if (redirectSource) {
         additionalData.redirectSource = redirectSource;
       }
       
+      const completedFlag = update.completed !== false; // Default to true
       finalProgress = await UserProgress.updateUserProgress(
         userId,
         update.step,
-        update.completed !== false, // Default to true
+        completedFlag,
         additionalData
       );
+      if (update.step === 'customize' && completedFlag) {
+        customizeCompleted = true;
+      }
+    }
+
+    // Keep legacy progress in sync: mark widgetConfig.customized=true when customize completes
+    if (customizeCompleted) {
+      try {
+        const DatabaseService = require('../services/DatabaseService');
+        await DatabaseService.updateUser(userId, { 'widgetConfig.customized': true, 'widgetConfig.lastUpdated': new Date() });
+      } catch (e) {
+        console.warn('Could not sync widgetConfig.customized after bulk update:', e.message);
+      }
     }
     
     console.log(`✅ Bulk progress updated: User ${userId} - ${updates.length} steps updated`);
