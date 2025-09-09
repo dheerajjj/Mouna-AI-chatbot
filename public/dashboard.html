@@ -806,7 +806,18 @@
             }
         }
 
-        function configureAIChat() {
+        async function configureAIChat() {
+            console.log('🤖 Configure AI Chat clicked');
+            const plan = (window.currentUserPlan || 'free').toLowerCase();
+            const allowedPlans = ['professional', 'enterprise'];
+            if (!allowedPlans.includes(plan)) {
+                window.location.href = '/pricing?suggested=professional&feature=ai-chat-config&upgrade=professional';
+                return;
+            }
+            // Mark customize completed when user proceeds to configuration
+            try { await updateSetupProgress('customize', true); } catch (_) {}
+            window.location.href = '/configure-prompt';
+        }
             console.log('🤖 Configure AI Chat clicked');
             const plan = (window.currentUserPlan || 'free').toLowerCase();
             const allowedPlans = ['professional', 'enterprise'];
@@ -900,6 +911,7 @@
                     return;
                 }
                 alert(data?.message || 'Plan updated. Refreshing...');
+                try { await updateSetupProgress('plan', true); } catch (_) {}
                 await refreshSubscription();
             } catch (e) {
                 console.error('changePlanPrompt error:', e);
@@ -907,7 +919,17 @@
             }
         }
         
-        function showIntegrationCode() {
+        async function showIntegrationCode() {
+            console.log('📄 Show Integration Code clicked');
+            const plan = (window.currentUserPlan || 'free').toLowerCase();
+            const allowedPlans = ['starter', 'professional', 'enterprise'];
+            if (!allowedPlans.includes(plan)) {
+                window.location.href = '/pricing?suggested=starter&feature=integration-code&upgrade=starter';
+                return;
+            }
+            try { await updateSetupProgress('embed', true, { source: 'get_code' }); } catch (_) {}
+            window.location.href = '/integration';
+        }
             console.log('📄 Show Integration Code clicked');
             const plan = (window.currentUserPlan || 'free').toLowerCase();
             const allowedPlans = ['starter', 'professional', 'enterprise'];
@@ -918,7 +940,17 @@
             window.location.href = '/integration';
         }
         
-        function copyIntegrationCode() {
+        async function copyIntegrationCode() {
+            console.log('📋 Copy Integration Code clicked');
+            const plan = (window.currentUserPlan || 'free').toLowerCase();
+            const allowedPlans = ['starter', 'professional', 'enterprise'];
+            if (!allowedPlans.includes(plan)) {
+                window.location.href = '/pricing?suggested=starter&feature=integration-code&upgrade=starter';
+                return;
+            }
+            try { await updateSetupProgress('embed', true, { source: 'copy_code' }); } catch (_) {}
+            window.location.href = '/integration';
+        }
             console.log('📋 Copy Integration Code clicked');
             const plan = (window.currentUserPlan || 'free').toLowerCase();
             const allowedPlans = ['starter', 'professional', 'enterprise'];
@@ -942,6 +974,26 @@
                     window.history.replaceState({}, document.title, newUrl);
                 }
             } catch (e) { console.warn('Token parse failed:', e); }
+
+            // Wire setup CTA buttons to progress updates before navigation
+            try {
+                const ctaPlan = document.getElementById('cta-plan');
+                if (ctaPlan) ctaPlan.addEventListener('click', async (e) => {
+                    try { await updateSetupProgress('plan', true); } catch(_) {}
+                });
+                const ctaCustomize = document.getElementById('cta-customize');
+                if (ctaCustomize) ctaCustomize.addEventListener('click', async (e) => {
+                    try { await updateSetupProgress('customize', true); } catch(_) {}
+                });
+                const ctaEmbed = document.getElementById('cta-embed');
+                if (ctaEmbed) ctaEmbed.addEventListener('click', async (e) => {
+                    try { await updateSetupProgress('embed', true, { source: 'dashboard_cta' }); } catch(_) {}
+                });
+                const ctaLive = document.getElementById('cta-live');
+                if (ctaLive) ctaLive.addEventListener('click', async (e) => {
+                    try { await updateSetupProgress('live', true); } catch(_) {}
+                });
+            } catch (_) {}
 
             loadUserData();
             loadSetupProgress();
@@ -1124,6 +1176,27 @@
             }
         }
 
+        async function updateSetupProgress(step, completed = true, additionalData = {}) {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+                const resp = await fetch('/api/setup-progress', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ step, completed, additionalData })
+                });
+                // No strict UI dependency; soft refresh progress on success
+                if (resp.ok) {
+                    try { await loadSetupProgress(); } catch (_) {}
+                }
+            } catch (e) {
+                console.warn('updateSetupProgress failed:', e.message);
+            }
+        }
+
         async function loadSetupProgress() {
             try {
                 const token = localStorage.getItem('authToken');
@@ -1256,6 +1329,11 @@
 
                 const data = await fetchProfile(headers, 3, 800);
                 if (data && data.user) {
+                    // If user is on a paid plan and plan step not marked, flag it (best-effort)
+                    try {
+                        const planId = (data.user.plan?.current?.id || data.user.subscription?.plan || 'free').toLowerCase();
+                        if (planId !== 'free') { await updateSetupProgress('plan', true); }
+                    } catch (_) {}
                     // Re-apply UI with the latest profile
                     const oldPlan = window.currentUserPlan || 'free';
                     window.currentUserPlan = data.user.plan?.current?.id || data.user.subscription?.plan || 'free';
