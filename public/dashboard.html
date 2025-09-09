@@ -818,15 +818,6 @@
             try { await updateSetupProgress('customize', true); } catch (_) {}
             window.location.href = '/configure-prompt';
         }
-            console.log('🤖 Configure AI Chat clicked');
-            const plan = (window.currentUserPlan || 'free').toLowerCase();
-            const allowedPlans = ['professional', 'enterprise'];
-            if (!allowedPlans.includes(plan)) {
-                window.location.href = '/pricing?suggested=professional&feature=ai-chat-config&upgrade=professional';
-                return;
-            }
-            window.location.href = '/configure-prompt';
-        }
         
         function logout() {
             console.log('🚪 Logout clicked');
@@ -930,15 +921,6 @@
             try { await updateSetupProgress('embed', true, { source: 'get_code' }); } catch (_) {}
             window.location.href = '/integration';
         }
-            console.log('📄 Show Integration Code clicked');
-            const plan = (window.currentUserPlan || 'free').toLowerCase();
-            const allowedPlans = ['starter', 'professional', 'enterprise'];
-            if (!allowedPlans.includes(plan)) {
-                window.location.href = '/pricing?suggested=starter&feature=integration-code&upgrade=starter';
-                return;
-            }
-            window.location.href = '/integration';
-        }
         
         async function copyIntegrationCode() {
             console.log('📋 Copy Integration Code clicked');
@@ -949,15 +931,6 @@
                 return;
             }
             try { await updateSetupProgress('embed', true, { source: 'copy_code' }); } catch (_) {}
-            window.location.href = '/integration';
-        }
-            console.log('📋 Copy Integration Code clicked');
-            const plan = (window.currentUserPlan || 'free').toLowerCase();
-            const allowedPlans = ['starter', 'professional', 'enterprise'];
-            if (!allowedPlans.includes(plan)) {
-                window.location.href = '/pricing?suggested=starter&feature=integration-code&upgrade=starter';
-                return;
-            }
             window.location.href = '/integration';
         }
 
