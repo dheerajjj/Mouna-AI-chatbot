@@ -968,6 +968,20 @@
                 });
             } catch (_) {}
 
+            // If returning from a configuration page, ensure progress is synced even if the save endpoint didn't update it.
+            try {
+                const returned = sessionStorage.getItem('returning_from_config');
+                if (returned) {
+                    // Best-effort bulk update: mark appearance and customize as complete
+                    try { await bulkUpdateSetupProgress([
+                        { step: 'appearance', completed: true },
+                        { step: 'customize', completed: true }
+                    ], returned); } catch (_) {}
+                    // Clear the flag to avoid repeated updates
+                    sessionStorage.removeItem('returning_from_config');
+                }
+            } catch (_) {}
+
             loadUserData();
             loadSetupProgress();
         });
@@ -1168,6 +1182,20 @@
             } catch (e) {
                 console.warn('updateSetupProgress failed:', e.message);
             }
+        }
+
+        async function bulkUpdateSetupProgress(updates, redirectSource = null) {
+            const token = localStorage.getItem('authToken');
+            if (!token) return;
+            const resp = await fetch('/api/setup-progress/bulk-update', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ updates, redirectSource })
+            });
+            return resp.ok;
         }
 
         async function loadSetupProgress() {
