@@ -908,6 +908,24 @@ async function startServer() {
         
         await DatabaseService.updateUser(userId, updateData);
         
+        // Also mark progress: completing chat configuration counts as 'customize'
+        try {
+          const UserProgress = require('./models/UserProgress');
+          await UserProgress.updateUserProgress(userId, 'customize', true, {
+            customizationData: {
+              preset: preset || 'professional',
+              systemPrompt,
+              welcomeMessage,
+              fallbackResponse,
+              responseLength,
+              languageStyle,
+              focusTopics
+            }
+          });
+        } catch (e) {
+          console.warn('Progress update (customize) failed after chat-config save:', e.message);
+        }
+
         res.json({ 
           success: true, 
           message: 'Chat configuration saved successfully',
@@ -962,6 +980,27 @@ async function startServer() {
         };
         
         await DatabaseService.updateUser(userId, updateData);
+
+        // Robust: mark both 'appearance' and 'customize' as completed
+        try {
+          const UserProgress = require('./models/UserProgress');
+          await UserProgress.updateUserProgress(userId, 'appearance', true, {
+            customizationData: {
+              theme: 'custom',
+              colors: { primary: advancedConfig?.primaryColor || null },
+              position: advancedConfig?.widgetPosition || null,
+              primaryColor: advancedConfig?.primaryColor || null,
+              title: advancedConfig?.aiName || null,
+              welcomeMessage: null,
+              icon: null,
+              size: advancedConfig?.widgetSize || null,
+              animation: advancedConfig?.entryAnimation || null
+            }
+          });
+          await UserProgress.updateUserProgress(userId, 'customize', true);
+        } catch (e) {
+          console.warn('Progress update failed after advanced customization save:', e.message);
+        }
         
         res.json({ 
           success: true, 
@@ -994,6 +1033,28 @@ async function startServer() {
           'widgetConfig.lastUpdated': new Date()
         };
         await DatabaseService.updateUser(userId, update);
+
+        // Robust: mark both 'appearance' and 'customize' as completed so dashboard advances reliably
+        try {
+          const UserProgress = require('./models/UserProgress');
+          await UserProgress.updateUserProgress(userId, 'appearance', true, {
+            customizationData: {
+              theme: 'custom',
+              colors: { primary: primaryColor || null },
+              position,
+              primaryColor: primaryColor || null,
+              title: title || null,
+              welcomeMessage: welcomeMessage || null,
+              icon: icon || null,
+              size: size || null,
+              animation: animation || null
+            }
+          });
+          await UserProgress.updateUserProgress(userId, 'customize', true);
+        } catch (e) {
+          console.warn('Progress update failed after widget-config save:', e.message);
+        }
+
         res.json({ success: true, message: "Widget configuration saved successfully!" });
       } catch (error) {
         console.error('Widget config save error:', error);
