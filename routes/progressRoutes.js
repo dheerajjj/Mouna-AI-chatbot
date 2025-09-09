@@ -9,8 +9,24 @@ const tokenBlacklist = new Set();
 // JWT authentication middleware (compatible with main server)
 const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const getBearer = () => {
+      const h = req.headers['authorization'];
+      if (!h) return null;
+      const parts = h.split(' ');
+      if (parts.length === 2 && /^Bearer$/i.test(parts[0])) return parts[1];
+      return null;
+    };
+    const getCookieToken = () => {
+      try {
+        const raw = req.headers['cookie'];
+        if (!raw) return null;
+        const kv = raw.split(';').map(s => s.trim());
+        const entry = kv.find(s => s.startsWith('authToken='));
+        if (!entry) return null;
+        return decodeURIComponent(entry.substring('authToken='.length));
+      } catch (_) { return null; }
+    };
+    const token = getBearer() || getCookieToken();
 
     if (!token) {
       return res.status(401).json({ error: 'Access token required' });
