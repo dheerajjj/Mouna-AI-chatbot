@@ -1276,10 +1276,13 @@
             const codeElement = document.getElementById(elementId);
             const text = codeElement.innerText || codeElement.textContent;
             
-            navigator.clipboard.writeText(text).then(() => {
+            navigator.clipboard.writeText(text).then(async () => {
                 // Show toast notification
                 const toast = document.getElementById('toast');
                 toast.classList.add('show');
+
+                // Mark embed step completed (best-effort)
+                try { await updateSetupProgress('embed', true); } catch (_) {}
                 
                 // Update button state
                 const originalContent = button.innerHTML;
@@ -2579,25 +2582,25 @@ ${exampleAttrLines.join('<br>')}<br>
             }
         }
         
-        // Progress tracking function
+        // Progress tracking function (supports token or cookie session)
         async function updateSetupProgress(step, completed = true) {
             try {
                 const token = localStorage.getItem('authToken');
-                if (!token) return;
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
                 
                 const response = await fetch('/api/setup-progress', {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers,
+                    credentials: 'same-origin', // send cookies if present
                     body: JSON.stringify({ step, completed })
                 });
                 
                 if (response.ok) {
                     console.log(`✅ Progress updated: ${step} = ${completed}`);
                 } else {
-                    console.error('Failed to update setup progress');
+                    const errText = await response.text().catch(()=> '');
+                    console.error('Failed to update setup progress', response.status, errText);
                 }
             } catch (error) {
                 console.error('Error updating setup progress:', error);
