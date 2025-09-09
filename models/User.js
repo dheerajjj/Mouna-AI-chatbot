@@ -195,6 +195,15 @@ const userSchema = new mongoose.Schema({
     }
   },
   
+  // Setup Progress (legacy dashboard)
+  setupProgress: {
+    plan: { type: Boolean, default: false },
+    customize: { type: Boolean, default: false },
+    embed: { type: Boolean, default: false },
+    live: { type: Boolean, default: false },
+    lastUpdated: { type: Date, default: null }
+  },
+  
   // API Keys
   apiKey: {
     type: String,
