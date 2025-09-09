@@ -81,13 +81,28 @@ router.get('/setup-progress', async (req, res) => {
     const userId = req.user._id; // From auth middleware
     
     const progress = await UserProgress.getUserProgress(userId);
+
+    // Determine the next actionable step for the dashboard UI (aggregate appearance into customize)
+    const steps = progress.steps || {};
+    let nextStep = 'completed';
+    if (!steps.plan?.completed) {
+      nextStep = 'plan';
+    } else if (!steps.appearance?.completed || !steps.customize?.completed) {
+      // Treat any pending appearance/customize work as 'customize' in the UI
+      nextStep = 'customize';
+    } else if (!steps.embed?.completed) {
+      nextStep = 'embed';
+    } else if (!steps.live?.completed) {
+      nextStep = 'live';
+    }
     
     res.json({
       success: true,
       progress: progress.steps,
       completionPercentage: progress.completionPercentage,
       completedSteps: progress.completedSteps,
-      totalSteps: progress.totalSteps
+      totalSteps: progress.totalSteps,
+      nextStep
     });
   } catch (error) {
     console.error('Error fetching user progress:', error);

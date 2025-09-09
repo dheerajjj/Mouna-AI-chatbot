@@ -857,6 +857,7 @@
         </div>
     </div>
 
+    <script src="/utils/progressService.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
     <script>
@@ -1362,6 +1363,38 @@
                     // Success
                     saveButton.innerHTML = '<i class="fas fa-check"></i> Saved!';
                     saveButton.style.background = '#10b981';
+
+                    // Update setup progress and redirect to dashboard
+                    try {
+                        if (window.ProgressService) {
+                            const appearanceData = {
+                                customizationData: {
+                                    primaryColor: this.config.primaryColor,
+                                    secondaryColor: this.config.secondaryColor,
+                                    backgroundStyle: this.config.backgroundStyle,
+                                    fontFamily: this.config.fontFamily,
+                                    fontSize: this.config.fontSize,
+                                    borderRadius: this.config.borderRadius,
+                                    shadowIntensity: this.config.shadowIntensity,
+                                    widgetPosition: this.config.widgetPosition,
+                                    widgetSize: this.config.widgetSize,
+                                    entryAnimation: this.config.entryAnimation
+                                }
+                            };
+                            await window.ProgressService.bulkUpdateSteps([
+                                { step: 'appearance', completed: true, additionalData: appearanceData },
+                                { step: 'customize', completed: true }
+                            ], 'customize-widget-advanced');
+                            window.ProgressService.showSuccessNotification('Customization saved! 🎉');
+                            setTimeout(() => { window.location.href = '/dashboard'; }, 1200);
+                        } else {
+                            // Fallback: simple redirect
+                            alert('Customization saved!');
+                            setTimeout(() => { window.location.href = '/dashboard'; }, 1200);
+                        }
+                    } catch (e) {
+                        console.warn('Progress update after save failed:', e);
+                    }
 
                 } catch (error) {
                     console.error('Save error:', error);
