@@ -187,6 +187,11 @@ const userSchema = new mongoose.Schema({
     },
     fontFamily: {
       type: String
+    },
+    // Marks whether the user has completed widget customization (used by legacy setup progress)
+    customized: {
+      type: Boolean,
+      default: false
     }
   },
   
