@@ -112,5 +112,84 @@ router.get('/summary', authenticateToken, attachFullUser, requireFeature('basicA
   }
 });
 
+/**
+ * GET /api/analytics/satisfaction
+ * Query params: dateRange=7days|30days|90days (default 30days)
+ * Returns positiveRate (>=4 stars), avgRating (1..5), ratedSessions count
+ */
+router.get('/satisfaction', authenticateToken, attachFullUser, requireFeature('basicAnalytics'), async (req, res) => {
+  try {
+    const { getDb } = require('../server-mongo');
+    const db = getDb();
+
+    let userId = (req.currentUser && (req.currentUser._id || req.currentUser.id))
+      || req.user.userId || req.user._id || req.user.id;
+
+    const now = new Date();
+    const range = (req.query.dateRange || '30days').toString();
+    let startDate;
+    switch (range) {
+      case '7days': startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+      case '90days': startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); break;
+      case '30days':
+      default: startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    const { ObjectId } = require('mongodb');
+    const userObjectId = ObjectId.isValid(userId) ? new ObjectId(userId) : userId;
+    const userIdString = typeof userId === 'string' ? userId : (userObjectId?.toString?.() || String(userObjectId));
+
+    // Determine correct chat sessions collection
+    let sessionsCollectionName = 'chat_sessions';
+    try {
+      const c1 = await db.collection('chat_sessions').countDocuments({ $or: [{ userId: userObjectId }, { userId: userIdString }] }).catch(() => 0);
+      const c2 = await db.collection('chatsessions').countDocuments({ $or: [{ userId: userObjectId }, { userId: userIdString }] }).catch(() => 0);
+      sessionsCollectionName = c1 >= c2 ? 'chat_sessions' : 'chatsessions';
+    } catch (_) {}
+    const sessionsCol = db.collection(sessionsCollectionName);
+
+    // Match sessions owned by user with ratings in date range (use ratedAt when available, else createdAt/updatedAt)
+    const match = {
+      $and: [
+        { $or: [ { userId: userObjectId }, { userId: userIdString } ] },
+        { 'rating.score': { $gte: 1 } },
+        { $or: [
+          { 'rating.ratedAt': { $gte: startDate, $lte: now } },
+          { createdAt: { $gte: startDate, $lte: now } },
+          { updatedAt: { $gte: startDate, $lte: now } }
+        ] }
+      ]
+    };
+
+    // Aggregate satisfaction stats
+    const agg = await sessionsCol.aggregate([
+      { $match: match },
+      { $group: {
+          _id: null,
+          avgRating: { $avg: '$rating.score' },
+          ratedSessions: { $sum: 1 },
+          positiveCount: { $sum: { $cond: [ { $gte: ['$rating.score', 4] }, 1, 0 ] } }
+        }
+      }
+    ]).toArray();
+
+    const stats = agg[0] || { avgRating: null, ratedSessions: 0, positiveCount: 0 };
+    const positiveRate = stats.ratedSessions > 0 ? Math.round((stats.positiveCount / stats.ratedSessions) * 100) : null;
+
+    return res.json({
+      success: true,
+      dateRange: { start: startDate, end: now, label: range },
+      metrics: {
+        avgRating: stats.avgRating != null ? Math.round(stats.avgRating * 100) / 100 : null,
+        ratedSessions: stats.ratedSessions || 0,
+        positiveRatePercent: positiveRate
+      }
+    });
+  } catch (error) {
+    console.error('Error computing satisfaction analytics:', error);
+    return res.status(500).json({ success: false, error: 'Failed to compute satisfaction' });
+  }
+});
+
 module.exports = router;
 

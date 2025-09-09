@@ -439,13 +439,30 @@
                             document.getElementById('avg-response-time').textContent = (typeof avg === 'number' && isFinite(avg)) ? avg : 'N/A';
                         } else {
                             // Fallback if gated or error
-                            document.getElementById('avg-response-time').textContent = Math.floor(Math.random() * 300 + 150);
-                        }
+                    document.getElementById('avg-response-time').textContent = Math.floor(Math.random() * 300 + 150);
+                    }
                     } catch (_) {
                         document.getElementById('avg-response-time').textContent = Math.floor(Math.random() * 300 + 150);
                     }
-                    // Keep satisfaction simulated until implemented server-side
-                    document.getElementById('satisfaction-rate').textContent = '94%';
+                    // Fetch real satisfaction (positive rate %)
+                    try {
+                        const token = localStorage.getItem('authToken');
+                        const resp2 = await fetch(`/api/analytics/satisfaction?dateRange=30days`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        if (resp2.ok) {
+                            const s = await resp2.json();
+                            const pct = s?.metrics?.positiveRatePercent;
+                            document.getElementById('satisfaction-rate').textContent = (typeof pct === 'number' && isFinite(pct)) ? `${pct}%` : 'N/A';
+                        } else {
+                            document.getElementById('satisfaction-rate').textContent = 'N/A';
+                        }
+                    } catch (_) {
+                        document.getElementById('satisfaction-rate').textContent = 'N/A';
+                    }
                 }
             } catch (error) {
                 console.error('Error loading analytics:', error);
