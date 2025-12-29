@@ -127,40 +127,24 @@ router.post('/bootstrap',
                 ...options
             };
 
-            // Start training asynchronously
-            const svc = getAutoTrainingService();
-            if (!svc) {
-                return res.status(503).json({ success: false, error: 'AutoTrainingService unavailable' });
+            // Prefer the dedicated microservice via proxy
+            try {
+                const available = await autoTrainingProxy.isServiceAvailable();
+                if (!available) {
+                    return res.status(503).json({ success: false, error: 'Auto-training service unavailable' });
+                }
+                // Forward to microservice; keep our route and response shape
+                const proxyResp = await autoTrainingProxy.forwardRequest(
+                    'POST',
+                    '/api/bootstrap',
+                    { websiteUrl, tenantId: finalTenantId, options: trainingOptions }
+                );
+                // Mirror microservice semantics (202 Accepted)
+                return res.status(202).json(proxyResp);
+            } catch (err) {
+                console.error('❌ Proxy bootstrap error:', err.message);
+                return res.status(502).json({ success: false, error: 'Failed to start auto-training via service' });
             }
-            const trainingPromise = svc.bootstrapTenant(
-                websiteUrl,
-                finalTenantId,
-                trainingOptions
-            );
-
-            // Don't wait for completion - return immediately with session info
-            res.status(202).json({
-                success: true,
-                message: 'Auto-training started successfully',
-                tenantId: finalTenantId,
-                websiteUrl,
-                status: 'training_started',
-                estimated_completion: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes estimate
-                check_status_url: `/api/tenant/training-status/${finalTenantId}`,
-                configuration_preview_url: `/api/tenant/config/${finalTenantId}`,
-                training_options: trainingOptions
-            });
-
-            // Handle training completion asynchronously
-            trainingPromise
-                .then(result => {
-                    console.log(`✅ Training completed for tenant: ${finalTenantId}`);
-                    // Could send webhook notification here
-                })
-                .catch(error => {
-                    console.error(`❌ Training failed for tenant: ${finalTenantId}`, error);
-                    // Could send error webhook notification here
-                });
 
         } catch (error) {
             console.error('Bootstrap endpoint error:', error);
@@ -198,18 +182,22 @@ router.get('/training-status/:tenantId',
 
             console.log(`📊 Getting training status for tenant: ${tenantId}`);
 
-            const svc = getAutoTrainingService();
-            if (!svc) {
-                return res.status(503).json({ success: false, error: 'AutoTrainingService unavailable' });
+            // Proxy to microservice for canonical status
+            try {
+                const available = await autoTrainingProxy.isServiceAvailable();
+                if (!available) {
+                    return res.status(503).json({ success: false, error: 'Auto-training service unavailable' });
+                }
+                const proxyResp = await autoTrainingProxy.forwardRequest(
+                    'GET',
+                    `/api/training-status/${encodeURIComponent(tenantId)}`
+                );
+                // Pass through microservice response (already in desired shape)
+                return res.status(200).json(proxyResp);
+            } catch (err) {
+                console.error('❌ Proxy training-status error:', err.message);
+                return res.status(502).json({ success: false, error: 'Failed to fetch training status' });
             }
-            const status = await svc.getTrainingStatus(tenantId);
-
-            res.json({
-                success: true,
-                tenantId,
-                status,
-                timestamp: new Date()
-            });
 
         } catch (error) {
             console.error('Training status endpoint error:', error);
@@ -267,31 +255,22 @@ router.post('/refresh/:tenantId',
                 });
             }
 
-            // Start refresh process
-            const svc = getAutoTrainingService();
-            if (!svc) {
-                return res.status(503).json({ success: false, error: 'AutoTrainingService unavailable' });
+            // Forward refresh to microservice via proxy
+            try {
+                const available = await autoTrainingProxy.isServiceAvailable();
+                if (!available) {
+                    return res.status(503).json({ success: false, error: 'Auto-training service unavailable' });
+                }
+                const proxyResp = await autoTrainingProxy.forwardRequest(
+                    'POST',
+                    '/api/refresh',
+                    { tenantId, options }
+                );
+                return res.status(202).json(proxyResp);
+            } catch (err) {
+                console.error('❌ Proxy refresh error:', err.message);
+                return res.status(502).json({ success: false, error: 'Failed to start tenant refresh' });
             }
-            const refreshPromise = svc.refreshTenantData(tenantId, options);
-
-            // Return immediately
-            res.status(202).json({
-                success: true,
-                message: 'Tenant data refresh started',
-                tenantId,
-                status: 'refreshing',
-                estimated_completion: new Date(Date.now() + 3 * 60 * 1000), // 3 minutes estimate
-                check_status_url: `/api/tenant/training-status/${tenantId}`
-            });
-
-            // Handle refresh completion asynchronously
-            refreshPromise
-                .then(result => {
-                    console.log(`✅ Refresh completed for tenant: ${tenantId}`, result);
-                })
-                .catch(error => {
-                    console.error(`❌ Refresh failed for tenant: ${tenantId}`, error);
-                });
 
         } catch (error) {
             console.error('Refresh endpoint error:', error);
@@ -577,5 +556,47 @@ router.get('/auto-training/status', async (req, res) => {
         return res.status(503).json({ success: false, available: false, error: error.message });
     }
 });
+
+/**
+ * POST /api/tenant/refresh (body-based)
+ * Align monolith route with microservice for clients using body payload.
+ */
+router.post('/refresh',
+    autoTrainingLimiter,
+    [
+        body('tenantId')
+            .isLength({ min: 3, max: 50 })
+            .withMessage('Valid tenant ID is required'),
+        body('options')
+            .optional()
+            .isObject()
+            .withMessage('Options must be an object')
+    ],
+    async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+            }
+            const { tenantId, options = {} } = req.body;
+            // Optional existence check using direct DB (best-effort)
+            try {
+                const tenantExists = await checkExistingTenant(tenantId);
+                if (!tenantExists) {
+                    return res.status(404).json({ success: false, error: 'Tenant not found', tenantId });
+                }
+            } catch (_) { /* ignore */ }
+            const available = await autoTrainingProxy.isServiceAvailable();
+            if (!available) {
+                return res.status(503).json({ success: false, error: 'Auto-training service unavailable' });
+            }
+            const proxyResp = await autoTrainingProxy.forwardRequest('POST', '/api/refresh', { tenantId, options });
+            return res.status(202).json(proxyResp);
+        } catch (error) {
+            console.error('Body-based refresh proxied error:', error.message);
+            res.status(502).json({ success: false, error: 'Failed to start tenant refresh' });
+        }
+    }
+);
 
 module.exports = router;
