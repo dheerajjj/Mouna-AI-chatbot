@@ -813,6 +813,15 @@
                 width: 100%;
                 max-width: 300px;
             }
+            
+            /* Mobile alignment for tenant controls */
+            .tenant-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .create-tenant-btn {
+                width: 100%;
+            }
         }
         
         /* Tenant filter styles */
@@ -1037,7 +1046,7 @@
             
             <div class="code-container">
                 <div class="code-block" id="widget-snippet">
-<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://www.mouna-ai.com/widget.js"</span><br>
+<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://www.mouna-ai.com/widget-fixed.js"</span><br>
         <span class="attr">data-api-key</span>=<span class="string">"YOUR_API_KEY"</span><br>
         <span class="attr">data-primary-color</span>=<span class="string">"#0d7b8a"</span><br>
         <span class="attr">data-position</span>=<span class="string">"bottom-right"</span><span class="tag">&gt;&lt;/script&gt;</span>
@@ -1132,7 +1141,7 @@
                 <li>Copy your unique API key</li>
                 <li>Replace "YOUR_API_KEY" in the code above</li>
             </ul>
-            <a href="/welcome-dashboard" class="dashboard-btn">
+<a href="/dashboard" class="dashboard-btn">
                 <i class="fas fa-external-link-alt"></i>
                 Go to Dashboard
             </a>
@@ -1159,8 +1168,8 @@
     <span class="tag">&lt;p&gt;</span>Your website content goes here...<span class="tag">&lt;/p&gt;</span><br>
     <br>
     <span class="comment">&lt;!-- Add the chatbot widget just before closing body tag --&gt;</span><br>
-    <span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://www.mouna-ai.com/widget.js"</span><br>
-            <span class="attr">data-api-key</span>=<span class="string">"YOUR_API_KEY"</span><span class="tag">&gt;&lt;/script&gt;</span><br>
+<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="string">"https://www.mouna-ai.com/widget-fixed.js"</span><br>
+            <span class="attr">data-api-key</span>=<span class="string">"YOUR_API_KEY"</span><span class="tag">&gt;&lt;/script&gt;</span>
 <span class="tag">&lt;/body&gt;</span><br>
 <span class="tag">&lt;/html&gt;</span>
                 </div>
@@ -1797,7 +1806,7 @@
 
             // Update widget snippet
             widgetSnippet.innerHTML = [
-                `<span class=\"tag\">&lt;script</span> <span class=\"attr\">src</span>=<span class=\"string\">\"https://www.mouna-ai.com/widget.js\"</span>`,
+`<span class=\"tag\">&lt;script</span> <span class=\"attr\">src</span>=<span class=\"string\">\"https://www.mouna-ai.com/widget-fixed.js\"</span>`,
                 ...attrLines,
                 `<span class=\"tag\">&gt;&lt;/script&gt;</span>`
             ].join('<br>');
@@ -1816,7 +1825,7 @@
     <span class=\"tag\">&lt;p&gt;</span>Your website content goes here...<span class=\"tag\">&lt;/p&gt;</span><br>
     <br>
     <span class=\"comment\">&lt;!-- Add the chatbot widget just before closing body tag --&gt;</span><br>
-    <span class=\"tag\">&lt;script</span> <span class=\"attr\">src</span>=<span class=\"string\">\"https://www.mouna-ai.com/widget.js\"</span><br>
+<span class=\"tag\">&lt;script</span> <span class=\"attr\">src</span>=<span class=\"string\">\"https://www.mouna-ai.com/widget-fixed.js\"</span><br>
 ${exampleAttrLines.join('<br>')}<br>
     <span class=\"tag\">&lt;/script&gt;</span><br>
 <span class=\"tag\">&lt;/body&gt;</span><br>
