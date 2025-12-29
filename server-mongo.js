@@ -2370,6 +2370,8 @@ app.get('/email-validation-test', (req, res) => {
             res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
             res.set('Pragma', 'no-cache');
             res.set('Expires', '0');
+            // Prevent search engines from indexing private dashboard
+            res.set('X-Robots-Tag', 'noindex, nofollow');
         } catch (_) {}
         res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
     });

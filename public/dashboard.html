@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
     <title>Dashboard - Mouna</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -415,7 +416,22 @@
                 display: none;
             }
         }
-    </style>
+</style>
+<script>
+// Early auth gate to prevent unauthenticated viewing or indexing via open links
+(function(){
+  try {
+    // If no auth cookie and no localStorage token, redirect to login
+    var hasLocal = false;
+    try { hasLocal = !!(localStorage.getItem('authToken') || '').length; } catch(_) {}
+    var hasCookie = /(?:^|;\s*)authToken=/.test(document.cookie);
+    if (!hasLocal && !hasCookie) {
+      var dest = '/login?redirect=' + encodeURIComponent('/dashboard');
+      window.location.replace(dest);
+    }
+  } catch (_) {}
+})();
+</script>
 </head>
 <body>
     <!-- Navigation -->
