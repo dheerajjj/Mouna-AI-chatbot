@@ -206,7 +206,8 @@ router.get('/google/callback', async (req, res, next) => {
 
         // Build destination path
         let postLoginPath = user.isNew ? '/quick-setup' : '/dashboard';
-        if (nextPath && /^\//.test(nextPath)) postLoginPath = nextPath;
+        // Honor nextPath only for new-user flows; returning users go to dashboard
+        if (user.isNew && nextPath && /^\//.test(nextPath)) postLoginPath = nextPath;
 
         if (!requireOtp) {
           // Issue session immediately (no OTP for OAuth since Google already verified email)

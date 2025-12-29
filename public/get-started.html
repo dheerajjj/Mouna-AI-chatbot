@@ -1136,7 +1136,7 @@
             // Last resort: navigate to Railway base (navigation bypasses CORS)
             (function(){
                 const origin = window.location.origin;
-                const next = '/quick-setup';
+                const next = '/dashboard';
                 window.location.href = `/auth/google?returnTo=${encodeURIComponent(origin)}&next=${encodeURIComponent(next)}`;
             })();
         }
