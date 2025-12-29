@@ -418,6 +418,25 @@
         }
 </style>
 <script>
+// Capture ?token early (from OAuth redirect) BEFORE the auth gate runs
+(function(){
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var t = params.get('token');
+    if (t && t.length > 10) {
+      try { localStorage.setItem('authToken', t); } catch(_) {}
+      // Clean the URL to avoid leaking tokens
+      try {
+        var keep = [];
+        if (params.has('provider')) keep.push('provider=' + encodeURIComponent(params.get('provider')));
+        var newQs = keep.length ? ('?' + keep.join('&')) : '';
+        var cleanUrl = window.location.pathname + newQs + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } catch(_){}
+    }
+  } catch(_) {}
+})();
+
 // Early auth gate to prevent unauthenticated viewing or indexing via open links
 (function(){
   try {
