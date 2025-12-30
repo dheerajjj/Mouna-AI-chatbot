@@ -834,10 +834,32 @@
             }
         }
         
-        function regenerateApiKey() {
+        async function regenerateApiKey() {
             console.log('🔄 Regenerate API Key clicked');
-            if (confirm('Are you sure you want to regenerate your API key?')) {
-                alert('🔄 API Key Regeneration\n\nThis feature is being developed.\nContact support for assistance.');
+            try {
+                const plan = (window.currentUserPlan || 'free').toLowerCase();
+                if (plan === 'free') {
+                    // Redirect Free users to pricing
+                    window.location.href = '/pricing?feature=api&upgrade=starter';
+                    return;
+                }
+                const token = localStorage.getItem('authToken');
+                if (!token) { alert('Please sign in again.'); return; }
+                const resp = await fetch('/auth/regenerate-api-key', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                });
+                const data = await resp.json().catch(()=>({}));
+                if (!resp.ok) {
+                    const msg = data?.error || `Request failed (${resp.status})`;
+                    alert('API key could not be regenerated: ' + msg);
+                    if (resp.status === 403) window.location.href = data?.upgradeUrl || '/pricing?feature=api&upgrade=starter';
+                    return;
+                }
+                alert('Your API key was regenerated successfully. Please update it in your website embed.');
+            } catch (e) {
+                console.error('regenerateApiKey failed:', e);
+                alert('Could not regenerate API key. Please try again.');
             }
         }
 
@@ -1176,6 +1198,14 @@
                     
                     // Store current plan globally for other functions
                     window.currentUserPlan = currentPlan;
+
+                    // Hard gate: Free plan users should use pricing page instead of dashboard
+                    try {
+                        if ((window.currentUserPlan || 'free') === 'free') {
+                            window.location.replace('/pricing?feature=dashboard&upgrade=starter');
+                            return; // stop rendering the rest of the page
+                        }
+                    } catch (_) {}
                     
                     // Apply plan-based feature restrictions
                     applyPlanBasedFeatures({

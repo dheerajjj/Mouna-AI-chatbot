@@ -2364,16 +2364,52 @@ app.get('/email-validation-test', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'login.html'));
     });
     
-    // Main dashboard (streamlined architecture - serves full dashboard functionality)
-    app.get('/dashboard', (req, res) => {
+    // Main dashboard (streamlined) — with soft server-side plan gating for Free
+    app.get('/dashboard', async (req, res) => {
         try {
             res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
             res.set('Pragma', 'no-cache');
             res.set('Expires', '0');
-            // Prevent search engines from indexing private dashboard
             res.set('X-Robots-Tag', 'noindex, nofollow');
         } catch (_) {}
-        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+
+        // Soft gate: if we can read a valid auth token and detect a Free plan, redirect to pricing.
+        try {
+            const getBearer = () => {
+                const h = req.headers['authorization'];
+                if (!h) return null;
+                const parts = h.split(' ');
+                if (parts.length === 2 && /^Bearer$/i.test(parts[0])) return parts[1];
+                return null;
+            };
+            const getCookieToken = () => {
+                try {
+                    const raw = req.headers['cookie'];
+                    if (!raw) return null;
+                    const kv = raw.split(';').map(s => s.trim());
+                    const entry = kv.find(s => s.startsWith('authToken='));
+                    if (!entry) return null;
+                    return decodeURIComponent(entry.substring('authToken='.length));
+                } catch (_) { return null; }
+            };
+            const token = getBearer() || getCookieToken();
+            if (token) {
+                await new Promise((resolve) => {
+                    jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', async (err, decoded) => {
+                        if (err || !decoded || !decoded.userId) return resolve();
+                        try {
+                            const user = await DatabaseService.findUserById(decoded.userId);
+                            if (user && (user.subscription?.plan || 'free') === 'free') {
+                                return res.redirect(302, '/pricing?feature=dashboard&upgrade=starter');
+                            }
+                        } catch (_) { /* ignore and fall through to serve page */ }
+                        return resolve();
+                    });
+                });
+            }
+        } catch (_) { /* best-effort gate only */ }
+
+        return res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
     });
     
     app.get('/pricing', (req, res) => {

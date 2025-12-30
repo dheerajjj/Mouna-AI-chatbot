@@ -758,13 +758,30 @@ router.post('/refresh-token', authenticateToken, async (req, res) => {
   }
 });
 
-// Regenerate API Key
+// Regenerate API Key (Starter+)
 router.post('/regenerate-api-key', authenticateToken, async (req, res) => {
   try {
     const user = await DatabaseService.findUserById(req.user.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    // Plan gate: require apiAccess feature (Starter and above)
+    try {
+      const { PlanManager } = require('../config/planFeatures');
+      const plan = (user.subscription?.plan || 'free');
+      const hasApi = PlanManager.hasFeature(plan, 'apiAccess');
+      if (!hasApi) {
+        return res.status(403).json({
+          error: 'This feature requires a higher plan subscription',
+          code: 'FEATURE_RESTRICTED',
+          currentPlan: plan,
+          requiredFeature: 'apiAccess',
+          suggestedUpgrade: 'starter',
+          upgradeUrl: '/pricing?feature=api&upgrade=starter'
+        });
+      }
+    } catch (_) { /* if PlanManager missing, fall back to simple free check */ }
 
     user.generateApiKey();
     await DatabaseService.updateUser(user._id, { apiKey: user.apiKey });
