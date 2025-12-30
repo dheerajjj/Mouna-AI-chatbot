@@ -493,9 +493,11 @@ function updateWidgetLanguage(lang) {
             if (tenantConfig.whatsapp) {
                 currentConfig.whatsapp = tenantConfig.whatsapp;
             }
-            // White-labeling: hide branding for Pro/Enterprise
-            if (data.ownerSubscription && (data.ownerSubscription.plan === 'professional' || data.ownerSubscription.plan === 'enterprise')) {
+            // White-labeling: hide branding for Starter/Pro/Enterprise
+            if (data.ownerSubscription && ['starter','professional','enterprise'].includes(data.ownerSubscription.plan)) {
                 currentConfig.showBranding = false;
+                // If already rendered, remove the branding block from DOM
+                try { const brand = widget && widget.querySelector ? widget.querySelector('.chatbot-widget-branding') : null; if (brand) brand.remove(); } catch (_) {}
             }
             // Respect explicitly-set primary color from script tag; otherwise allow tenant color
             if (!currentConfig.primaryColorLocked && tenantConfig.primaryColor) updateWidgetColors(tenantConfig.primaryColor);

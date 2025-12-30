@@ -435,10 +435,15 @@
                 if (data.ownerSubscription) {
                     const subscription = data.ownerSubscription;
                     
-                    // Hide branding for Professional+ plans with white-labeling
-                    if (subscription.plan === 'professional' || subscription.plan === 'enterprise') {
+                    // Hide branding for Starter, Professional, and Enterprise plans
+                    if (['starter', 'professional', 'enterprise'].includes(subscription.plan)) {
                         currentConfig.showBranding = false;
-                        console.log('🏷️ White-labeling enabled - branding hidden for', subscription.plan, 'plan');
+                        console.log('🏷️ Branding hidden for', subscription.plan, 'plan');
+                        // If the widget is already rendered, remove the branding block from DOM
+                        try {
+                            const brandEl = widget && widget.querySelector ? widget.querySelector('.chatbot-widget-branding') : null;
+                            if (brandEl) brandEl.remove();
+                        } catch (_) {}
                     } else {
                         currentConfig.showBranding = true;
                     }
