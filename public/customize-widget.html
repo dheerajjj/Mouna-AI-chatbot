@@ -464,9 +464,9 @@
                     <div class="form-group" id="logo-upload-group" style="display:none;">
                         <label class="form-label">Custom Logo (Professional+)</label>
                         <input type="file" id="custom-logo" accept="image/png, image/jpeg, image/svg+xml" class="form-input" />
-                        <small style="color:#64748b;">PNG/JPG/SVG, max 512 KB. Recommended square 128×128.</small>
+                        <small id="logo-upload-help" style="color:#64748b;">PNG/JPG/SVG, max 512 KB. Recommended square 128×128.</small>
                         <div style="margin-top:8px; display:flex; align-items:center; gap:12px;">
-                        <img id="logo-preview" src="" alt="Logo Preview" style="width:40px;height:40px;border-radius:8px;display:none;border:1px solid #e5e7eb;object-fit:contain;background:transparent;" />
+                            <img id="logo-preview" src="" alt="Logo Preview" style="width:40px;height:40px;border-radius:8px;display:none;border:1px solid #e5e7eb;object-fit:contain;background:transparent;" />
                             <button type="button" class="btn" style="max-width:200px;" id="upload-logo-btn"><i class="fas fa-upload"></i> Upload Logo</button>
                             <button type="button" class="btn" style="background:#6b7280;max-width:160px;" id="remove-logo-btn"><i class="fas fa-times"></i> Remove</button>
                         </div>
@@ -586,17 +586,32 @@
                 });
 
                 if (response.ok) {
-                    const { user } = await response.json();
+                    const data = await response.json();
+                    const { user } = data;
                     
                     // Update user name in navigation
                     document.getElementById('user-name').textContent = user.name;
                     
                     userPlan = user.subscription?.plan || 'free';
                     
-                    // Gate logo upload by plan: Professional+
-                    const showLogoUpload = ['professional','enterprise'].includes(userPlan);
+                    // Determine logo upload capability from server-side features (fallback to plan name)
+                    const canUploadLogo = Boolean(user?.plan?.current?.features?.logoUpload) || ['professional','enterprise'].includes(userPlan);
                     const logoUploadGroup = document.getElementById('logo-upload-group');
-                    if (logoUploadGroup) logoUploadGroup.style.display = showLogoUpload ? 'block' : 'none';
+                    const fileInput = document.getElementById('custom-logo');
+                    const uploadBtn = document.getElementById('upload-logo-btn');
+                    const removeBtn = document.getElementById('remove-logo-btn');
+                    const helpText = document.getElementById('logo-upload-help');
+
+                    // Always show the logo section, but disable controls if plan does not allow upload
+                    if (logoUploadGroup) {
+                        logoUploadGroup.style.display = 'block';
+                    }
+                    if (!canUploadLogo) {
+                        if (fileInput) { fileInput.disabled = true; fileInput.style.opacity = '0.6'; fileInput.title = 'Upgrade to Professional to upload a custom logo'; }
+                        if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.style.opacity = '0.6'; uploadBtn.style.cursor = 'not-allowed'; uploadBtn.title = 'Professional plan required'; }
+                        if (removeBtn) { removeBtn.disabled = true; removeBtn.style.opacity = '0.6'; removeBtn.style.cursor = 'not-allowed'; removeBtn.title = 'Professional plan required'; }
+                        if (helpText) { helpText.innerHTML = 'PNG/JPG/SVG, max 512 KB. <strong>Upgrade to Professional</strong> to enable custom logo upload.'; }
+                    }
 
                         // Initialize form from saved widget config if available
                         const w = user.widgetConfig || {};
