@@ -301,6 +301,9 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
         .feature-item .tooltip.show { display: block; }
+        /* Suggested-plan visual emphasis */
+        @keyframes planPulse { 0%{box-shadow:0 0 0 0 rgba(245,158,11,.7)} 70%{box-shadow:0 0 0 12px rgba(245,158,11,0)} 100%{box-shadow:0 0 0 0 rgba(245,158,11,0)} }
+        .plan-highlight { outline: 2px solid #f59e0b; border-radius: 12px; animation: planPulse 1.8s ease-out 2; }
     </style>
 </head>
 <body>
@@ -324,6 +327,19 @@
         <div class="header">
             <h1>Choose Your Plan</h1>
             <p>Start with our free plan and upgrade as you grow</p>
+        </div>
+
+        <!-- Plan gate banner (hidden by default; shown when redirected with ?feature=&upgrade=) -->
+        <div id="plan-gate-banner" style="display:none;align-items:center;gap:12px; padding:12px 16px; margin:12px 0 20px 0; border-radius:10px; background:linear-gradient(135deg,#fff7ed,#fffbeb); border:1px solid #f59e0b;">
+          <div style="font-weight:700;color:#9a3412;">Heads up</div>
+          <div style="color:#7c2d12;">
+            The <span class="reason">requested feature</span> is available on the <b class="plan">Starter</b> plan and above.
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button id="see-plan-btn" type="button" style="background:#f59e0b;color:#111827;border:none;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;">See plan</button>
+            <button id="upgrade-now-btn" type="button" style="background:#111827;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;">Upgrade now</button>
+            <button id="dismiss-banner-btn" type="button" title="Dismiss" style="background:none;border:none;color:#9a3412;font-size:18px;cursor:pointer;">×</button>
+          </div>
         </div>
 
         <div class="plans-grid" id="plans-container">
@@ -894,6 +910,52 @@
                 alert('Failed to select plan. Please try again.');
             }
         }
+    </script>
+
+    <!-- URL-driven upgrade helper: reads ?feature=...&upgrade=starter and guides the user -->
+    <script>
+      (function() {
+        function qs(k, d='') { try { return new URLSearchParams(location.search).get(k) || d; } catch(_) { return d; } }
+        function cap(s) { return (s||'').charAt(0).toUpperCase() + (s||'').slice(1); }
+        function findPlanCardById(id) {
+          return document.querySelector(`[data-plan="${id}"]`) || null;
+        }
+        function showBanner(feature, upgrade) {
+          const banner = document.getElementById('plan-gate-banner'); if (!banner) return;
+          banner.querySelector('.reason').textContent = feature ? feature.replace(/[-_]/g,' ') : 'requested feature';
+          banner.querySelector('.plan').textContent = cap(upgrade || 'starter');
+          banner.style.display = 'flex';
+          banner.querySelector('#dismiss-banner-btn')?.addEventListener('click',()=> banner.style.display='none');
+          banner.querySelector('#see-plan-btn')?.addEventListener('click',()=>{
+            const card = findPlanCardById((upgrade||'starter').toLowerCase());
+            if (card) { card.scrollIntoView({ behavior:'smooth', block:'center' }); card.classList.add('plan-highlight'); setTimeout(()=>card.classList.remove('plan-highlight'), 3500); }
+          });
+          banner.querySelector('#upgrade-now-btn')?.addEventListener('click',()=>{
+            const plan = (upgrade || 'starter').toLowerCase();
+            // Reuse existing flow
+            try { window.selectPlan ? window.selectPlan(plan) : (location.href = '/signup?plan=' + plan); } catch(_) { location.href = '/signup?plan=' + plan; }
+          });
+        }
+        document.addEventListener('DOMContentLoaded', ()=>{
+          const feature = (qs('feature')||'');
+          const upgrade = (qs('upgrade')||'starter').toLowerCase();
+          if (feature || upgrade) {
+            // Show banner and emphasize suggested plan after plans render
+            const tryShow = () => {
+              const card = findPlanCardById(upgrade);
+              if (card) {
+                showBanner(feature, upgrade);
+                card.scrollIntoView({ behavior:'smooth', block:'center' });
+                card.classList.add('plan-highlight'); setTimeout(()=>card.classList.remove('plan-highlight'), 3500);
+                return true;
+              }
+              return false;
+            };
+            // Plans render after initPricing(); poll a few times briefly
+            let attempts = 0; const timer = setInterval(()=>{ if (tryShow() || ++attempts>10) clearInterval(timer); }, 200);
+          }
+        });
+      })();
     </script>
 </body>
 </html>
