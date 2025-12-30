@@ -912,41 +912,63 @@
         }
     </script>
 
-    <!-- URL-driven upgrade helper: reads ?feature=...&upgrade=starter and guides the user -->
+    <!-- URL-driven upgrade helper: reads ?feature=...&upgrade=starter and guides the user; persists dismissal -->
     <script>
       (function() {
+        const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+        const now = Date.now();
+        const keyFor = (feature, plan) => `mouna_gate_dismiss:${(feature||'any')}:${(plan||'starter')}`;
+
         function qs(k, d='') { try { return new URLSearchParams(location.search).get(k) || d; } catch(_) { return d; } }
         function cap(s) { return (s||'').charAt(0).toUpperCase() + (s||'').slice(1); }
+        function featureLabel(code) {
+          const map = { dashboard:'Dashboard', api:'API access', analytics:'Analytics', 'integration-code':'Integration code', 'tenant-preview':'Tenant preview', 'widget-live':'Live widget preview' };
+          return map[(code||'').toLowerCase()] || 'requested feature';
+        }
+        function dismissed(feature, plan) {
+          try {
+            const raw = localStorage.getItem(keyFor(feature, plan));
+            if (!raw) return false;
+            const ts = parseInt(raw, 10);
+            return Number.isFinite(ts) && (now - ts) < TTL_MS;
+          } catch(_) { return false; }
+        }
+        function rememberDismiss(feature, plan) {
+          try { localStorage.setItem(keyFor(feature, plan), String(Date.now())); } catch(_) {}
+        }
         function findPlanCardById(id) {
           return document.querySelector(`[data-plan="${id}"]`) || null;
         }
         function showBanner(feature, upgrade) {
-          const banner = document.getElementById('plan-gate-banner'); if (!banner) return;
-          banner.querySelector('.reason').textContent = feature ? feature.replace(/[-_]/g,' ') : 'requested feature';
+          if (dismissed(feature, upgrade)) return false; // do not show again within TTL
+          const banner = document.getElementById('plan-gate-banner'); if (!banner) return false;
+          banner.querySelector('.reason').textContent = featureLabel(feature);
           banner.querySelector('.plan').textContent = cap(upgrade || 'starter');
           banner.style.display = 'flex';
-          banner.querySelector('#dismiss-banner-btn')?.addEventListener('click',()=> banner.style.display='none');
+          const onDismiss = () => { banner.style.display='none'; rememberDismiss(feature, upgrade); };
+          banner.querySelector('#dismiss-banner-btn')?.addEventListener('click', onDismiss);
           banner.querySelector('#see-plan-btn')?.addEventListener('click',()=>{
             const card = findPlanCardById((upgrade||'starter').toLowerCase());
             if (card) { card.scrollIntoView({ behavior:'smooth', block:'center' }); card.classList.add('plan-highlight'); setTimeout(()=>card.classList.remove('plan-highlight'), 3500); }
           });
           banner.querySelector('#upgrade-now-btn')?.addEventListener('click',()=>{
             const plan = (upgrade || 'starter').toLowerCase();
-            // Reuse existing flow
             try { window.selectPlan ? window.selectPlan(plan) : (location.href = '/signup?plan=' + plan); } catch(_) { location.href = '/signup?plan=' + plan; }
           });
+          return true;
         }
+
         document.addEventListener('DOMContentLoaded', ()=>{
           const feature = (qs('feature')||'');
           const upgrade = (qs('upgrade')||'starter').toLowerCase();
           if (feature || upgrade) {
-            // Show banner and emphasize suggested plan after plans render
             const tryShow = () => {
               const card = findPlanCardById(upgrade);
               if (card) {
-                showBanner(feature, upgrade);
-                card.scrollIntoView({ behavior:'smooth', block:'center' });
-                card.classList.add('plan-highlight'); setTimeout(()=>card.classList.remove('plan-highlight'), 3500);
+                if (showBanner(feature, upgrade)) {
+                  card.scrollIntoView({ behavior:'smooth', block:'center' });
+                  card.classList.add('plan-highlight'); setTimeout(()=>card.classList.remove('plan-highlight'), 3500);
+                }
                 return true;
               }
               return false;
