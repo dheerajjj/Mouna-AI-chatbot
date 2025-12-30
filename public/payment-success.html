@@ -186,7 +186,7 @@
         </div>
 
         <div class="action-buttons">
-            <a href="/dashboard" class="btn btn-primary">
+            <a href="/dashboard" class="btn btn-primary back-to-dashboard">
                 <span>Go to Dashboard</span>
                 <span>→</span>
             </a>
@@ -201,6 +201,15 @@
     </div>
 
     <script>
+        // Normalize back-to-dashboard links for unauthenticated users
+        (function ensureBackLinks(){
+            try {
+                const token = localStorage.getItem('authToken');
+                const href = token ? '/dashboard' : '/login?redirect=%2Fdashboard';
+                document.querySelectorAll('.back-to-dashboard').forEach(a=>{ a.setAttribute('href', href); });
+            } catch(_) {}
+        })();
+
         // Get payment details from URL parameters or localStorage
         const urlParams = new URLSearchParams(window.location.search);
         const paymentDetails = {

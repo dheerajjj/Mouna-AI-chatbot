@@ -920,7 +920,7 @@
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 1.5rem;">
-                <a href="/dashboard" class="back-btn">
+                <a href="/dashboard" class="back-btn back-to-dashboard">
                     <i class="fas fa-arrow-left"></i>
                     <span>Back to Dashboard</span>
                 </a>
@@ -1281,6 +1281,15 @@
     </div>
 
     <script>
+        // Ensure back-to-dashboard links route correctly for unauthenticated users
+        (function ensureBackLinks(){
+            try {
+                const token = localStorage.getItem('authToken');
+                const href = token ? '/dashboard' : '/login?redirect=%2Fdashboard';
+                document.querySelectorAll('.back-to-dashboard').forEach(a=>{ a.setAttribute('href', href); });
+            } catch(_) {}
+        })();
+
         function copyCode(elementId, button) {
             const codeElement = document.getElementById(elementId);
             const text = codeElement.innerText || codeElement.textContent;

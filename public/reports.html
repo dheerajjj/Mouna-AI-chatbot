@@ -467,13 +467,22 @@
 
         <!-- Back to Dashboard -->
         <div style="text-align: center;">
-            <a href="/dashboard" class="btn btn-secondary">
+            <a href="/dashboard" class="btn btn-secondary back-to-dashboard">
                 <i class="fas fa-arrow-left"></i> Back to Dashboard
             </a>
         </div>
     </div>
 
     <script>
+        // Normalize back-to-dashboard links for unauthenticated users
+        (function ensureBackLinks(){
+            try {
+                const token = localStorage.getItem('authToken');
+                const href = token ? '/dashboard' : '/login?redirect=%2Fdashboard';
+                document.querySelectorAll('.back-to-dashboard').forEach(a=>{ a.setAttribute('href', href); });
+            } catch(_) {}
+        })();
+
         // Load user data
         document.addEventListener('DOMContentLoaded', function() {
             loadUserData();
