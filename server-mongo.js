@@ -938,6 +938,63 @@ async function startServer() {
       }
     });
     
+    // Public contact form — send email to support
+    app.post('/api/contact', async (req, res) => {
+      try {
+        const { name, email, company, subject, message } = req.body || {};
+
+        // Basic validation
+        if (!name || !email || !subject || !message) {
+          return res.status(400).json({ error: 'Missing required fields: name, email, subject, message' });
+        }
+        if (String(message).length > 5000) {
+          return res.status(400).json({ error: 'Message is too long' });
+        }
+
+        // Simple email sanity check (server-side)
+        const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email).trim());
+        if (!emailOk) {
+          return res.status(400).json({ error: 'Invalid email address' });
+        }
+
+        const EmailService = require('./services/EmailService');
+        const to = process.env.CONTACT_TO || process.env.SUPPORT_EMAIL || 'info@mouna-ai.com';
+
+        const safe = s => String(s || '').replace(/[<>]/g, c => ({'<':'&lt;','>':'&gt;'}[c]));
+        const html = `
+          <h2>New Contact Form Submission</h2>
+          <p><strong>Name:</strong> ${safe(name)}</p>
+          <p><strong>Email:</strong> ${safe(email)}</p>
+          ${company ? `<p><strong>Company:</strong> ${safe(company)}</p>` : ''}
+          <p><strong>Subject:</strong> ${safe(subject)}</p>
+          <hr>
+          <p style="white-space:pre-wrap">${safe(message)}</p>
+        `;
+
+        await EmailService.sendEmail({
+          to,
+          subject: `[Contact] ${subject}`,
+          html,
+          text: `Name: ${name}\nEmail: ${email}\nCompany: ${company || ''}\nSubject: ${subject}\n\n${message}`
+        });
+
+        // Optional: auto-acknowledge to sender (best-effort)
+        try {
+          await EmailService.sendEmail({
+            to: email,
+            subject: 'We received your message – Mouna AI',
+            text: 'Thanks for reaching out! Our team will get back to you within 24 hours.',
+            html: '<p>Thanks for reaching out! Our team will get back to you within 24 hours.</p>'
+          });
+        } catch (_) {}
+
+        res.json({ success: true, message: 'Message sent successfully' });
+      } catch (err) {
+        console.error('Contact form error:', err);
+        res.status(500).json({ error: 'Failed to send message' });
+      }
+    });
+
     // Get chat configuration
     app.get('/api/chat-config', authenticateJWT, async (req, res) => {
       try {

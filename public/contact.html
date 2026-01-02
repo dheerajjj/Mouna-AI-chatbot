@@ -375,17 +375,9 @@
             const formData = new FormData(this);
             const data = Object.fromEntries(formData);
             
-            // Simulate form submission (replace with actual endpoint)
-            console.log('Contact form submitted:', data);
-            
-            // Show success message
-            alert('Thank you for your message! We will get back to you within 24 hours.');
-            
-            // Reset form
-            this.reset();
-            
-            // In a real implementation, you would send this data to your backend
-            /*
+            // Submit to backend
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending...'; }
             fetch('/api/contact', {
                 method: 'POST',
                 headers: {
@@ -393,16 +385,17 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
-            .then(result => {
-                alert('Message sent successfully!');
+            .then(async (response) => {
+                const payload = await response.json().catch(()=>({}));
+                if (!response.ok) throw new Error(payload.error || 'Failed');
+                alert('Thank you! Your message has been sent.');
                 this.reset();
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Contact form error:', error);
                 alert('There was an error sending your message. Please try again.');
-            });
-            */
+            })
+            .finally(()=>{ if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Message'; }});
         });
     </script>
 </body>
