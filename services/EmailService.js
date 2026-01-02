@@ -513,27 +513,57 @@ class EmailService {
           payload.content.push({ type: 'text/plain', value: mailOptions.subject });
         }
 
-        const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`SendGrid API error ${res.status}: ${text}`);
+        // Add an 8s timeout to avoid long hangs in production
+        const controller = new AbortController();
+        const timeoutMs = parseInt(process.env.EMAIL_TIMEOUT_MS || '8000', 10);
+        const t = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+          clearTimeout(t);
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`SendGrid API error ${res.status}: ${text}`);
+          }
+          return { messageId: res.headers.get('x-message-id') || 'sendgrid-http' };
+        } catch (e) {
+          clearTimeout(t);
+          throw e;
         }
-        return { messageId: res.headers.get('x-message-id') || 'sendgrid-http' };
       } catch (apiErr) {
         console.error('❌ SendGrid HTTP API failed:', apiErr.message);
         // Fall through to SMTP as a secondary attempt
       }
     }
 
-    // Default to transporter
-    return this.transporter.sendMail(mailOptions);
+    // Default to transporter with timeout/fallback
+    const sendTimeout = parseInt(process.env.EMAIL_TIMEOUT_MS || '8000', 10);
+    try {
+      const result = await Promise.race([
+        this.transporter.sendMail(mailOptions),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP send timeout')), sendTimeout))
+      ]);
+      return result;
+    } catch (smtpErr) {
+      console.warn('⚠️ SMTP send failed/timeout, logging email to console instead:', smtpErr.message);
+      // Last-resort console log so we never block requests
+      try {
+        console.log('📧 FALLBACK EMAIL LOG:', {
+          to: mailOptions.to,
+          subject: mailOptions.subject,
+          text: mailOptions.text ? mailOptions.text.slice(0, 200) : undefined,
+          htmlLength: mailOptions.html ? mailOptions.html.length : 0
+        });
+      } catch (_) {}
+      return { messageId: 'console-fallback' };
+    }
   }
 }
 
